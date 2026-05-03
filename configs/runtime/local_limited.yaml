@@ -1,0 +1,7 @@
+runtime:
+  node-id: Runtime
+  max-worker-threads: 2
+  blas-threads: 1
+  torch-threads: 1
+  cpu-affinity: []
+  set-env: true

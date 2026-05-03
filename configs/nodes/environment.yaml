@@ -1,0 +1,18 @@
+environment:
+  node-id: Environment
+  simulation:
+    timestep-s: 0.02
+    pace-s: ${realtime:${environment.simulation.timestep-s}}
+    max-rollout-steps: 10000
+  pendulum:
+    mass-kg: 1.0
+    gravity-m-s2: 9.80665
+    length-m: 1.0
+    damping-nms: 0.05
+    torque-limit-nm: 4.0
+    theta-limit-abs-rad: 12.566370614359172
+    omega-limit-abs-rad-s: 40.0
+  goal:
+    angle-tolerance-rad: 0.05
+    omega-tolerance-rad-s: 0.05
+    hold-steps: 25
