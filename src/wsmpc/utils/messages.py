@@ -20,7 +20,7 @@ class ActionCommand(MessageBase):
     episode_id: int
     t_index: int
     t_sec: float
-    u: float
+    u_nm: float = Field(alias="u-nm")
     source: str
     plan_id: str | None = None
 
@@ -32,11 +32,11 @@ class StateObs(MessageBase):
     episode_id: int
     t_index: int
     t_sec: float
-    theta: float
-    omega: float
-    energy: float
-    energy_error: float
-    wrapped_angle_error: float
+    theta_rad: float = Field(alias="theta-rad")
+    omega_rad_s: float = Field(alias="omega-rad-s")
+    energy_j: float = Field(alias="energy-j")
+    energy_error_j: float = Field(alias="energy-error-j")
+    wrapped_angle_error_rad: float = Field(alias="wrapped-angle-error-rad")
     constraint_margin: float
     goal_reached: bool
 
@@ -48,12 +48,12 @@ class StepRecord(MessageBase):
     episode_id: int
     t_index: int
     t_sec: float
-    theta: float
-    omega: float
-    energy: float
-    energy_error: float
-    u_commanded: float
-    u_applied: float
+    theta_rad: float = Field(alias="theta-rad")
+    omega_rad_s: float = Field(alias="omega-rad-s")
+    energy_j: float = Field(alias="energy-j")
+    energy_error_j: float = Field(alias="energy-error-j")
+    u_commanded_nm: float = Field(alias="u-commanded-nm")
+    u_applied_nm: float = Field(alias="u-applied-nm")
     mode: str
     plan_id: str | None = None
     constraint_margin: float

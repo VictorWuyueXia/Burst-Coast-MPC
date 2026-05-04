@@ -7,7 +7,7 @@ import logging
 import numpy as np
 from numpy.typing import NDArray
 
-from wsmpc.utils.schema import EnvironmentConfig, InitialStateConfig
+from wsmpc.utils.config_schema import EnvironmentConfig, InitialStateConfig
 from wsmpc.utils.logging import log_event
 from wsmpc.utils.messages import ActionCommand, StateObs, StepRecord
 from wsmpc.utils.time import monotonic_s, sleep_s
@@ -73,7 +73,10 @@ class Environment:
         """Reset true state and publish the initial observation."""
 
         # Store the initial condition as a compact NumPy vector for fast simulation math.
-        self._state = np.asarray([initial_state.theta, initial_state.omega], dtype=np.float64)
+        self._state = np.asarray(
+            [initial_state.theta_rad, initial_state.omega_rad_s],
+            dtype=np.float64,
+        )
         self._t_index = 0
         observation = self._make_observation()
 
@@ -86,8 +89,8 @@ class Environment:
             action_result="observation_ready",
             t_index=observation.t_index,
             t_sec=observation.t_sec,
-            theta=f"{observation.theta:.6f}",
-            omega=f"{observation.omega:.6f}",
+            theta_rad=f"{observation.theta_rad:.6f}",
+            omega_rad_s=f"{observation.omega_rad_s:.6f}",
         )
         return observation
 
@@ -105,16 +108,16 @@ class Environment:
             t_index=self._t_index,
             t_sec=self.t_sec,
             action_source=action.source,
-            u_commanded=f"{action.u:.6f}",
+            u_commanded_nm=f"{action.u_nm:.6f}",
         )
 
         # Clip the command before integration so logs keep both commanded and applied action.
-        applied_torque = float(clip_torque(action.u, self.config.pendulum))
+        applied_torque_nm = float(clip_torque(action.u_nm, self.config.pendulum))
 
         # Integrate one fixed computation deltaT and advance only simulated time.
         self._state = rk4_step(
             self._state,
-            applied_torque,
+            applied_torque_nm,
             self.config.simulation.timestep_s,
             self.config.pendulum,
         )
@@ -131,12 +134,12 @@ class Environment:
             episode_id=self.episode_id,
             t_index=observation.t_index,
             t_sec=observation.t_sec,
-            theta=observation.theta,
-            omega=observation.omega,
-            energy=observation.energy,
-            energy_error=observation.energy_error,
-            u_commanded=action.u,
-            u_applied=applied_torque,
+            theta_rad=observation.theta_rad,
+            omega_rad_s=observation.omega_rad_s,
+            energy_j=observation.energy_j,
+            energy_error_j=observation.energy_error_j,
+            u_commanded_nm=action.u_nm,
+            u_applied_nm=applied_torque_nm,
             mode=action.source,
             plan_id=action.plan_id,
             constraint_margin=observation.constraint_margin,
@@ -155,9 +158,9 @@ class Environment:
             action_result=record.action_result,
             t_index=observation.t_index,
             t_sec=observation.t_sec,
-            u_applied=f"{record.u_applied:.6f}",
-            theta=f"{observation.theta:.6f}",
-            omega=f"{observation.omega:.6f}",
+            u_applied_nm=f"{record.u_applied_nm:.6f}",
+            theta_rad=f"{observation.theta_rad:.6f}",
+            omega_rad_s=f"{observation.omega_rad_s:.6f}",
             goal_reached=observation.goal_reached,
             constraint_margin=f"{observation.constraint_margin:.6f}",
         )
@@ -178,10 +181,10 @@ class Environment:
         # The recurrence is sequential, while each dynamics evaluation uses NumPy math internally.
         trajectory = np.empty((action_array.size + 1, 2), dtype=np.float64)
         trajectory[0] = np.asarray(x0, dtype=np.float64)
-        for index, torque in enumerate(action_array):
+        for index, torque_nm in enumerate(action_array):
             trajectory[index + 1] = rk4_step(
                 trajectory[index],
-                float(torque),
+                float(torque_nm),
                 self.config.simulation.timestep_s,
                 self.config.pendulum,
             )
@@ -191,18 +194,18 @@ class Environment:
         """Build a typed observation from current true state and diagnostics."""
 
         # Centralize all diagnostic feature calculations for consistent message semantics.
-        theta = float(self._state[0])
-        omega = float(self._state[1])
-        energy = float(pendulum_energy(theta, omega, self.config.pendulum))
+        theta_rad = float(self._state[0])
+        omega_rad_s = float(self._state[1])
+        energy_j = float(pendulum_energy(theta_rad, omega_rad_s, self.config.pendulum))
         feature = state_features(self._state, self.config.pendulum)
         constraint_margin = min(
-            self.config.pendulum.theta_limit_abs_rad - abs(theta),
-            self.config.pendulum.omega_limit_abs_rad_s - abs(omega),
+            self.config.pendulum.theta_limit_abs_rad - abs(theta_rad),
+            self.config.pendulum.omega_limit_abs_rad_s - abs(omega_rad_s),
         )
-        wrapped_angle_error = float(feature[1])
+        wrapped_angle_error_rad = float(feature[1])
         goal_reached = (
-            abs(wrapped_angle_error) <= self.config.goal.angle_tolerance_rad
-            and abs(omega) <= self.config.goal.omega_tolerance_rad_s
+            abs(wrapped_angle_error_rad) <= self.config.goal.angle_tolerance_rad
+            and abs(omega_rad_s) <= self.config.goal.omega_tolerance_rad_s
         )
 
         return StateObs(
@@ -210,11 +213,11 @@ class Environment:
             episode_id=self.episode_id,
             t_index=self._t_index,
             t_sec=self.t_sec,
-            theta=theta,
-            omega=omega,
-            energy=energy,
-            energy_error=energy - upright_energy(self.config.pendulum),
-            wrapped_angle_error=wrapped_angle_error,
+            theta_rad=theta_rad,
+            omega_rad_s=omega_rad_s,
+            energy_j=energy_j,
+            energy_error_j=energy_j - upright_energy(self.config.pendulum),
+            wrapped_angle_error_rad=wrapped_angle_error_rad,
             constraint_margin=float(constraint_margin),
             goal_reached=goal_reached,
         )

@@ -10,8 +10,8 @@ from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
+from wsmpc.utils.config_schema import RootConfig
 from wsmpc.utils.time import realtime
-from wsmpc.utils.schema import RootConfig
 
 
 CONFIG_ROOT = Path(__file__).resolve().parents[3] / "configs"

@@ -21,14 +21,14 @@ def test_environment_step_returns_finite_observation_and_record() -> None:
             episode_id=observation.episode_id,
             t_index=observation.t_index,
             t_sec=observation.t_sec,
-            u=0.0,
+            u_nm=0.0,
             source="test",
         )
     )
 
     assert next_observation.t_index == 1
     assert record.t_index == 1
-    assert np.isfinite([next_observation.theta, next_observation.omega]).all()
+    assert np.isfinite([next_observation.theta_rad, next_observation.omega_rad_s]).all()
 
 
 def test_environment_rollout_shape() -> None:

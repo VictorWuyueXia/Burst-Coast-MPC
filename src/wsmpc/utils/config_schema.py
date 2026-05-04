@@ -22,14 +22,14 @@ class LoggingConfig(ConfigBase):
 class InitialStateConfig(ConfigBase):
     """Initial physical state for the pendulum environment."""
 
-    theta: float = 0.0
-    omega: float = 0.0
+    theta_rad: float = Field(default=0.0, alias="theta-rad")
+    omega_rad_s: float = Field(default=0.0, alias="omega-rad-s")
 
 
 class DefaultActionConfig(ConfigBase):
     """Default action used by the Coordinator."""
 
-    u: float = 0.0
+    u_nm: float = Field(default=0.0, alias="u-nm")
     source: str = "zero_torque"
 
 

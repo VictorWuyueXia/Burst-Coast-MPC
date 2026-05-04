@@ -7,7 +7,7 @@ def test_action_command_round_trip_json() -> None:
         episode_id=0,
         t_index=1,
         t_sec=0.02,
-        u=0.5,
+        u_nm=0.5,
         source="zero_torque",
     )
 

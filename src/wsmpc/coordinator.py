@@ -132,7 +132,7 @@ class Coordinator:
             episode_id=self.experiment_config.episode_id,
             t_index=observation.t_index,
             t_sec=observation.t_sec,
-            u=self.experiment_config.default_action.u,
+            u_nm=self.experiment_config.default_action.u_nm,
             source=self.experiment_config.default_action.source,
         )
         log_event(
@@ -144,7 +144,7 @@ class Coordinator:
             action_result="command_ready",
             t_index=observation.t_index,
             t_sec=observation.t_sec,
-            u=f"{action.u:.6f}",
+            u_nm=f"{action.u_nm:.6f}",
             source=action.source,
         )
         return action

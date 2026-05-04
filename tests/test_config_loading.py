@@ -3,12 +3,14 @@ import shutil
 from pathlib import Path
 
 import wsmpc.utils.loaders as loaders
+from wsmpc.utils.config_schema import RootConfig
 from wsmpc.utils.loaders import load_config, load_config_with_fallbacks, warn_default_fallbacks
 
 
 def test_standard_config_loads_as_atomic_package() -> None:
     config = load_config()
 
+    assert isinstance(config, RootConfig)
     assert config.environment.simulation.pace_s == config.environment.simulation.timestep_s
     assert config.experiment.run_id == "pendulum_baseline"
 
@@ -40,10 +42,10 @@ def test_missing_parameter_uses_default_value_and_warns(tmp_path, monkeypatch, c
 
     config, fallbacks = load_config_with_fallbacks("partial")
 
-    assert config.environment.simulation.timestep_s == 0.02
+    assert config.environment.simulation.timestep_s == 0.01
     assert any(fallback.parameter == "environment.simulation.timestep-s" for fallback in fallbacks)
 
     with caplog.at_level(logging.WARNING):
         warn_default_fallbacks(logging.getLogger("test"), fallbacks)
 
-    assert "parameter=environment.simulation.timestep-s value=0.02" in caplog.text
+    assert "parameter=environment.simulation.timestep-s value=0.01" in caplog.text
