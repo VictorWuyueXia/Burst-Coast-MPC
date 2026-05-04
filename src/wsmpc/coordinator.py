@@ -5,10 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 
-from wsmpc.config.schema import CoordinatorConfig, EnvironmentConfig, ExperimentConfig
-from wsmpc.core.logging import log_event
-from wsmpc.core.messages import ActionCommand, ExperimentSummary, StateObs, StepRecord
-from wsmpc.core.time import monotonic_s
+from wsmpc.utils.config_schema import CoordinatorConfig, EnvironmentConfig, ExperimentConfig
+from wsmpc.utils.logging import log_event
+from wsmpc.utils.messages import ActionCommand, ExperimentSummary, StateObs, StepRecord
+from wsmpc.utils.time import monotonic_s
 from wsmpc.environment import Environment
 
 
@@ -38,6 +38,7 @@ class Coordinator:
         self.experiment_config = experiment_config
         self.logger = logger or logging.getLogger(__name__)
 
+        # Log coordinator initialization
         log_event(
             self.logger,
             logging.INFO,
@@ -52,6 +53,8 @@ class Coordinator:
     def run_episode(self) -> EpisodeResult:
         """Run one deterministic episode through the Environment."""
 
+        # Create environment
+        ## wall_started_at is the time the episode started
         wall_started_at = monotonic_s()
         environment = Environment(
             self.environment_config,
@@ -63,6 +66,7 @@ class Coordinator:
         records: list[StepRecord] = []
         goal_hold_count = 1 if observation.goal_reached else 0
 
+        # Log episode start
         log_event(
             self.logger,
             logging.INFO,
@@ -82,22 +86,29 @@ class Coordinator:
                 status = "goal_reached"
                 break
 
+            # Build default action
             action = self._build_default_action(observation)
+            # Decision epoch is 
             self._log_decision_epoch(observation)
+            # Step environment
             observation, record = environment.step(action)
             records.append(record)
 
+            # goal_hold_count is the number of consecutive steps the goal has been reached
             goal_hold_count = goal_hold_count + 1 if observation.goal_reached else 0
+            # Finish if goal is reached
             if self._should_stop_for_goal(goal_hold_count):
                 status = "goal_reached"
                 break
 
+        # Build summary
         summary = self._build_summary(
             status=status,
             observation=observation,
             records=records,
             wall_started_at=wall_started_at,
         )
+        # Log episode finish
         log_event(
             self.logger,
             logging.INFO,

@@ -1,20 +1,13 @@
-from pathlib import Path
-
 import numpy as np
 
-from wsmpc.config.loaders import load_config
-from wsmpc.core.messages import ActionCommand
+from wsmpc.utils.loaders import load_config
+from wsmpc.utils.messages import ActionCommand
 from wsmpc.environment import Environment
 
 
-CONFIG_DIR = Path(__file__).resolve().parents[1] / "configs"
-
-
 def test_environment_step_returns_finite_observation_and_record() -> None:
-    config = load_config(
-        config_dir=CONFIG_DIR,
-        overrides=["environment.simulation.pace-s=0.0"],
-    )
+    config = load_config()
+    config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,
         run_id=config.experiment.run_id,
@@ -39,10 +32,8 @@ def test_environment_step_returns_finite_observation_and_record() -> None:
 
 
 def test_environment_rollout_shape() -> None:
-    config = load_config(
-        config_dir=CONFIG_DIR,
-        overrides=["environment.simulation.pace-s=0.0"],
-    )
+    config = load_config()
+    config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,
         run_id=config.experiment.run_id,

@@ -1,4 +1,4 @@
-"""Typed configuration schema for wake-sleep MPC experiments."""
+"""Typed configuration schema."""
 
 from __future__ import annotations
 

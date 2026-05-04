@@ -1,0 +1,44 @@
+logging:
+  level: INFO
+experiment:
+  run-id: pendulum_baseline
+  global-seed: 1
+  episode-id: 0
+  max-steps: 25
+  stop-on-goal: true
+  initial-state:
+    theta: 0.0
+    omega: 0.0
+  default-action:
+    u: 0.0
+    source: zero_torque
+coordinator:
+  node-id: Coordinator
+  mode: synchronous
+  decision-interval-steps: 1
+  debug-log-every-n-steps: 1
+environment:
+  node-id: Environment
+  simulation:
+    timestep-s: 0.02
+    pace-s: ${realtime:${environment.simulation.timestep-s}}
+    max-rollout-steps: 10000
+  pendulum:
+    mass-kg: 1.0
+    gravity-m-s2: 9.80665
+    length-m: 1.0
+    damping-nms: 0.05
+    torque-limit-nm: 4.0
+    theta-limit-abs-rad: 12.566370614359172
+    omega-limit-abs-rad-s: 40.0
+  goal:
+    angle-tolerance-rad: 0.05
+    omega-tolerance-rad-s: 0.05
+    hold-steps: 25
+runtime:
+  node-id: Runtime
+  max-worker-threads: 2
+  blas-threads: 1
+  torch-threads: 1
+  cpu-affinity: []
+  set-env: true

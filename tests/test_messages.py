@@ -1,4 +1,4 @@
-from wsmpc.core.messages import ActionCommand, NodeStatus
+from wsmpc.utils.messages import ActionCommand, NodeStatus
 
 
 def test_action_command_round_trip_json() -> None:

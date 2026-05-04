@@ -1,7 +1,7 @@
 import logging
 
-from wsmpc.config.schema import RuntimeConfig
-from wsmpc.core.resources import configure_runtime_resources
+from wsmpc.utils.config_schema import RuntimeConfig
+from wsmpc.utils.resources import configure_runtime_resources
 
 
 def test_runtime_resource_configuration_does_not_crash() -> None:

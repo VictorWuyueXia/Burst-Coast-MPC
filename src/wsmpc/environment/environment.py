@@ -7,10 +7,10 @@ import logging
 import numpy as np
 from numpy.typing import NDArray
 
-from wsmpc.config.schema import EnvironmentConfig, InitialStateConfig
-from wsmpc.core.logging import log_event
-from wsmpc.core.messages import ActionCommand, StateObs, StepRecord
-from wsmpc.core.time import monotonic_s, sleep_s
+from wsmpc.utils.schema import EnvironmentConfig, InitialStateConfig
+from wsmpc.utils.logging import log_event
+from wsmpc.utils.messages import ActionCommand, StateObs, StepRecord
+from wsmpc.utils.time import monotonic_s, sleep_s
 from wsmpc.environment.dynamics import (
     clip_torque,
     pendulum_energy,

@@ -1,5 +1,0 @@
-coordinator:
-  node-id: Coordinator
-  mode: synchronous
-  decision-interval-steps: 1
-  debug-log-every-n-steps: 1

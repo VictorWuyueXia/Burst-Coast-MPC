@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from wsmpc.config.schema import PendulumConfig
+from wsmpc.utils.config_schema import PendulumConfig
 
 
 def wrap_angle(angle_rad: ArrayLike) -> NDArray[np.float64]:

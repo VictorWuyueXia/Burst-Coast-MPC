@@ -1,7 +1,0 @@
-experiment: pendulum_baseline
-nodes:
-  coordinator: coordinator
-  environment: environment
-runtime: local_limited
-logging:
-  level: INFO

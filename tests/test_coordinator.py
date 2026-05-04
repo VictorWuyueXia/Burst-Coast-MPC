@@ -1,21 +1,12 @@
-from pathlib import Path
-
-from wsmpc.config.loaders import load_config
+from wsmpc.utils.loaders import load_config
 from wsmpc.coordinator import Coordinator
 
 
-CONFIG_DIR = Path(__file__).resolve().parents[1] / "configs"
-
-
 def test_coordinator_runs_short_baseline_episode() -> None:
-    config = load_config(
-        config_dir=CONFIG_DIR,
-        overrides=[
-            "experiment.max-steps=3",
-            "environment.goal.hold-steps=999",
-            "environment.simulation.pace-s=0.0",
-        ],
-    )
+    config = load_config()
+    config.experiment.max_steps = 3
+    config.environment.goal.hold_steps = 999
+    config.environment.simulation.pace_s = 0.0
     coordinator = Coordinator(config.coordinator, config.environment, config.experiment)
 
     result = coordinator.run_episode()

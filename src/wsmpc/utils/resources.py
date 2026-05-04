@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 import logging
 import os
 
-from wsmpc.config.schema import RuntimeConfig
-from wsmpc.core.logging import log_event
+from wsmpc.utils.config_schema import RuntimeConfig
+from wsmpc.utils.logging import log_event
 
 
 @dataclass(frozen=True)
