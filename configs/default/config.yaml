@@ -1,5 +1,9 @@
 logging:
   level: INFO
+artifacts:
+  root-dir: artifacts/experiments
+  alias: null
+  enabled: true
 experiment:
   run-id: pendulum_baseline
   global-seed: 32

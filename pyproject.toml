@@ -17,6 +17,7 @@ dependencies = [
   "rich>=13.7",
   "psutil>=5.9",
   "threadpoolctl>=3.5",
+  "matplotlib>=3.8",
 ]
 
 [project.optional-dependencies]

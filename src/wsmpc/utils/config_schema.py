@@ -19,6 +19,14 @@ class LoggingConfig(ConfigBase):
     level: str = "INFO"
 
 
+class ArtifactConfig(ConfigBase):
+    """Artifact recording controls for local experiment runs."""
+
+    root_dir: str = Field(default="artifacts/experiments", alias="root-dir")
+    alias: str | None = None
+    enabled: bool = True
+
+
 class InitialStateConfig(ConfigBase):
     """Initial physical state for the pendulum environment."""
 
@@ -200,4 +208,5 @@ class RootConfig(ConfigBase):
     coordinator: CoordinatorConfig
     environment: EnvironmentConfig
     runtime: RuntimeConfig
+    artifacts: ArtifactConfig = Field(default_factory=ArtifactConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)

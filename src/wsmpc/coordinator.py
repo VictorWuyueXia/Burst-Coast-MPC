@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
+from collections.abc import Callable
+from dataclasses import dataclass
 
+from wsmpc.environment import Environment
 from wsmpc.utils.config_schema import CoordinatorConfig, EnvironmentConfig, ExperimentConfig
 from wsmpc.utils.logging import log_event
 from wsmpc.utils.messages import ActionCommand, ExperimentSummary, StateObs, StepRecord
 from wsmpc.utils.time import monotonic_s
-from wsmpc.environment import Environment
 
 
 @dataclass(frozen=True)
@@ -50,11 +51,16 @@ class Coordinator:
             global_seed=self.experiment_config.global_seed,
         )
 
-    def run_episode(self) -> EpisodeResult:
+    def run_episode(
+        self,
+        *,
+        on_episode_start: Callable[[StateObs], None] | None = None,
+        on_step: Callable[[StateObs, StepRecord], None] | None = None,
+        on_episode_finish: Callable[[ExperimentSummary], None] | None = None,
+    ) -> EpisodeResult:
         """Run one deterministic episode through the Environment."""
 
-        # Create environment
-        ## wall_started_at is the time the episode started
+        # Build the environment locally so each episode owns its simulator state.
         wall_started_at = monotonic_s()
         environment = Environment(
             self.environment_config,
@@ -78,6 +84,9 @@ class Coordinator:
             t_sec=observation.t_sec,
             max_steps=self.experiment_config.max_steps,
         )
+        # call the on_episode_start callback to initialize the visualization state
+        if on_episode_start is not None:
+            on_episode_start(observation)
 
         # The Coordinator applies the configured default command at every simulator step.
         status = "max_steps_reached"
@@ -86,29 +95,29 @@ class Coordinator:
                 status = "goal_reached"
                 break
 
-            # Build default action
+            # Build the configured default action at the current observation time.
             action = self._build_default_action(observation)
-            # Decision epoch is 
             self._log_decision_epoch(observation)
-            # Step environment
+
+            # Step the environment once and expose the completed transition to subscribers.
             observation, record = environment.step(action)
             records.append(record)
+            if on_step is not None:
+                on_step(observation, record)
 
-            # goal_hold_count is the number of consecutive steps the goal has been reached
+            # Count consecutive goal observations according to the configured hold rule.
             goal_hold_count = goal_hold_count + 1 if observation.goal_reached else 0
-            # Finish if goal is reached
             if self._should_stop_for_goal(goal_hold_count):
                 status = "goal_reached"
                 break
 
-        # Build summary
+        # Build the summary after the final observation is known.
         summary = self._build_summary(
             status=status,
             observation=observation,
             records=records,
             wall_started_at=wall_started_at,
         )
-        # Log episode finish
         log_event(
             self.logger,
             logging.INFO,
@@ -122,6 +131,8 @@ class Coordinator:
             goal_reached=summary.goal_reached,
             total_wall_time_s=f"{summary.total_wall_time_s:.6f}",
         )
+        if on_episode_finish is not None:
+            on_episode_finish(summary)
         return EpisodeResult(summary=summary, records=records)
 
     def _build_default_action(self, observation: StateObs) -> ActionCommand:

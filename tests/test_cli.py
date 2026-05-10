@@ -6,16 +6,48 @@ from wsmpc.cli import app
 def test_cli_run_episode() -> None:
     runner = CliRunner()
 
-    result = runner.invoke(app, ["run-episode"])
+    result = runner.invoke(app, ["run-episode", "--config-package", "default", "--no-artifacts"])
 
     assert result.exit_code == 0, result.output
     assert "pendulum_baseline" in result.output
 
 
-def test_cli_run_episode_with_explicit_standard_config() -> None:
+def test_cli_run_episode_writes_artifacts(tmp_path) -> None:
     runner = CliRunner()
 
-    result = runner.invoke(app, ["run-episode", "--config-package", "standard"])
+    result = runner.invoke(
+        app,
+        [
+            "run-episode",
+            "--config-package",
+            "default",
+            "--artifact-root",
+            str(tmp_path),
+            "--run-alias",
+            "smoke",
+        ],
+    )
 
     assert result.exit_code == 0, result.output
     assert "pendulum_baseline" in result.output
+    assert "artifact_dir" in result.output
+    assert len(list(tmp_path.iterdir())) == 1
+
+
+def test_cli_run_episode_no_artifacts_does_not_create_root(tmp_path) -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        app,
+        [
+            "run-episode",
+            "--config-package",
+            "default",
+            "--artifact-root",
+            str(tmp_path / "unused"),
+            "--no-artifacts",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert not (tmp_path / "unused").exists()
