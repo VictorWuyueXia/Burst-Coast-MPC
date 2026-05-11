@@ -26,7 +26,7 @@ def pendulum_energy(
     omega_array = np.asarray(omega_rad_s, dtype=np.float64)
     inertia = config.mass_kg * config.length_m**2
     kinetic = 0.5 * inertia * omega_array**2
-    potential = config.mass_kg * config.gravity_m_s2 * config.length_m * (1.0 - np.cos(theta_array))
+    potential = config.mass_kg * config.gravity_m_s2 * config.length_m * (1.0 + np.cos(theta_array))
     return kinetic + potential
 
 
@@ -43,7 +43,7 @@ def state_features(state: ArrayLike, config: PendulumConfig) -> NDArray[np.float
     theta_rad = state_array[..., 0]
     omega_rad_s = state_array[..., 1]
     energy_error_j = pendulum_energy(theta_rad, omega_rad_s, config) - upright_energy(config)
-    wrapped_angle_error_rad = wrap_angle(theta_rad - np.pi)
+    wrapped_angle_error_rad = wrap_angle(theta_rad)
     return np.stack((energy_error_j, wrapped_angle_error_rad, omega_rad_s), axis=-1)
 
 

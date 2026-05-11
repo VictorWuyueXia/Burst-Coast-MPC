@@ -55,6 +55,7 @@ class Coordinator:
         self,
         *,
         on_episode_start: Callable[[StateObs], None] | None = None,
+        on_before_step: Callable[[StateObs], None] | None = None,
         on_step: Callable[[StateObs, StepRecord], None] | None = None,
         on_episode_finish: Callable[[ExperimentSummary], None] | None = None,
     ) -> EpisodeResult:
@@ -90,26 +91,53 @@ class Coordinator:
 
         # The Coordinator applies the configured default command at every simulator step.
         status = "max_steps_reached"
-        for _ in range(self.experiment_config.max_steps):
-            if self._should_stop_for_goal(goal_hold_count):
-                status = "goal_reached"
-                break
+        try:
+            for _ in range(self.experiment_config.max_steps):
+                if self._should_stop_for_goal(goal_hold_count):
+                    status = "goal_reached"
+                    break
 
-            # Build the configured default action at the current observation time.
-            action = self._build_default_action(observation)
-            self._log_decision_epoch(observation)
+                if on_before_step is not None:
+                    on_before_step(observation)
 
-            # Step the environment once and expose the completed transition to subscribers.
-            observation, record = environment.step(action)
-            records.append(record)
-            if on_step is not None:
-                on_step(observation, record)
+                # Build the configured default action at the current observation time.
+                action = self._build_default_action(observation)
+                self._log_decision_epoch(observation)
 
-            # Count consecutive goal observations according to the configured hold rule.
-            goal_hold_count = goal_hold_count + 1 if observation.goal_reached else 0
-            if self._should_stop_for_goal(goal_hold_count):
-                status = "goal_reached"
-                break
+                # Step the environment once and expose the completed transition to subscribers.
+                observation, record = environment.step(action)
+                records.append(record)
+                if on_step is not None:
+                    on_step(observation, record)
+
+                # Count consecutive goal observations according to the configured hold rule.
+                goal_hold_count = goal_hold_count + 1 if observation.goal_reached else 0
+                if self._should_stop_for_goal(goal_hold_count):
+                    status = "goal_reached"
+                    break
+        except KeyboardInterrupt:
+            summary = self._build_summary(
+                status="interrupted",
+                observation=observation,
+                records=records,
+                wall_started_at=wall_started_at,
+            )
+            log_event(
+                self.logger,
+                logging.WARNING,
+                identity=self.identity,
+                status="interrupted",
+                action="episode_interrupt",
+                action_result=summary.status,
+                t_index=summary.final_t_index,
+                t_sec=summary.final_t_sec,
+                total_steps=summary.total_steps,
+                goal_reached=summary.goal_reached,
+                total_wall_time_s=f"{summary.total_wall_time_s:.6f}",
+            )
+            if on_episode_finish is not None:
+                on_episode_finish(summary)
+            return EpisodeResult(summary=summary, records=records)
 
         # Build the summary after the final observation is known.
         summary = self._build_summary(

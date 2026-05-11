@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from wsmpc.cli import app
+from wsmpc.cli import TerminalPauseController, app
 
 
 def test_cli_run_episode() -> None:
@@ -51,3 +51,12 @@ def test_cli_run_episode_no_artifacts_does_not_create_root(tmp_path) -> None:
 
     assert result.exit_code == 0, result.output
     assert not (tmp_path / "unused").exists()
+
+
+def test_terminal_pause_controller_disabled_does_not_block() -> None:
+    controller = TerminalPauseController(enabled=False)
+
+    with controller:
+        controller.wait_if_paused()
+
+    assert controller.enabled is False

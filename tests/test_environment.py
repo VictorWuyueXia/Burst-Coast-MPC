@@ -1,8 +1,10 @@
 import numpy as np
+import pytest
 
+from wsmpc.environment import Environment
+from wsmpc.utils.config_schema import InitialStateConfig
 from wsmpc.utils.loaders import load_config
 from wsmpc.utils.messages import ActionCommand
-from wsmpc.environment import Environment
 
 
 def test_environment_step_returns_finite_observation_and_record() -> None:
@@ -44,3 +46,22 @@ def test_environment_rollout_shape() -> None:
 
     assert trajectory.shape == (5, 2)
     assert np.isfinite(trajectory).all()
+
+
+def test_environment_goal_targets_zero_angle_upright() -> None:
+    config = load_config()
+    config.environment.simulation.pace_s = 0.0
+    environment = Environment(
+        config.environment,
+        run_id=config.experiment.run_id,
+        episode_id=config.experiment.episode_id,
+    )
+
+    upright_observation = environment.reset(InitialStateConfig(theta_rad=0.0, omega_rad_s=0.0))
+    downward_observation = environment.reset(InitialStateConfig(theta_rad=np.pi, omega_rad_s=0.0))
+
+    assert upright_observation.goal_reached is True
+    assert upright_observation.wrapped_angle_error_rad == pytest.approx(0.0)
+    assert upright_observation.energy_error_j == pytest.approx(0.0)
+    assert downward_observation.goal_reached is False
+    assert downward_observation.energy_error_j < 0.0

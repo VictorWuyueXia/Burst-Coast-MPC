@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import logging
+import select
+import sys
+import termios
+import tty
 from pathlib import Path
-from typing import Annotated
+from types import TracebackType
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -21,6 +26,61 @@ from wsmpc.utils.resources import configure_runtime_resources
 
 app = typer.Typer(help="Wake-sleep MPC research CLI.")
 console = Console()
+
+
+class TerminalPauseController:
+    """Nonblocking single-key pause and resume controls for interactive runs."""
+
+    def __init__(self, *, enabled: bool = True) -> None:
+        self.enabled = enabled and sys.stdin.isatty()
+        self._paused = False
+        self._original_terminal_attrs: list[Any] | None = None
+
+    def __enter__(self) -> TerminalPauseController:
+        """Enable cbreak input so single-key commands do not need Enter."""
+
+        if self.enabled:
+            self._original_terminal_attrs = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+            console.print("Controls: press 's' to pause simulation, 'r' to resume.")
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        """Restore the user's terminal mode after the run finishes."""
+
+        if self.enabled and self._original_terminal_attrs is not None:
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._original_terminal_attrs)
+
+    def wait_if_paused(self) -> None:
+        """Poll for pause commands and block until resume when paused."""
+
+        if not self.enabled:
+            return
+        self._consume_pause_command()
+        while self._paused:
+            ready, _, _ = select.select([sys.stdin], [], [], 0.1)
+            if not ready:
+                continue
+            key = sys.stdin.read(1).lower()
+            if key == "r":
+                self._paused = False
+                console.print("Simulation resumed. Press 's' to pause again.")
+
+    def _consume_pause_command(self) -> None:
+        """Process any pending terminal keypress before a simulator step."""
+
+        ready, _, _ = select.select([sys.stdin], [], [], 0)
+        if not ready:
+            return
+        key = sys.stdin.read(1).lower()
+        if key == "s":
+            self._paused = True
+            console.print("Simulation paused. Press 'r' to resume.")
 
 
 @app.callback()
@@ -161,8 +221,12 @@ def run_episode(
             ) from exc
 
         if visualize:
-            realtime_plot = RealtimeEpisodePlot(update_every=viz_update_every)
-        if animate:
+            realtime_plot = RealtimeEpisodePlot(
+                config.environment.pendulum,
+                update_every=viz_update_every,
+                include_animation=animate,
+            )
+        if animate and realtime_plot is None:
             pendulum_animation = PendulumAnimation(
                 config.environment.pendulum,
                 update_every=viz_update_every,
@@ -179,8 +243,15 @@ def run_episode(
     def on_episode_start(observation) -> None:
         """Initialize live animation state from the reset observation."""
 
-        if pendulum_animation is not None:
+        if realtime_plot is not None:
+            realtime_plot.start_animation(observation)
+        elif pendulum_animation is not None:
             pendulum_animation.start(observation)
+
+    def on_before_step(observation) -> None:
+        """Apply interactive terminal controls before advancing simulated time."""
+
+        pause_controller.wait_if_paused()
 
     def on_step(observation, record) -> None:
         """Fan completed environment transitions out to active subscribers."""
@@ -189,7 +260,7 @@ def run_episode(
             artifact_writer.write_step(record)
         if realtime_plot is not None:
             realtime_plot.add_step(observation, record)
-        if pendulum_animation is not None:
+        elif pendulum_animation is not None:
             pendulum_animation.add_step(observation, record)
 
     def on_episode_finish(summary) -> None:
@@ -199,16 +270,18 @@ def run_episode(
             artifact_writer.write_summary(summary)
         if realtime_plot is not None:
             realtime_plot.finish()
-        if pendulum_animation is not None:
+        elif pendulum_animation is not None:
             pendulum_animation.finish()
 
     try:
         # run the episode with the callbacks
-        result = coordinator.run_episode(
-            on_episode_start=on_episode_start,
-            on_step=on_step,
-            on_episode_finish=on_episode_finish,
-        )
+        with TerminalPauseController() as pause_controller:
+            result = coordinator.run_episode(
+                on_episode_start=on_episode_start,
+                on_before_step=on_before_step,
+                on_step=on_step,
+                on_episode_finish=on_episode_finish,
+            )
     except Exception:
         if artifact_writer is not None:
             artifact_writer.finalize_manifest(completed=False, status="failed")
@@ -216,7 +289,10 @@ def run_episode(
         raise
     # finalize the artifacts and detach the log handler
     if artifact_writer is not None:
-        artifact_writer.finalize_manifest(completed=True, status=result.summary.status)
+        artifact_writer.finalize_manifest(
+            completed=result.summary.status != "interrupted",
+            status=result.summary.status,
+        )
     detach_run_log_handler(logger, run_log_handler)
 
     # Print a short human-facing summary while detailed traces remain in logs.
