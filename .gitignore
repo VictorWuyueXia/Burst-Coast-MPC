@@ -4,4 +4,5 @@
 **/.pytest_cache/
 artifacts/
 wake-sleep-mpc.egg-info/
+wake_sleep_mpc.egg-info/
 .ruff_cache/
