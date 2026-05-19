@@ -6,6 +6,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
+from wsmpc.mpc.numeric_features import DEFAULT_EPSILON_PHI, phase_proxy_error
 from wsmpc.utils.config_schema import PendulumConfig
 from wsmpc.utils.messages import StateObs, StepRecord
 
@@ -21,6 +22,8 @@ class _SeriesBuffer:
     potential_energy_j: list[float] = field(default_factory=list)
     energy_j: list[float] = field(default_factory=list)
     energy_error_j: list[float] = field(default_factory=list)
+    phase_c_error: list[float] = field(default_factory=list)
+    phase_s: list[float] = field(default_factory=list)
     constraint_margin: list[float] = field(default_factory=list)
     goal_flag: list[float] = field(default_factory=list)
     u_commanded_nm: list[float] = field(default_factory=list)
@@ -36,10 +39,12 @@ class RealtimeEpisodePlot:
         *,
         update_every: int = 1,
         include_animation: bool = False,
+        phase_epsilon_phi: float = DEFAULT_EPSILON_PHI,
     ) -> None:
         self.pendulum = pendulum
         self.update_every = max(1, update_every)
         self.include_animation = include_animation
+        self.phase_epsilon_phi = phase_epsilon_phi
         self.buffer = _SeriesBuffer()
 
         # Import Matplotlib lazily so non-visual runs stay dependency-light at import time.
@@ -77,6 +82,13 @@ class RealtimeEpisodePlot:
         )
         self.buffer.energy_j.append(record.energy_j)
         self.buffer.energy_error_j.append(record.energy_error_j)
+        phase_error = phase_proxy_error(
+            [record.theta_rad, record.omega_rad_s],
+            self.pendulum,
+            epsilon_phi=self.phase_epsilon_phi,
+        )
+        self.buffer.phase_c_error.append(float(phase_error[0]))
+        self.buffer.phase_s.append(float(phase_error[1]))
         self.buffer.constraint_margin.append(record.constraint_margin)
         self.buffer.goal_flag.append(1.0 if record.goal_flag else 0.0)
         self.buffer.u_commanded_nm.append(record.u_commanded_nm)
@@ -116,10 +128,10 @@ class RealtimeEpisodePlot:
             self.buffer.t_sec,
             [self.potential_goal_j] * len(self.buffer.t_sec),
         )
-        self._lines["phase_path"].set_data(self.buffer.theta_rad, self.buffer.omega_rad_s)
+        self._lines["phase_path"].set_data(self.buffer.phase_c_error, self.buffer.phase_s)
         self._lines["phase_current"].set_data(
-            [self.buffer.theta_rad[-1]],
-            [self.buffer.omega_rad_s[-1]],
+            [self.buffer.phase_c_error[-1]],
+            [self.buffer.phase_s[-1]],
         )
         self._lines["action_commanded"].set_data(
             self.buffer.t_sec,
@@ -173,8 +185,8 @@ class RealtimeEpisodePlot:
         potential_axis.set_ylabel("J")
 
         phase_axis.set_title("Phase")
-        phase_axis.set_xlabel("theta rad")
-        phase_axis.set_ylabel("omega rad/s")
+        phase_axis.set_xlabel("c_phi - 1")
+        phase_axis.set_ylabel("s_phi")
 
         action_axis.set_title("Action")
         action_axis.set_xlabel("t sec")

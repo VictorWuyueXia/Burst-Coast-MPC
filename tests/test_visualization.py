@@ -3,6 +3,7 @@ import math
 import pytest
 
 from wsmpc.environment import Environment
+from wsmpc.mpc.numeric_features import phase_proxy_error
 from wsmpc.utils.loaders import load_config
 from wsmpc.utils.messages import ActionCommand
 
@@ -50,6 +51,14 @@ def test_realtime_episode_plot_accepts_records() -> None:
     assert plot.buffer.kinetic_energy_j[0] + plot.buffer.potential_energy_j[0] == pytest.approx(
         record.energy_j
     )
+    phase_error = phase_proxy_error(
+        [record.theta_rad, record.omega_rad_s],
+        config.environment.pendulum,
+    )
+    assert plot.buffer.phase_c_error == pytest.approx([phase_error[0]])
+    assert plot.buffer.phase_s == pytest.approx([phase_error[1]])
+    assert plot._lines["phase_path"].get_xdata()[0] == pytest.approx(phase_error[0])
+    assert plot._lines["phase_path"].get_ydata()[0] == pytest.approx(phase_error[1])
     assert plot.kinetic_goal_j == pytest.approx(0.0)
     assert plot.potential_goal_j > 0.0
     assert set(plot.axes) == {"kinetic", "potential", "phase", "action"}

@@ -1,51 +1,66 @@
+# This is a pyproject.toml file used for Python projects.
+# It defines build, install, and dependency information recognized by modern Python packaging tools (e.g., pip, poetry, build, and setuptools).
+# To use this file:
+# - Place it at the root of your Python project directory.
+# - Install the project locally with `pip install .` (for editable installs, use `pip install -e .`).
+# - Tools like `pytest` and `ruff` will also pick up their configuration directly from this file.
+# This file is for Python packaging, dependency management, and tool configuration in a unified, standardized way.
 [build-system]
-requires = ["setuptools>=69", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools>=69", "wheel"]  # Build tools required for packaging
+build-backend = "setuptools.build_meta"  # Backend used for building
 
+# Main project metadata and dependencies
 [project]
-name = "wake-sleep-mpc"
-version = "0.1.0"
-description = "Wake-sleep model predictive control experiments."
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-  "numpy>=1.26",
-  "scipy>=1.11",
-  "pydantic>=2.6",
-  "omegaconf>=2.3",
-  "typer>=0.12",
-  "rich>=13.7",
-  "psutil>=5.9",
-  "threadpoolctl>=3.5",
-  "matplotlib>=3.8",
+name = "wake-sleep-mpc"  # Project name
+version = "0.1.0"  # Project version
+description = "Wake-sleep model predictive control experiments."  # Short description
+readme = "README.md"  # Project readme file
+requires-python = ">=3.12"  # Minimum Python version
+dependencies = [  # Core libraries needed to run the project
+  "numpy>=1.26",         # Numerical computing
+  "scipy>=1.11",         # Scientific computing
+  "casadi>=3.6",         # Automatic differentiation, numeric optimization
+  "pydantic>=2.6",       # Data validation/config schemas
+  "omegaconf>=2.3",      # Configuration management
+  "typer>=0.12",         # Command-line interface tools
+  "rich>=13.7",          # Pretty terminal formatting
+  "psutil>=5.9",         # System/process utilities
+  "threadpoolctl>=3.5",  # Thread control (e.g., for numpy)
+  "matplotlib>=3.8",     # Plotting and visualization
 ]
 
+# Development-only dependencies (not needed by end users)
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0",
-  "ruff>=0.5",
-  "mypy>=1.10",
+  "pytest>=8.0",   # Testing framework
+  "ruff>=0.5",     # Linter for code quality
+  "mypy>=1.10",    # Static type checking
 ]
 
+# Define command-line script entry point for easy CLI usage
 [project.scripts]
-wsmpc = "wsmpc.cli:main"
+wsmpc = "wsmpc.cli:main"  # Run CLI with `wsmpc` command
 
+# Configure how setuptools finds the packages
 [tool.setuptools.packages.find]
-where = ["src", "."]
-include = ["wsmpc*", "configs*"]
+where = ["src", "."]         # Look in the src folder and root
+include = ["wsmpc*", "configs*"]  # Include main code and configs
 
+# Pytest configuration for where to find code and tests
 [tool.pytest.ini_options]
-pythonpath = ["src", "."]
-testpaths = ["tests"]
+pythonpath = ["src", "."]    # Add source folders to module path
+testpaths = ["tests"]        # Directory containing tests
 
+# Ruff linter configuration
 [tool.ruff]
-line-length = 100
-target-version = "py312"
+line-length = 100            # Max line length for code formatting
+target-version = "py312"     # Target Python version (3.12)
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+select = ["E", "F", "I", "UP", "B"]  # Enable common code quality, formatting, and upgrade checks
 
+# Mypy static analysis configuration
 [tool.mypy]
-python_version = "3.12"
-strict = true
-warn_unreachable = true
+python_version = "3.12"      # Python version for analysis
+strict = true                # Enforce strict type checking rules
+warn_unreachable = true      # Warn on code that cannot be reached

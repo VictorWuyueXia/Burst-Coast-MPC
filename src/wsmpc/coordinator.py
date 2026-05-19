@@ -54,6 +54,7 @@ class Coordinator:
     def run_episode(
         self,
         *,
+        action_provider: Callable[[StateObs], ActionCommand] | None = None,
         on_episode_start: Callable[[StateObs], None] | None = None,
         on_before_step: Callable[[StateObs], None] | None = None,
         on_step: Callable[[StateObs, StepRecord], None] | None = None,
@@ -89,7 +90,7 @@ class Coordinator:
         if on_episode_start is not None:
             on_episode_start(observation)
 
-        # The Coordinator applies the configured default command at every simulator step.
+        # The Coordinator delegates control when provided, otherwise it preserves default action.
         status = "max_steps_reached"
         try:
             for _ in range(self.experiment_config.max_steps):
@@ -100,8 +101,12 @@ class Coordinator:
                 if on_before_step is not None:
                     on_before_step(observation)
 
-                # Build the configured default action at the current observation time.
-                action = self._build_default_action(observation)
+                # Build the action at the current observation time through the active policy.
+                action = (
+                    action_provider(observation)
+                    if action_provider is not None
+                    else self._build_default_action(observation)
+                )
                 self._log_decision_epoch(observation)
 
                 # Step the environment once and expose the completed transition to subscribers.

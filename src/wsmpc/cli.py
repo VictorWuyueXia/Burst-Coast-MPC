@@ -40,6 +40,7 @@ class TerminalPauseController:
         """Enable cbreak input so single-key commands do not need Enter."""
 
         if self.enabled:
+            # Save original terminal state and set terminal to cbreak (for single key detection)
             self._original_terminal_attrs = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
             console.print("Controls: press 's' to pause simulation, 'r' to resume.")
@@ -54,6 +55,7 @@ class TerminalPauseController:
         """Restore the user's terminal mode after the run finishes."""
 
         if self.enabled and self._original_terminal_attrs is not None:
+            # Restore original terminal settings
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._original_terminal_attrs)
 
     def wait_if_paused(self) -> None:
@@ -61,11 +63,13 @@ class TerminalPauseController:
 
         if not self.enabled:
             return
+        # Check if user wants to pause the simulation
         self._consume_pause_command()
         while self._paused:
             ready, _, _ = select.select([sys.stdin], [], [], 0.1)
             if not ready:
                 continue
+            # Resume if 'r' is pressed
             key = sys.stdin.read(1).lower()
             if key == "r":
                 self._paused = False
@@ -77,6 +81,7 @@ class TerminalPauseController:
         ready, _, _ = select.select([sys.stdin], [], [], 0)
         if not ready:
             return
+        # Pause if 's' is pressed
         key = sys.stdin.read(1).lower()
         if key == "s":
             self._paused = True
@@ -93,10 +98,10 @@ def load_checked_runtime_context(
 ) -> tuple[RootConfig, logging.Logger]:
     """Load config, validate schema, and configure logging."""
 
-    # Load the selected atomic config package; package choice is the only config CLI knob.
+    # Load experiment configuration from package (with fallback to defaults if needed)
     config, fallbacks = load_config_with_fallbacks(config_package)
 
-    # Configure logs immediately after schema validation so later setup steps are visible.
+    # Configure logging for the experiment run
     configure_logging(config.logging.level)
     logger = logging.getLogger("wsmpc")
     warn_default_fallbacks(logger, fallbacks)
@@ -165,22 +170,22 @@ def run_episode(
 ) -> None:
     """Run one experiment episode."""
 
-    # Load config and logger first.
+    # Load config and logger first
     config, logger = load_checked_runtime_context(config_package)
 
-    # Apply conservative resource limits once per command before simulation-heavy imports.
+    # Set core resource usage limits (threads, etc) before heavy imports
     configure_runtime_resources(config.runtime, logger=logger)
 
-    # Import after resource limiting so native math libraries see conservative thread settings.
+    # Import Coordinator for experiment logic after resource limits are set
     from wsmpc.coordinator import Coordinator
 
-    # set the artifact root and alias
+    # Set custom artifact directory and alias if specified
     if artifact_root is not None:
         config.artifacts.root_dir = str(artifact_root)
     if run_alias is not None:
         config.artifacts.alias = run_alias
 
-    # create the artifact writer 
+    # Prepare artifact writer if enabled
     artifact_writer: ArtifactWriter | None = None
     run_log_handler: logging.Handler | None = None
     artifacts_enabled = config.artifacts.enabled and not no_artifacts
@@ -194,6 +199,7 @@ def run_episode(
         "viz_update_every": viz_update_every,
     }
     if artifacts_enabled:
+        # Create artifact directory and record config/command metadata for this run
         artifact_writer = ArtifactWriter.create(
             config.artifacts.root_dir,
             alias=config.artifacts.alias,
@@ -202,6 +208,7 @@ def run_episode(
         )
         artifact_writer.write_config(config)
         artifact_writer.open_step_writer()
+        # Attach log handler to save run log as artifact
         run_log_handler = attach_run_log_handler(logger, artifact_writer.run_dir)
         logger.info(
             "identity=Artifacts status=initialized action=create_run_directory "
@@ -209,40 +216,60 @@ def run_episode(
             artifact_writer.run_dir,
         )
 
-    # create the visualization state
+    # Initialize visualization objects if requested
     realtime_plot = None
     pendulum_animation = None
     if visualize or animate:
         try:
             from wsmpc.visualization.realtime import PendulumAnimation, RealtimeEpisodePlot
         except ImportError as exc:
+            # Show error if visualization dependencies are missing
             raise typer.BadParameter(
                 "visualization requires matplotlib; install project dependencies first"
             ) from exc
 
         if visualize:
+            # Live plot for diagnostics
             realtime_plot = RealtimeEpisodePlot(
                 config.environment.pendulum,
                 update_every=viz_update_every,
                 include_animation=animate,
             )
         if animate and realtime_plot is None:
+            # Animated visualization (pendulum movement)
             pendulum_animation = PendulumAnimation(
                 config.environment.pendulum,
                 update_every=viz_update_every,
             )
 
-    # Instantiate the Coordinator with the loaded atomic config package.
+    # Instantiate Coordinator (controls the experiment/episode)
     coordinator = Coordinator(
         config.coordinator,
         config.environment,
         config.experiment,
         logger=logger,
     )
+    action_provider = None
+    if config.mpc.enabled:
+        # Enable MPC controller if specified in config
+        from wsmpc.mpc.controller import CasadiMPCController
+        from wsmpc.mpc.types import MPCControllerContext
+
+        mpc_controller = CasadiMPCController(
+            MPCControllerContext(
+                environment=config.environment,
+                experiment=config.experiment,
+                mpc=config.mpc,
+                runtime=config.runtime,
+            ),
+            logger=logger,
+        )
+        action_provider = mpc_controller.select_action
 
     def on_episode_start(observation) -> None:
         """Initialize live animation state from the reset observation."""
 
+        # Start visualization from initial observation (if enabled)
         if realtime_plot is not None:
             realtime_plot.start_animation(observation)
         elif pendulum_animation is not None:
@@ -251,11 +278,13 @@ def run_episode(
     def on_before_step(observation) -> None:
         """Apply interactive terminal controls before advancing simulated time."""
 
+        # Pause simulation if user requests via terminal key
         pause_controller.wait_if_paused()
 
     def on_step(observation, record) -> None:
         """Fan completed environment transitions out to active subscribers."""
 
+        # Record data step as artifact and update visualization
         if artifact_writer is not None:
             artifact_writer.write_step(record)
         if realtime_plot is not None:
@@ -266,6 +295,7 @@ def run_episode(
     def on_episode_finish(summary) -> None:
         """Write final artifacts and flush visualization state."""
 
+        # Finalize and write summary of episode (for artifacts/visuals)
         if artifact_writer is not None:
             artifact_writer.write_summary(summary)
         if realtime_plot is not None:
@@ -274,20 +304,22 @@ def run_episode(
             pendulum_animation.finish()
 
     try:
-        # run the episode with the callbacks
+        # Run the entire episode with callbacks for logging, pause, and visualization
         with TerminalPauseController() as pause_controller:
             result = coordinator.run_episode(
+                action_provider=action_provider,
                 on_episode_start=on_episode_start,
                 on_before_step=on_before_step,
                 on_step=on_step,
                 on_episode_finish=on_episode_finish,
             )
     except Exception:
+        # On error: mark run as failed and detach artifact log handler
         if artifact_writer is not None:
             artifact_writer.finalize_manifest(completed=False, status="failed")
         detach_run_log_handler(logger, run_log_handler)
         raise
-    # finalize the artifacts and detach the log handler
+    # Finalize run manifests and detach log handlers after successful run
     if artifact_writer is not None:
         artifact_writer.finalize_manifest(
             completed=result.summary.status != "interrupted",
@@ -295,7 +327,7 @@ def run_episode(
         )
     detach_run_log_handler(logger, run_log_handler)
 
-    # Print a short human-facing summary while detailed traces remain in logs.
+    # Print a short summary of the run to the terminal
     output = {
         "run_id": result.summary.run_id,
         "status": result.summary.status,
@@ -311,6 +343,7 @@ def run_episode(
 def main() -> None:
     """Console-script wrapper."""
 
+    # Launch the CLI application (processes command line)
     app()
 
 

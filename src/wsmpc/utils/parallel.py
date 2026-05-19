@@ -1,0 +1,24 @@
+"""Small ordered process-pool helpers for independent CPU tasks."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from concurrent.futures import ProcessPoolExecutor
+
+
+def ordered_process_map[InputT, OutputT](
+    function: Callable[[InputT], OutputT],
+    items: Sequence[InputT],
+    *,
+    max_workers: int,
+) -> list[OutputT]:
+    """Evaluate independent tasks in worker processes while preserving input order."""
+
+    if max_workers <= 1 or len(items) <= 1:
+        return [function(item) for item in items]
+    try:
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            return list(executor.map(function, items))
+    except (NotImplementedError, OSError):
+        # Some restricted platforms block process-pool semaphore setup; preserve correctness.
+        return [function(item) for item in items]

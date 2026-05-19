@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -174,6 +175,116 @@ class EnvironmentConfig(ConfigBase):
     goal: GoalConfig = Field(default_factory=GoalConfig)
 
 
+class MPCCostConfig(ConfigBase):
+    """Energy-phase objective weights used by the nonlinear MPC problem."""
+
+    epsilon_phi: float = Field(default=1.0e-6, alias="epsilon-phi")
+    sigma_energy: float = Field(default=0.5, alias="sigma-energy")
+    q_energy: float = Field(default=1.0, alias="q-energy")
+    q_phase: float = Field(default=0.0, alias="q-phase")
+    q_local: float = Field(default=0.0, alias="q-local")
+    q_terminal: float = Field(default=5.0, alias="q-terminal")
+    rho_saturation: float = Field(default=0.0, alias="rho-saturation")
+    rho_delta_u: float = Field(default=1.0e-3, alias="rho-delta-u")
+    q_phase_diag: list[float] = Field(default_factory=lambda: [1.0, 1.0], alias="q-phase-diag")
+    q_local_diag: list[float] = Field(default_factory=lambda: [1.0, 1.0], alias="q-local-diag")
+
+    @field_validator(
+        "epsilon_phi",
+        "sigma_energy",
+        "q_energy",
+        "q_terminal",
+    )
+    @classmethod
+    def _positive_cost_values(cls, value: float) -> float:
+        if value <= 0.0 or not math.isfinite(value):
+            msg = "positive MPC cost values must be finite and greater than zero"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("q_phase", "q_local", "rho_saturation", "rho_delta_u")
+    @classmethod
+    def _nonnegative_cost_values(cls, value: float) -> float:
+        if value < 0.0 or not math.isfinite(value):
+            msg = "nonnegative MPC cost values must be finite"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("q_phase_diag", "q_local_diag")
+    @classmethod
+    def _diagonal_weights_must_be_positive_pairs(cls, value: list[float]) -> list[float]:
+        if len(value) != 2 or any(entry <= 0.0 or not math.isfinite(entry) for entry in value):
+            msg = "MPC diagonal weight lists must contain two positive finite values"
+            raise ValueError(msg)
+        return value
+
+
+class MPCConfig(ConfigBase):
+    """Configuration for the CasADi split-ratio MPC controller."""
+
+    enabled: bool = False
+    split_ratios: list[float] = Field(
+        default_factory=lambda: [0.1, 0.2, 0.3],
+        alias="split-ratios",
+    )
+    solve_candidates_in_parallel: bool = Field(default=False, alias="solve-candidates-in-parallel")
+    max_parallel_workers: int | None = Field(default=None, alias="max-parallel-workers")
+    horizon_steps_override: int | None = Field(default=None, alias="horizon-steps-override")
+    prediction_horizon_rule: Literal["half-natural-period"] = Field(
+        default="half-natural-period",
+        alias="prediction-horizon-rule",
+    )
+    coast_mode: Literal["zero"] = Field(default="zero", alias="coast-mode")
+    solver: Literal["ipopt"] = "ipopt"
+    ipopt_print_level: int = Field(default=0, alias="ipopt-print-level")
+    solver_max_iterations: int = Field(default=100, alias="solver-max-iterations")
+    solver_tolerance: float = Field(default=1.0e-6, alias="solver-tolerance")
+    cost: MPCCostConfig = Field(default_factory=MPCCostConfig)
+
+    @field_validator("split_ratios")
+    @classmethod
+    def _split_ratios_must_be_valid(cls, value: list[float]) -> list[float]:
+        if not value:
+            msg = "split-ratios must contain at least one value"
+            raise ValueError(msg)
+        if any(ratio <= 0.0 or ratio > 1.0 or not math.isfinite(ratio) for ratio in value):
+            msg = "split-ratios entries must be finite values in (0, 1]"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("max_parallel_workers", "horizon_steps_override")
+    @classmethod
+    def _optional_step_counts_must_be_positive(cls, value: int | None) -> int | None:
+        if value is not None and value <= 0:
+            msg = "optional MPC counts must be positive when provided"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("ipopt_print_level")
+    @classmethod
+    def _ipopt_print_level_must_be_nonnegative(cls, value: int) -> int:
+        if value < 0:
+            msg = "ipopt-print-level must be nonnegative"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("solver_max_iterations")
+    @classmethod
+    def _solver_iterations_must_be_positive(cls, value: int) -> int:
+        if value <= 0:
+            msg = "solver-max-iterations must be positive"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("solver_tolerance")
+    @classmethod
+    def _solver_tolerance_must_be_positive(cls, value: float) -> float:
+        if value <= 0.0 or not math.isfinite(value):
+            msg = "solver-tolerance must be finite and positive"
+            raise ValueError(msg)
+        return value
+
+
 class RuntimeConfig(ConfigBase):
     """Resource limits for local runs."""
 
@@ -207,6 +318,7 @@ class RootConfig(ConfigBase):
     experiment: ExperimentConfig
     coordinator: CoordinatorConfig
     environment: EnvironmentConfig
+    mpc: MPCConfig = Field(default_factory=MPCConfig)
     runtime: RuntimeConfig
     artifacts: ArtifactConfig = Field(default_factory=ArtifactConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
