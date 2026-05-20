@@ -1,10 +1,12 @@
 import csv
 import json
+import logging
 import re
 
 from wsmpc.coordinator import Coordinator
 from wsmpc.utils.artifacts import STEP_CSV_HEADERS, ArtifactWriter
 from wsmpc.utils.loaders import load_config
+from wsmpc.utils.logging import EpisodeHooks, run_episode
 
 
 def test_artifact_writer_records_short_episode(tmp_path) -> None:
@@ -12,6 +14,8 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
     config.experiment.max_steps = 3
     config.environment.goal.hold_steps = 999
     config.environment.simulation.pace_s = 0.0
+    config.environment.simulation.timestep_s = 0.25
+    config.runtime.max_worker_threads = 1
     config.artifacts.root_dir = str(tmp_path)
     config.artifacts.alias = "Smoke Run"
     writer = ArtifactWriter.create(
@@ -22,12 +26,20 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
     )
     writer.write_config(config)
     writer.open_step_writer()
-    coordinator = Coordinator(config.coordinator, config.environment, config.experiment)
-
-    result = coordinator.run_episode(
+    coordinator = Coordinator(
+        config.coordinator,
+        config.environment,
+        config.experiment,
+        config.mpc,
+        config.runtime,
+        logger=logging.getLogger("test"),
+    )
+    hooks = EpisodeHooks(
         on_step=lambda observation, record: writer.write_step(record),
         on_episode_finish=lambda summary: writer.write_summary(summary),
     )
+
+    result = run_episode(coordinator, hooks)
     writer.finalize_manifest(completed=True, status=result.summary.status)
 
     assert re.fullmatch(r"smoke-run_\d{8}T\d{6}", writer.run_dir.name)

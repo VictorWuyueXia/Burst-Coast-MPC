@@ -4,6 +4,12 @@ import numpy as np
 import pytest
 
 from wsmpc.environment.dynamics import pendulum_derivatives, pendulum_energy, rk4_step
+from wsmpc.mpc.casadi_problem import (
+    natural_frequency_rad_s,
+    prediction_horizon_steps,
+    rollout_burst_coast,
+    split_candidates,
+)
 from wsmpc.mpc.numeric_features import (
     energy_gate,
     energy_phase_value,
@@ -11,7 +17,6 @@ from wsmpc.mpc.numeric_features import (
     normalized_energy_error,
     phase_proxy_error,
 )
-from wsmpc.mpc.prediction import prediction_horizon_steps, rollout_burst_coast, split_candidates
 from wsmpc.utils.config_schema import PendulumConfig
 from wsmpc.utils.loaders import load_config
 
@@ -28,7 +33,9 @@ def test_mpc_features_match_upright_convention() -> None:
     )
     assert normalized_energy_error(upright, pendulum) == pytest.approx(0.0)
     assert normalized_energy_error(bottom, pendulum) == pytest.approx(-1.0)
-    assert phase_proxy_error(upright, pendulum) == pytest.approx([0.0, 0.0])
+    assert phase_proxy_error(upright, pendulum, config.mpc.cost.epsilon_phi) == pytest.approx(
+        [0.0, 0.0]
+    )
     assert local_upright_error(upright, pendulum) == pytest.approx([0.0, 0.0])
     assert energy_gate(upright, pendulum, config.mpc.cost) == pytest.approx(1.0)
     assert energy_phase_value(upright, pendulum, config.mpc.cost) == pytest.approx(0.0)
@@ -68,12 +75,14 @@ def test_unforced_undamped_rk4_approximately_conserves_energy() -> None:
 
 def test_prediction_horizon_split_dimensions_and_zero_coast_rollout() -> None:
     config = load_config("default")
-    config.mpc.horizon_steps_override = 6
     config.mpc.split_ratios = [0.2, 0.5, 1.0]
+    half_period_s = math.pi / natural_frequency_rad_s(config.environment.pendulum)
+    config.environment.simulation.timestep_s = half_period_s / 6.0
 
+    total_steps = prediction_horizon_steps(config.environment)
     candidates = split_candidates(config.environment, config.mpc)
 
-    assert prediction_horizon_steps(config.environment, config.mpc) == 6
+    assert total_steps == 6
     assert [candidate.burst_steps for candidate in candidates] == [1, 3, 6]
     for candidate in candidates:
         assert candidate.burst_steps >= 1

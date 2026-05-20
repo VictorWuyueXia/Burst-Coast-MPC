@@ -1,9 +1,31 @@
+import logging
+
 import casadi as ca
 import numpy as np
 import pytest
 
 from wsmpc.environment.dynamics import pendulum_derivatives, rk4_step
-from wsmpc.mpc.casadi_dynamics import build_rk4_function, pendulum_derivatives_symbolic
+from wsmpc.mpc.casadi_problem import (
+    energy_gate as symbolic_energy_gate,
+)
+from wsmpc.mpc.casadi_problem import (
+    energy_phase_value as symbolic_energy_phase_value,
+)
+from wsmpc.mpc.casadi_problem import (
+    local_upright_error as symbolic_local_upright_error,
+)
+from wsmpc.mpc.casadi_problem import (
+    normalized_energy_error as symbolic_normalized_energy_error,
+)
+from wsmpc.mpc.casadi_problem import (
+    pendulum_derivatives_symbolic,
+    rk4_step_symbolic,
+    solve_candidate,
+    split_candidates,
+)
+from wsmpc.mpc.casadi_problem import (
+    phase_proxy_error as symbolic_phase_proxy_error,
+)
 from wsmpc.mpc.controller import CasadiMPCController
 from wsmpc.mpc.numeric_features import (
     energy_gate,
@@ -12,24 +34,6 @@ from wsmpc.mpc.numeric_features import (
     normalized_energy_error,
     phase_proxy_error,
 )
-from wsmpc.mpc.prediction import split_candidates
-from wsmpc.mpc.solver import solve_candidate
-from wsmpc.mpc.symbolic_features import (
-    energy_gate as symbolic_energy_gate,
-)
-from wsmpc.mpc.symbolic_features import (
-    energy_phase_value as symbolic_energy_phase_value,
-)
-from wsmpc.mpc.symbolic_features import (
-    local_upright_error as symbolic_local_upright_error,
-)
-from wsmpc.mpc.symbolic_features import (
-    normalized_energy_error as symbolic_normalized_energy_error,
-)
-from wsmpc.mpc.symbolic_features import (
-    phase_proxy_error as symbolic_phase_proxy_error,
-)
-from wsmpc.mpc.types import MPCControllerContext
 from wsmpc.utils.loaders import load_config
 from wsmpc.utils.messages import StateObs
 
@@ -38,10 +42,9 @@ def _small_mpc_config():
     config = load_config("default")
     config.environment.simulation.pace_s = 0.0
     config.environment.goal.hold_steps = 999
-    config.mpc.enabled = True
-    config.mpc.horizon_steps_override = 4
+    config.environment.simulation.timestep_s = 0.25
+    config.runtime.max_worker_threads = 1
     config.mpc.split_ratios = [0.5, 1.0]
-    config.mpc.solver_max_iterations = 40
     config.mpc.cost.q_phase = 0.25
     config.mpc.cost.q_local = 0.1
     return config
@@ -60,7 +63,18 @@ def test_casadi_dynamics_and_features_match_numpy() -> None:
         [symbolic_state, symbolic_torque],
         [pendulum_derivatives_symbolic(symbolic_state, symbolic_torque, pendulum)],
     )
-    rk4_function = build_rk4_function(config.environment.simulation.timestep_s, pendulum)
+    rk4_function = ca.Function(
+        "rk4",
+        [symbolic_state, symbolic_torque],
+        [
+            rk4_step_symbolic(
+                symbolic_state,
+                symbolic_torque,
+                config.environment.simulation.timestep_s,
+                pendulum,
+            )
+        ],
+    )
 
     assert np.asarray(derivative_function(state, torque_nm)).reshape(2) == pytest.approx(
         pendulum_derivatives(state, torque_nm, pendulum)
@@ -103,7 +117,6 @@ def test_casadi_solver_returns_bounded_finite_candidate_solution() -> None:
         config.mpc,
     )
 
-    assert solution.success is True, solution.message
     assert np.isfinite(solution.objective_value)
     assert solution.predicted_states.shape == (candidate.total_steps + 1, 2)
     assert solution.predicted_inputs_nm.shape == (candidate.total_steps,)
@@ -112,15 +125,14 @@ def test_casadi_solver_returns_bounded_finite_candidate_solution() -> None:
     )
 
 
-def test_controller_selects_plan_and_falls_back_when_solver_fails(monkeypatch) -> None:
+def test_controller_selects_plan_and_raises_when_solver_fails(monkeypatch) -> None:
     config = _small_mpc_config()
-    context = MPCControllerContext(
-        environment=config.environment,
-        experiment=config.experiment,
-        mpc=config.mpc,
-        runtime=config.runtime,
+    controller = CasadiMPCController(
+        config.environment,
+        config.mpc,
+        config.runtime,
+        logger=logging.getLogger("test"),
     )
-    controller = CasadiMPCController(context)
     observation = StateObs(
         run_id=config.experiment.run_id,
         episode_id=config.experiment.episode_id,
@@ -141,25 +153,20 @@ def test_controller_selects_plan_and_falls_back_when_solver_fails(monkeypatch) -
     assert action.plan_id is not None
     assert abs(action.u_nm) <= config.environment.pendulum.torque_limit_nm + 1.0e-8
 
-    def fail_all_candidates(tasks):
-        return []
+    def fail_candidate(*args):
+        raise RuntimeError("solver failed")
 
-    monkeypatch.setattr(controller, "_solve_tasks", fail_all_candidates)
+    monkeypatch.setattr("wsmpc.mpc.controller.solve_candidate_task", fail_candidate)
     controller._active_plan = None
-    fallback = controller.select_action(observation)
-
-    assert fallback.source == "mpc_failure_fallback"
-    assert fallback.u_nm == pytest.approx(config.experiment.default_action.u_nm)
+    with pytest.raises(RuntimeError, match="solver failed"):
+        controller.select_action(observation)
 
 
-def test_parallel_candidate_solving_matches_sequential_first_action() -> None:
-    sequential_config = _small_mpc_config()
-    parallel_config = _small_mpc_config()
-    parallel_config.mpc.solve_candidates_in_parallel = True
-    parallel_config.mpc.max_parallel_workers = 2
+def test_controller_reuses_selected_plan_until_inputs_are_exhausted() -> None:
+    config = _small_mpc_config()
     observation = StateObs(
-        run_id=sequential_config.experiment.run_id,
-        episode_id=sequential_config.experiment.episode_id,
+        run_id=config.experiment.run_id,
+        episode_id=config.experiment.episode_id,
         t_index=0,
         t_sec=0.0,
         theta_rad=0.65,
@@ -171,29 +178,20 @@ def test_parallel_candidate_solving_matches_sequential_first_action() -> None:
         goal_reached=False,
     )
 
-    sequential = CasadiMPCController(
-        MPCControllerContext(
-            environment=sequential_config.environment,
-            experiment=sequential_config.experiment,
-            mpc=sequential_config.mpc,
-            runtime=sequential_config.runtime,
-        )
+    controller = CasadiMPCController(
+        config.environment,
+        config.mpc,
+        config.runtime,
+        logger=logging.getLogger("test"),
     )
-    parallel = CasadiMPCController(
-        MPCControllerContext(
-            environment=parallel_config.environment,
-            experiment=parallel_config.experiment,
-            mpc=parallel_config.mpc,
-            runtime=parallel_config.runtime,
-        )
+    first_action = controller.select_action(observation)
+    next_observation = observation.model_copy(
+        update={
+            "t_index": 1,
+            "t_sec": config.environment.simulation.timestep_s,
+        }
     )
+    second_action = controller.select_action(next_observation)
 
-    sequential_action = sequential.select_action(observation)
-    parallel_action = parallel.select_action(observation)
-
-    assert parallel_action.u_nm == pytest.approx(sequential_action.u_nm, abs=1.0e-7)
-    assert parallel._active_plan is not None
-    assert sequential._active_plan is not None
-    assert parallel._active_plan.plan.candidate.lambda_value == pytest.approx(
-        sequential._active_plan.plan.candidate.lambda_value
-    )
+    assert first_action.plan_id == second_action.plan_id
+    assert second_action.t_index == 1

@@ -13,6 +13,7 @@ def test_runtime_resource_configuration_does_not_crash() -> None:
                 "blas-threads": 1,
                 "torch-threads": 1,
                 "cpu-affinity": [],
+                "set-env": True,
             }
         ),
         logger=logging.getLogger("test"),

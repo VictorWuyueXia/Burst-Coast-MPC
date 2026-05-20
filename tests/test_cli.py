@@ -1,19 +1,43 @@
 from typer.testing import CliRunner
 
 from wsmpc.cli import TerminalPauseController, app
+from wsmpc.utils.loaders import load_config
 
 
-def test_cli_run_episode() -> None:
+def test_cli_run_episode(monkeypatch) -> None:
     runner = CliRunner()
+    config = load_config("default")
+    config.experiment.max_steps = 2
+    config.environment.simulation.timestep_s = 0.25
+    config.environment.simulation.pace_s = 0.0
+    config.runtime.max_worker_threads = 1
 
-    result = runner.invoke(app, ["run-episode", "--config-package", "default", "--no-artifacts"])
+    def load_config_stub(package_name: str):
+        return config
+
+    monkeypatch.setattr("wsmpc.cli.load_config", load_config_stub)
+
+    result = runner.invoke(
+        app,
+        ["run-episode", "--config-package", "default", "--no-visual"],
+    )
 
     assert result.exit_code == 0, result.output
     assert "pendulum_baseline" in result.output
 
 
-def test_cli_run_episode_writes_artifacts(tmp_path) -> None:
+def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> None:
     runner = CliRunner()
+    config = load_config("default")
+    config.artifacts.root_dir = str(tmp_path)
+    config.experiment.max_steps = 2
+    config.environment.simulation.timestep_s = 0.25
+    config.runtime.max_worker_threads = 1
+
+    def load_config_stub(package_name: str):
+        return config
+
+    monkeypatch.setattr("wsmpc.cli.load_config", load_config_stub)
 
     result = runner.invoke(
         app,
@@ -21,10 +45,9 @@ def test_cli_run_episode_writes_artifacts(tmp_path) -> None:
             "run-episode",
             "--config-package",
             "default",
-            "--artifact-root",
-            str(tmp_path),
-            "--run-alias",
+            "--alias",
             "smoke",
+            "--no-visual",
         ],
     )
 
@@ -32,25 +55,6 @@ def test_cli_run_episode_writes_artifacts(tmp_path) -> None:
     assert "pendulum_baseline" in result.output
     assert "artifact_dir" in result.output
     assert len(list(tmp_path.iterdir())) == 1
-
-
-def test_cli_run_episode_no_artifacts_does_not_create_root(tmp_path) -> None:
-    runner = CliRunner()
-
-    result = runner.invoke(
-        app,
-        [
-            "run-episode",
-            "--config-package",
-            "default",
-            "--artifact-root",
-            str(tmp_path / "unused"),
-            "--no-artifacts",
-        ],
-    )
-
-    assert result.exit_code == 0, result.output
-    assert not (tmp_path / "unused").exists()
 
 
 def test_terminal_pause_controller_disabled_does_not_block() -> None:

@@ -1,4 +1,4 @@
-"""Small ordered process-pool helpers for independent CPU tasks."""
+"""Ordered process-pool map for independent MPC candidate solves."""
 
 from __future__ import annotations
 
@@ -12,13 +12,9 @@ def ordered_process_map[InputT, OutputT](
     *,
     max_workers: int,
 ) -> list[OutputT]:
-    """Evaluate independent tasks in worker processes while preserving input order."""
+    """Evaluate tasks in worker processes while preserving input order."""
 
     if max_workers <= 1 or len(items) <= 1:
         return [function(item) for item in items]
-    try:
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            return list(executor.map(function, items))
-    except (NotImplementedError, OSError):
-        # Some restricted platforms block process-pool semaphore setup; preserve correctness.
-        return [function(item) for item in items]
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        return list(executor.map(function, items))

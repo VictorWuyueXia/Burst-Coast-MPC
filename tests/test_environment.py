@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import pytest
 
@@ -8,12 +10,13 @@ from wsmpc.utils.messages import ActionCommand
 
 
 def test_environment_step_returns_finite_observation_and_record() -> None:
-    config = load_config()
+    config = load_config("standard")
     config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,
         run_id=config.experiment.run_id,
         episode_id=config.experiment.episode_id,
+        logger=logging.getLogger("test"),
     )
     observation = environment.reset(config.experiment.initial_state)
 
@@ -34,12 +37,13 @@ def test_environment_step_returns_finite_observation_and_record() -> None:
 
 
 def test_environment_rollout_shape() -> None:
-    config = load_config()
+    config = load_config("standard")
     config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,
         run_id=config.experiment.run_id,
         episode_id=config.experiment.episode_id,
+        logger=logging.getLogger("test"),
     )
 
     trajectory = environment.rollout(np.array([0.0, 0.0]), np.zeros(4))
@@ -49,12 +53,13 @@ def test_environment_rollout_shape() -> None:
 
 
 def test_environment_goal_targets_zero_angle_upright() -> None:
-    config = load_config()
+    config = load_config("standard")
     config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,
         run_id=config.experiment.run_id,
         episode_id=config.experiment.episode_id,
+        logger=logging.getLogger("test"),
     )
 
     upright_observation = environment.reset(InitialStateConfig(theta_rad=0.0, omega_rad_s=0.0))

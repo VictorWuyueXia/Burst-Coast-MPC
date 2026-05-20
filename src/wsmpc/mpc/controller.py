@@ -3,21 +3,15 @@
 from __future__ import annotations
 
 import logging
-import math
 from dataclasses import dataclass
 from itertools import count
 
 import numpy as np
 
-from wsmpc.mpc.prediction import split_candidates
-from wsmpc.mpc.solver import solve_candidate_task
-from wsmpc.mpc.types import (
-    CandidateSolution,
-    CandidateSolveTask,
-    MPCControllerContext,
-    SelectedPlan,
-)
-from wsmpc.utils.logging import log_event
+from wsmpc.mpc.casadi_problem import solve_candidate_task, split_candidates
+from wsmpc.mpc.types import CandidateSolution, SelectedPlan
+from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig, RuntimeConfig
+from wsmpc.utils.log_events import log_event
 from wsmpc.utils.messages import ActionCommand, StateObs
 from wsmpc.utils.parallel import ordered_process_map
 
@@ -37,17 +31,19 @@ class CasadiMPCController:
 
     def __init__(
         self,
-        context: MPCControllerContext,
+        environment: EnvironmentConfig,
+        mpc: MPCConfig,
+        runtime: RuntimeConfig,
         *,
-        logger: logging.Logger | None = None,
+        logger: logging.Logger,
     ) -> None:
-        self.context = context
-        self.logger = logger or logging.getLogger(__name__)
+        self.environment = environment
+        self.mpc = mpc
+        self.runtime = runtime
+        self.logger = logger
         self._active_plan: _ActivePlan | None = None
-        self._last_burst_inputs_nm: np.ndarray | None = None
         self._previous_input_nm = 0.0
         self._plan_counter = count()
-        self.solver_failure_count = 0
 
     def select_action(self, observation: StateObs) -> ActionCommand:
         """Return the next executable action for the current observation."""
@@ -56,11 +52,10 @@ class CasadiMPCController:
             self._active_plan.plan.predicted_inputs_nm.size
         ):
             selected_plan = self._solve_new_plan(observation)
-            if selected_plan is None:
-                return self._fallback_action(observation)
             self._active_plan = _ActivePlan(plan=selected_plan)
 
         active_plan = self._active_plan
+        assert active_plan is not None
         input_index = active_plan.next_input_index
         torque_nm = float(active_plan.plan.predicted_inputs_nm[input_index])
         source = (
@@ -80,36 +75,40 @@ class CasadiMPCController:
             plan_id=active_plan.plan.plan_id,
         )
 
-    def _solve_new_plan(self, observation: StateObs) -> SelectedPlan | None:
-        """Solve all configured split candidates and choose the minimum objective."""
+    def _solve_new_plan(self, observation: StateObs) -> SelectedPlan:
+        """Solve all split candidates in parallel and choose the minimum objective."""
 
         state = np.asarray([observation.theta_rad, observation.omega_rad_s], dtype=np.float64)
-        candidates = split_candidates(self.context.environment, self.context.mpc)
+        candidates = split_candidates(self.environment, self.mpc)
         tasks = [
-            CandidateSolveTask(
-                state=state,
-                previous_input_nm=self._previous_input_nm,
-                candidate=candidate,
-                environment_config=self.context.environment,
-                mpc_config=self.context.mpc,
-                warm_start_nm=self._last_burst_inputs_nm,
+            (
+                state,
+                self._previous_input_nm,
+                candidate,
+                self.environment,
+                self.mpc,
             )
             for candidate in candidates
         ]
-        solutions = self._solve_tasks(tasks)
-        successful = [
-            solution
-            for solution in solutions
-            if solution.success and math.isfinite(solution.objective_value)
-        ]
-        if not successful:
-            self.solver_failure_count += 1
-            self._log_solver_result(observation, solutions, selected=None)
-            return None
+        solutions = ordered_process_map(
+            solve_candidate_task,
+            tasks,
+            max_workers=self.runtime.max_worker_threads,
+        )
+        selected = min(solutions, key=lambda solution: solution.objective_value)
+        plan = self._selected_plan(observation, selected, solutions)
+        self._log_solver_result(observation, plan)
+        return plan
 
-        selected = min(successful, key=lambda solution: solution.objective_value)
-        self._last_burst_inputs_nm = selected.burst_inputs_nm.copy()
-        plan = SelectedPlan(
+    def _selected_plan(
+        self,
+        observation: StateObs,
+        selected: CandidateSolution,
+        solutions: list[CandidateSolution],
+    ) -> SelectedPlan:
+        """Convert the best candidate solve into an executable plan."""
+
+        return SelectedPlan(
             plan_id=self._plan_id(observation, selected),
             candidate=selected.candidate,
             objective_value=selected.objective_value,
@@ -117,42 +116,7 @@ class CasadiMPCController:
             predicted_states=selected.predicted_states,
             predicted_inputs_nm=selected.predicted_inputs_nm,
             solve_time_s=sum(solution.solve_time_s for solution in solutions),
-            solver_success_count=len(successful),
-            solver_failure_count=len(solutions) - len(successful),
             message=selected.message,
-        )
-        self._log_solver_result(observation, solutions, selected=plan)
-        return plan
-
-    def _solve_tasks(self, tasks: list[CandidateSolveTask]) -> list[CandidateSolution]:
-        """Solve split candidates sequentially or with configured process parallelism."""
-
-        use_parallel = self.context.mpc.solve_candidates_in_parallel and len(tasks) > 1
-        if not use_parallel:
-            return [solve_candidate_task(task) for task in tasks]
-
-        max_workers = (
-            self.context.mpc.max_parallel_workers
-            or self.context.runtime.max_worker_threads
-        )
-        return ordered_process_map(
-            solve_candidate_task,
-            tasks,
-            max_workers=max_workers,
-        )
-
-    def _fallback_action(self, observation: StateObs) -> ActionCommand:
-        """Use the configured fallback command when all candidate solves fail."""
-
-        fallback = self.context.experiment.default_action
-        self._previous_input_nm = fallback.u_nm
-        return ActionCommand(
-            run_id=observation.run_id,
-            episode_id=observation.episode_id,
-            t_index=observation.t_index,
-            t_sec=observation.t_sec,
-            u_nm=fallback.u_nm,
-            source="mpc_failure_fallback",
         )
 
     def _plan_id(self, observation: StateObs, selected: CandidateSolution) -> str:
@@ -162,28 +126,8 @@ class CasadiMPCController:
         lambda_text = f"{selected.candidate.lambda_value:.3f}".rstrip("0").rstrip(".")
         return f"mpc-{observation.t_index}-{plan_number}-lambda-{lambda_text}"
 
-    def _log_solver_result(
-        self,
-        observation: StateObs,
-        solutions: list[CandidateSolution],
-        *,
-        selected: SelectedPlan | None,
-    ) -> None:
+    def _log_solver_result(self, observation: StateObs, selected: SelectedPlan) -> None:
         """Emit one structured log event per MPC decision."""
-
-        if selected is None:
-            log_event(
-                self.logger,
-                logging.WARNING,
-                identity=self.identity,
-                status="fallback",
-                action="solve_split_candidates",
-                action_result="all_candidates_failed",
-                t_index=observation.t_index,
-                t_sec=observation.t_sec,
-                candidate_count=len(solutions),
-            )
-            return
 
         log_event(
             self.logger,
@@ -199,6 +143,4 @@ class CasadiMPCController:
             burst_steps=selected.candidate.burst_steps,
             coast_steps=selected.candidate.coast_steps,
             objective_value=f"{selected.objective_value:.9f}",
-            solver_success_count=selected.solver_success_count,
-            solver_failure_count=selected.solver_failure_count,
         )

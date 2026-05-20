@@ -1,3 +1,4 @@
+import logging
 import math
 
 import pytest
@@ -20,6 +21,7 @@ def _one_record():
         config.environment,
         run_id=config.experiment.run_id,
         episode_id=config.experiment.episode_id,
+        logger=logging.getLogger("test"),
     )
     observation = environment.reset(config.experiment.initial_state)
     next_observation, record = environment.step(
@@ -40,7 +42,11 @@ def test_realtime_episode_plot_accepts_records() -> None:
     from wsmpc.visualization.realtime import RealtimeEpisodePlot
 
     config, observation, record = _one_record()
-    plot = RealtimeEpisodePlot(config.environment.pendulum, update_every=1)
+    plot = RealtimeEpisodePlot(
+        config.environment.pendulum,
+        phase_epsilon_phi=config.mpc.cost.epsilon_phi,
+        update_every=1,
+    )
 
     plot.add_step(observation, record)
     plot.finish()
@@ -54,6 +60,7 @@ def test_realtime_episode_plot_accepts_records() -> None:
     phase_error = phase_proxy_error(
         [record.theta_rad, record.omega_rad_s],
         config.environment.pendulum,
+        config.mpc.cost.epsilon_phi,
     )
     assert plot.buffer.phase_c_error == pytest.approx([phase_error[0]])
     assert plot.buffer.phase_s == pytest.approx([phase_error[1]])
@@ -74,6 +81,7 @@ def test_realtime_episode_plot_embeds_animation_when_requested() -> None:
     config, observation, record = _one_record()
     plot = RealtimeEpisodePlot(
         config.environment.pendulum,
+        phase_epsilon_phi=config.mpc.cost.epsilon_phi,
         update_every=1,
         include_animation=True,
     )

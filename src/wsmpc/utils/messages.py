@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -58,10 +59,10 @@ class StepRecord(MessageBase):
     plan_id: str | None = None
     constraint_margin: float
     goal_flag: bool
-    early_wake_flag: bool = False
-    step_compute_wall_s: float = 0.0
-    pace_sleep_s: float = 0.0
-    action_result: str = "accepted"
+    early_wake_flag: bool
+    step_compute_wall_s: float
+    pace_sleep_s: float
+    action_result: str
 
 
 class NodeStatus(MessageBase):
@@ -89,6 +90,13 @@ class ExperimentSummary(MessageBase):
     final_t_sec: float
     goal_reached: bool
     records_emitted: int
-    solver_failure_count: int = 0
     total_wall_time_s: float
     final_observation: StateObs | None = None
+
+
+@dataclass(frozen=True)
+class EpisodeResult:
+    """In-memory episode result returned after one run."""
+
+    summary: ExperimentSummary
+    records: list[StepRecord]

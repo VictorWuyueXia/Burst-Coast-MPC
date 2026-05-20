@@ -8,8 +8,6 @@ from numpy.typing import ArrayLike, NDArray
 from wsmpc.environment.dynamics import pendulum_energy, upright_energy, wrap_angle
 from wsmpc.utils.config_schema import MPCCostConfig, PendulumConfig
 
-DEFAULT_EPSILON_PHI = 1.0e-6
-
 
 def natural_velocity_scale(pendulum: PendulumConfig) -> float:
     """Return sqrt(m g l / I), the natural angular velocity scale."""
@@ -41,8 +39,7 @@ def local_upright_error(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[n
 def phase_proxy(
     state: ArrayLike,
     pendulum: PendulumConfig,
-    *,
-    epsilon_phi: float = DEFAULT_EPSILON_PHI,
+    epsilon_phi: float,
 ) -> NDArray[np.float64]:
     """Return the smooth phase proxy [c_phi, s_phi] from the raw state."""
 
@@ -58,8 +55,7 @@ def phase_proxy(
 def phase_proxy_error(
     state: ArrayLike,
     pendulum: PendulumConfig,
-    *,
-    epsilon_phi: float = DEFAULT_EPSILON_PHI,
+    epsilon_phi: float,
 ) -> NDArray[np.float64]:
     """Return the phase proxy error [c_phi - 1, s_phi]."""
 

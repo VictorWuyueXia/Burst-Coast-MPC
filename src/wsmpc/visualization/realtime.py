@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
-from wsmpc.mpc.numeric_features import DEFAULT_EPSILON_PHI, phase_proxy_error
+from wsmpc.mpc.numeric_features import phase_proxy_error
 from wsmpc.utils.config_schema import PendulumConfig
 from wsmpc.utils.messages import StateObs, StepRecord
 
@@ -37,9 +37,9 @@ class RealtimeEpisodePlot:
         self,
         pendulum: PendulumConfig,
         *,
+        phase_epsilon_phi: float,
         update_every: int = 1,
         include_animation: bool = False,
-        phase_epsilon_phi: float = DEFAULT_EPSILON_PHI,
     ) -> None:
         self.pendulum = pendulum
         self.update_every = max(1, update_every)

@@ -139,12 +139,12 @@ class ArtifactWriter:
         """Append one dense step record to the CSV artifact."""
 
         if self._step_writer is None:
-            self.open_step_writer()
+            msg = "Step writer is not open; call open_step_writer before write_step"
+            raise RuntimeError(msg)
 
         # Serialize through Pydantic so CSV columns match the public message aliases.
         row = record.model_dump(mode="json", by_alias=True)
-        assert self._step_writer is not None
-        self._step_writer.writerow({header: row.get(header) for header in STEP_CSV_HEADERS})
+        self._step_writer.writerow({header: row[header] for header in STEP_CSV_HEADERS})
         self.step_count += 1
         if self._step_file is not None:
             self._step_file.flush()
@@ -251,25 +251,25 @@ class ArtifactWriter:
             file.write("\n")
 
 
-def _read_git_state() -> tuple[str | None, bool | None]:
-    """Read best-effort Git commit and dirty state without affecting the run."""
+def _read_git_state() -> tuple[str, bool]:
+    """Read Git commit and dirty state for reproducible artifacts."""
 
-    try:
-        commit_result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        dirty_result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except (FileNotFoundError, subprocess.SubprocessError):
-        return None, None
+    commit_result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    dirty_result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
-    commit = commit_result.stdout.strip() or None
+    commit = commit_result.stdout.strip()
+    if not commit:
+        msg = "Git returned an empty commit hash"
+        raise RuntimeError(msg)
     dirty = bool(dirty_result.stdout.strip())
     return commit, dirty

@@ -1,28 +1,25 @@
-"""Synchronous experiment coordinator."""
+"""Synchronous experiment coordinator with built-in MPC."""
 
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from dataclasses import dataclass
 
 from wsmpc.environment import Environment
-from wsmpc.utils.config_schema import CoordinatorConfig, EnvironmentConfig, ExperimentConfig
-from wsmpc.utils.logging import log_event
-from wsmpc.utils.messages import ActionCommand, ExperimentSummary, StateObs, StepRecord
+from wsmpc.mpc.controller import CasadiMPCController
+from wsmpc.utils.config_schema import (
+    CoordinatorConfig,
+    EnvironmentConfig,
+    ExperimentConfig,
+    MPCConfig,
+    RuntimeConfig,
+)
+from wsmpc.utils.log_events import log_event
+from wsmpc.utils.messages import EpisodeResult, ExperimentSummary, StateObs, StepRecord
 from wsmpc.utils.time import monotonic_s
 
 
-@dataclass(frozen=True)
-class EpisodeResult:
-    """In-memory episode result returned by the Coordinator."""
-
-    summary: ExperimentSummary
-    records: list[StepRecord]
-
-
 class Coordinator:
-    """Owns deterministic episode ordering and simulated experiment time."""
+    """Owns deterministic episode ordering and always uses CasADi MPC."""
 
     identity = "Coordinator"
 
@@ -31,15 +28,24 @@ class Coordinator:
         coordinator_config: CoordinatorConfig,
         environment_config: EnvironmentConfig,
         experiment_config: ExperimentConfig,
+        mpc_config: MPCConfig,
+        runtime_config: RuntimeConfig,
         *,
-        logger: logging.Logger | None = None,
+        logger: logging.Logger,
     ) -> None:
         self.config = coordinator_config
         self.environment_config = environment_config
         self.experiment_config = experiment_config
-        self.logger = logger or logging.getLogger(__name__)
+        self.mpc_config = mpc_config
+        self.runtime_config = runtime_config
+        self.logger = logger
+        self.mpc_controller = CasadiMPCController(
+            environment_config,
+            mpc_config,
+            runtime_config,
+            logger=logger,
+        )
 
-        # Log coordinator initialization
         log_event(
             self.logger,
             logging.INFO,
@@ -51,150 +57,33 @@ class Coordinator:
             global_seed=self.experiment_config.global_seed,
         )
 
-    def run_episode(
-        self,
-        *,
-        action_provider: Callable[[StateObs], ActionCommand] | None = None,
-        on_episode_start: Callable[[StateObs], None] | None = None,
-        on_before_step: Callable[[StateObs], None] | None = None,
-        on_step: Callable[[StateObs, StepRecord], None] | None = None,
-        on_episode_finish: Callable[[ExperimentSummary], None] | None = None,
-    ) -> EpisodeResult:
-        """Run one deterministic episode through the Environment."""
+    def run_episode(self) -> EpisodeResult:
+        """Run one deterministic MPC episode."""
 
-        # Build the environment locally so each episode owns its simulator state.
-        wall_started_at = monotonic_s()
-        environment = Environment(
+        from wsmpc.utils.logging import run_episode
+
+        return run_episode(self)
+
+    def create_environment(self) -> Environment:
+        """Create a fresh environment for one episode."""
+
+        return Environment(
             self.environment_config,
             run_id=self.experiment_config.run_id,
             episode_id=self.experiment_config.episode_id,
             logger=self.logger,
         )
-        observation = environment.reset(self.experiment_config.initial_state)
-        records: list[StepRecord] = []
-        goal_hold_count = 1 if observation.goal_reached else 0
 
-        # Log episode start
-        log_event(
-            self.logger,
-            logging.INFO,
-            identity=self.identity,
-            status="running",
-            action="episode_start",
-            action_result="initialized",
-            t_index=observation.t_index,
-            t_sec=observation.t_sec,
-            max_steps=self.experiment_config.max_steps,
+    def should_stop_for_goal(self, goal_hold_count: int) -> bool:
+        """Check the configured goal hold rule."""
+
+        return (
+            self.experiment_config.stop_on_goal
+            and goal_hold_count >= self.environment_config.goal.hold_steps
         )
-        # call the on_episode_start callback to initialize the visualization state
-        if on_episode_start is not None:
-            on_episode_start(observation)
 
-        # The Coordinator delegates control when provided, otherwise it preserves default action.
-        status = "max_steps_reached"
-        try:
-            for _ in range(self.experiment_config.max_steps):
-                if self._should_stop_for_goal(goal_hold_count):
-                    status = "goal_reached"
-                    break
-
-                if on_before_step is not None:
-                    on_before_step(observation)
-
-                # Build the action at the current observation time through the active policy.
-                action = (
-                    action_provider(observation)
-                    if action_provider is not None
-                    else self._build_default_action(observation)
-                )
-                self._log_decision_epoch(observation)
-
-                # Step the environment once and expose the completed transition to subscribers.
-                observation, record = environment.step(action)
-                records.append(record)
-                if on_step is not None:
-                    on_step(observation, record)
-
-                # Count consecutive goal observations according to the configured hold rule.
-                goal_hold_count = goal_hold_count + 1 if observation.goal_reached else 0
-                if self._should_stop_for_goal(goal_hold_count):
-                    status = "goal_reached"
-                    break
-        except KeyboardInterrupt:
-            summary = self._build_summary(
-                status="interrupted",
-                observation=observation,
-                records=records,
-                wall_started_at=wall_started_at,
-            )
-            log_event(
-                self.logger,
-                logging.WARNING,
-                identity=self.identity,
-                status="interrupted",
-                action="episode_interrupt",
-                action_result=summary.status,
-                t_index=summary.final_t_index,
-                t_sec=summary.final_t_sec,
-                total_steps=summary.total_steps,
-                goal_reached=summary.goal_reached,
-                total_wall_time_s=f"{summary.total_wall_time_s:.6f}",
-            )
-            if on_episode_finish is not None:
-                on_episode_finish(summary)
-            return EpisodeResult(summary=summary, records=records)
-
-        # Build the summary after the final observation is known.
-        summary = self._build_summary(
-            status=status,
-            observation=observation,
-            records=records,
-            wall_started_at=wall_started_at,
-        )
-        log_event(
-            self.logger,
-            logging.INFO,
-            identity=self.identity,
-            status="finished",
-            action="episode_finish",
-            action_result=summary.status,
-            t_index=summary.final_t_index,
-            t_sec=summary.final_t_sec,
-            total_steps=summary.total_steps,
-            goal_reached=summary.goal_reached,
-            total_wall_time_s=f"{summary.total_wall_time_s:.6f}",
-        )
-        if on_episode_finish is not None:
-            on_episode_finish(summary)
-        return EpisodeResult(summary=summary, records=records)
-
-    def _build_default_action(self, observation: StateObs) -> ActionCommand:
-        """Create the configured default action for the current simulator step."""
-
-        action = ActionCommand(
-            run_id=self.experiment_config.run_id,
-            episode_id=self.experiment_config.episode_id,
-            t_index=observation.t_index,
-            t_sec=observation.t_sec,
-            u_nm=self.experiment_config.default_action.u_nm,
-            source=self.experiment_config.default_action.source,
-        )
-        log_event(
-            self.logger,
-            logging.DEBUG,
-            identity=self.identity,
-            status="running",
-            action="build_default_action",
-            action_result="command_ready",
-            t_index=observation.t_index,
-            t_sec=observation.t_sec,
-            u_nm=f"{action.u_nm:.6f}",
-            source=action.source,
-        )
-        return action
-
-    def _log_decision_epoch(self, observation: StateObs) -> None:
-        """Log deterministic decision epochs owned by the Coordinator."""
+    def log_decision_epoch(self, observation: StateObs) -> None:
+        """Log deterministic decision epochs."""
 
         is_decision_epoch = observation.t_index % self.config.decision_interval_steps == 0
         if is_decision_epoch and observation.t_index % self.config.debug_log_every_n_steps == 0:
@@ -204,20 +93,12 @@ class Coordinator:
                 identity=self.identity,
                 status="running",
                 action="decision_epoch",
-                action_result="default_policy_selected",
+                action_result="mpc_action_selected",
                 t_index=observation.t_index,
                 t_sec=observation.t_sec,
             )
 
-    def _should_stop_for_goal(self, goal_hold_count: int) -> bool:
-        """Check the configured goal hold rule without consulting wall-clock time."""
-
-        return (
-            self.experiment_config.stop_on_goal
-            and goal_hold_count >= self.environment_config.goal.hold_steps
-        )
-
-    def _build_summary(
+    def build_summary(
         self,
         *,
         status: str,

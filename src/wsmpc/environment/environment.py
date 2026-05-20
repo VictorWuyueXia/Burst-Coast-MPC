@@ -7,10 +7,6 @@ import logging
 import numpy as np
 from numpy.typing import NDArray
 
-from wsmpc.utils.config_schema import EnvironmentConfig, InitialStateConfig
-from wsmpc.utils.logging import log_event
-from wsmpc.utils.messages import ActionCommand, StateObs, StepRecord
-from wsmpc.utils.time import monotonic_s, sleep_s
 from wsmpc.environment.dynamics import (
     clip_torque,
     pendulum_energy,
@@ -18,6 +14,10 @@ from wsmpc.environment.dynamics import (
     state_features,
     upright_energy,
 )
+from wsmpc.utils.config_schema import EnvironmentConfig, InitialStateConfig
+from wsmpc.utils.log_events import log_event
+from wsmpc.utils.messages import ActionCommand, StateObs, StepRecord
+from wsmpc.utils.time import monotonic_s, sleep_s
 
 
 class Environment:
@@ -31,12 +31,12 @@ class Environment:
         *,
         run_id: str,
         episode_id: int,
-        logger: logging.Logger | None = None,
+        logger: logging.Logger,
     ) -> None:
         self.config = config
         self.run_id = run_id
         self.episode_id = episode_id
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger
         self._state = np.zeros(2, dtype=np.float64)
         self._t_index = 0
 
@@ -144,6 +144,7 @@ class Environment:
             plan_id=action.plan_id,
             constraint_margin=observation.constraint_margin,
             goal_flag=observation.goal_reached,
+            early_wake_flag=False,
             step_compute_wall_s=compute_wall_s,
             pace_sleep_s=pace_sleep_s,
             action_result="applied",

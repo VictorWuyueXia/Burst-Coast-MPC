@@ -14,48 +14,30 @@ class ConfigBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid", protected_namespaces=())
 
 
-class LoggingConfig(ConfigBase):
-    """Runtime logging controls."""
-
-    level: str = "INFO"
-
-
 class ArtifactConfig(ConfigBase):
     """Artifact recording controls for local experiment runs."""
 
-    root_dir: str = Field(default="artifacts/experiments", alias="root-dir")
-    alias: str | None = None
-    enabled: bool = True
+    root_dir: str = Field(alias="root-dir")
+    alias: str | None
+    enabled: bool
 
 
 class InitialStateConfig(ConfigBase):
     """Initial physical state for the pendulum environment."""
 
-    theta_rad: float = Field(default=0.0, alias="theta-rad")
-    omega_rad_s: float = Field(default=0.0, alias="omega-rad-s")
-
-
-class DefaultActionConfig(ConfigBase):
-    """Default action used by the Coordinator."""
-
-    u_nm: float = Field(default=0.0, alias="u-nm")
-    source: str = "zero_torque"
+    theta_rad: float = Field(alias="theta-rad")
+    omega_rad_s: float = Field(alias="omega-rad-s")
 
 
 class ExperimentConfig(ConfigBase):
     """Top-level experiment controls owned by the Coordinator."""
 
-    run_id: str = Field(default="pendulum_baseline", alias="run-id")
-    global_seed: int = Field(default=1, alias="global-seed")
-    episode_id: int = Field(default=0, alias="episode-id")
-    max_steps: int = Field(default=25, alias="max-steps")
-    stop_on_goal: bool = Field(default=True, alias="stop-on-goal")
-    initial_state: InitialStateConfig = Field(
-        default_factory=InitialStateConfig, alias="initial-state"
-    )
-    default_action: DefaultActionConfig = Field(
-        default_factory=DefaultActionConfig, alias="default-action"
-    )
+    run_id: str = Field(alias="run-id")
+    global_seed: int = Field(alias="global-seed")
+    episode_id: int = Field(alias="episode-id")
+    max_steps: int = Field(alias="max-steps")
+    stop_on_goal: bool = Field(alias="stop-on-goal")
+    initial_state: InitialStateConfig = Field(alias="initial-state")
 
     @field_validator("max_steps")
     @classmethod
@@ -69,10 +51,10 @@ class ExperimentConfig(ConfigBase):
 class CoordinatorConfig(ConfigBase):
     """Coordinator timing and synchronous execution policy."""
 
-    node_id: str = Field(default="Coordinator", alias="node-id")
-    mode: Literal["synchronous"] = "synchronous"
-    decision_interval_steps: int = Field(default=1, alias="decision-interval-steps")
-    debug_log_every_n_steps: int = Field(default=1, alias="debug-log-every-n-steps")
+    node_id: str = Field(alias="node-id")
+    mode: Literal["synchronous"]
+    decision_interval_steps: int = Field(alias="decision-interval-steps")
+    debug_log_every_n_steps: int = Field(alias="debug-log-every-n-steps")
 
     @field_validator("decision_interval_steps", "debug_log_every_n_steps")
     @classmethod
@@ -86,9 +68,9 @@ class CoordinatorConfig(ConfigBase):
 class SimulationConfig(ConfigBase):
     """Simulation clock controls kept separate from wall-clock pacing."""
 
-    timestep_s: float = Field(default=0.02, alias="timestep-s")
-    pace_s: float = Field(default=0.02, alias="pace-s")
-    max_rollout_steps: int = Field(default=10000, alias="max-rollout-steps")
+    timestep_s: float = Field(alias="timestep-s")
+    pace_s: float = Field(alias="pace-s")
+    max_rollout_steps: int = Field(alias="max-rollout-steps")
 
     @field_validator("timestep_s")
     @classmethod
@@ -118,13 +100,13 @@ class SimulationConfig(ConfigBase):
 class PendulumConfig(ConfigBase):
     """Physical constants and conservative state bounds for the pendulum."""
 
-    mass_kg: float = Field(default=1.0, alias="mass-kg")
-    gravity_m_s2: float = Field(default=9.80665, alias="gravity-m-s2")
-    length_m: float = Field(default=1.0, alias="length-m")
-    damping_nms: float = Field(default=0.05, alias="damping-nms")
-    torque_limit_nm: float = Field(default=4.0, alias="torque-limit-nm")
-    theta_limit_abs_rad: float = Field(default=12.566370614359172, alias="theta-limit-abs-rad")
-    omega_limit_abs_rad_s: float = Field(default=40.0, alias="omega-limit-abs-rad-s")
+    mass_kg: float = Field(alias="mass-kg")
+    gravity_m_s2: float = Field(alias="gravity-m-s2")
+    length_m: float = Field(alias="length-m")
+    damping_nms: float = Field(alias="damping-nms")
+    torque_limit_nm: float = Field(alias="torque-limit-nm")
+    theta_limit_abs_rad: float = Field(alias="theta-limit-abs-rad")
+    omega_limit_abs_rad_s: float = Field(alias="omega-limit-abs-rad-s")
 
     @field_validator(
         "mass_kg",
@@ -145,9 +127,9 @@ class PendulumConfig(ConfigBase):
 class GoalConfig(ConfigBase):
     """Goal-set thresholds used by the Environment and Coordinator."""
 
-    angle_tolerance_rad: float = Field(default=0.05, alias="angle-tolerance-rad")
-    omega_tolerance_rad_s: float = Field(default=0.05, alias="omega-tolerance-rad-s")
-    hold_steps: int = Field(default=25, alias="hold-steps")
+    angle_tolerance_rad: float = Field(alias="angle-tolerance-rad")
+    omega_tolerance_rad_s: float = Field(alias="omega-tolerance-rad-s")
+    hold_steps: int = Field(alias="hold-steps")
 
     @field_validator("angle_tolerance_rad", "omega_tolerance_rad_s")
     @classmethod
@@ -169,25 +151,25 @@ class GoalConfig(ConfigBase):
 class EnvironmentConfig(ConfigBase):
     """Environment identity and simulation model configuration."""
 
-    node_id: str = Field(default="Environment", alias="node-id")
-    simulation: SimulationConfig = Field(default_factory=SimulationConfig)
-    pendulum: PendulumConfig = Field(default_factory=PendulumConfig)
-    goal: GoalConfig = Field(default_factory=GoalConfig)
+    node_id: str = Field(alias="node-id")
+    simulation: SimulationConfig
+    pendulum: PendulumConfig
+    goal: GoalConfig
 
 
 class MPCCostConfig(ConfigBase):
     """Energy-phase objective weights used by the nonlinear MPC problem."""
 
-    epsilon_phi: float = Field(default=1.0e-6, alias="epsilon-phi")
-    sigma_energy: float = Field(default=0.5, alias="sigma-energy")
-    q_energy: float = Field(default=1.0, alias="q-energy")
-    q_phase: float = Field(default=0.0, alias="q-phase")
-    q_local: float = Field(default=0.0, alias="q-local")
-    q_terminal: float = Field(default=5.0, alias="q-terminal")
-    rho_saturation: float = Field(default=0.0, alias="rho-saturation")
-    rho_delta_u: float = Field(default=1.0e-3, alias="rho-delta-u")
-    q_phase_diag: list[float] = Field(default_factory=lambda: [1.0, 1.0], alias="q-phase-diag")
-    q_local_diag: list[float] = Field(default_factory=lambda: [1.0, 1.0], alias="q-local-diag")
+    epsilon_phi: float = Field(alias="epsilon-phi")
+    sigma_energy: float = Field(alias="sigma-energy")
+    q_energy: float = Field(alias="q-energy")
+    q_phase: float = Field(alias="q-phase")
+    q_local: float = Field(alias="q-local")
+    q_terminal: float = Field(alias="q-terminal")
+    rho_saturation: float = Field(alias="rho-saturation")
+    rho_delta_u: float = Field(alias="rho-delta-u")
+    q_phase_diag: list[float] = Field(alias="q-phase-diag")
+    q_local_diag: list[float] = Field(alias="q-local-diag")
 
     @field_validator(
         "epsilon_phi",
@@ -222,24 +204,8 @@ class MPCCostConfig(ConfigBase):
 class MPCConfig(ConfigBase):
     """Configuration for the CasADi split-ratio MPC controller."""
 
-    enabled: bool = False
-    split_ratios: list[float] = Field(
-        default_factory=lambda: [0.1, 0.2, 0.3],
-        alias="split-ratios",
-    )
-    solve_candidates_in_parallel: bool = Field(default=False, alias="solve-candidates-in-parallel")
-    max_parallel_workers: int | None = Field(default=None, alias="max-parallel-workers")
-    horizon_steps_override: int | None = Field(default=None, alias="horizon-steps-override")
-    prediction_horizon_rule: Literal["half-natural-period"] = Field(
-        default="half-natural-period",
-        alias="prediction-horizon-rule",
-    )
-    coast_mode: Literal["zero"] = Field(default="zero", alias="coast-mode")
-    solver: Literal["ipopt"] = "ipopt"
-    ipopt_print_level: int = Field(default=0, alias="ipopt-print-level")
-    solver_max_iterations: int = Field(default=100, alias="solver-max-iterations")
-    solver_tolerance: float = Field(default=1.0e-6, alias="solver-tolerance")
-    cost: MPCCostConfig = Field(default_factory=MPCCostConfig)
+    split_ratios: list[float] = Field(alias="split-ratios")
+    cost: MPCCostConfig
 
     @field_validator("split_ratios")
     @classmethod
@@ -252,48 +218,16 @@ class MPCConfig(ConfigBase):
             raise ValueError(msg)
         return value
 
-    @field_validator("max_parallel_workers", "horizon_steps_override")
-    @classmethod
-    def _optional_step_counts_must_be_positive(cls, value: int | None) -> int | None:
-        if value is not None and value <= 0:
-            msg = "optional MPC counts must be positive when provided"
-            raise ValueError(msg)
-        return value
-
-    @field_validator("ipopt_print_level")
-    @classmethod
-    def _ipopt_print_level_must_be_nonnegative(cls, value: int) -> int:
-        if value < 0:
-            msg = "ipopt-print-level must be nonnegative"
-            raise ValueError(msg)
-        return value
-
-    @field_validator("solver_max_iterations")
-    @classmethod
-    def _solver_iterations_must_be_positive(cls, value: int) -> int:
-        if value <= 0:
-            msg = "solver-max-iterations must be positive"
-            raise ValueError(msg)
-        return value
-
-    @field_validator("solver_tolerance")
-    @classmethod
-    def _solver_tolerance_must_be_positive(cls, value: float) -> float:
-        if value <= 0.0 or not math.isfinite(value):
-            msg = "solver-tolerance must be finite and positive"
-            raise ValueError(msg)
-        return value
-
 
 class RuntimeConfig(ConfigBase):
     """Resource limits for local runs."""
 
-    node_id: str = Field(default="Runtime", alias="node-id")
-    max_worker_threads: int = Field(default=2, alias="max-worker-threads")
-    blas_threads: int = Field(default=1, alias="blas-threads")
-    torch_threads: int = Field(default=1, alias="torch-threads")
-    cpu_affinity: list[int] = Field(default_factory=list, alias="cpu-affinity")
-    set_env: bool = Field(default=True, alias="set-env")
+    node_id: str = Field(alias="node-id")
+    max_worker_threads: int = Field(alias="max-worker-threads")
+    blas_threads: int = Field(alias="blas-threads")
+    torch_threads: int = Field(alias="torch-threads")
+    cpu_affinity: list[int] = Field(alias="cpu-affinity")
+    set_env: bool = Field(alias="set-env")
 
     @field_validator("max_worker_threads", "blas_threads", "torch_threads")
     @classmethod
@@ -318,7 +252,6 @@ class RootConfig(ConfigBase):
     experiment: ExperimentConfig
     coordinator: CoordinatorConfig
     environment: EnvironmentConfig
-    mpc: MPCConfig = Field(default_factory=MPCConfig)
+    mpc: MPCConfig
     runtime: RuntimeConfig
-    artifacts: ArtifactConfig = Field(default_factory=ArtifactConfig)
-    logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    artifacts: ArtifactConfig
