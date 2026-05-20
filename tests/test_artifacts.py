@@ -5,7 +5,7 @@ import re
 
 from wsmpc.coordinator import Coordinator
 from wsmpc.utils.artifacts import STEP_CSV_HEADERS, ArtifactWriter
-from wsmpc.utils.loaders import load_config
+from wsmpc.utils.config_schema import load_config
 from wsmpc.utils.logging import EpisodeHooks, run_episode
 
 

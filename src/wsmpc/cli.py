@@ -3,12 +3,7 @@
 from __future__ import annotations
 
 import logging
-import select
-import sys
-import termios
-import tty
-from types import TracebackType
-from typing import Annotated, Any
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -19,59 +14,12 @@ from wsmpc.utils.artifacts import (
     attach_run_log_handler,
     detach_run_log_handler,
 )
-from wsmpc.utils.loaders import STANDARD_PACKAGE, load_config
+from wsmpc.utils.config_schema import STANDARD_PACKAGE, load_config
 from wsmpc.utils.logging import EpisodeHooks, configure_logging, episode_output, run_episode
 from wsmpc.utils.resources import configure_runtime_resources
 
 app = typer.Typer(help="Wake-sleep MPC research CLI.")
 console = Console()
-
-
-class TerminalPauseController:
-    """Nonblocking single-key pause and resume controls for interactive runs."""
-
-    def __init__(self, *, enabled: bool) -> None:
-        self.enabled = enabled and sys.stdin.isatty()
-        self._paused = False
-        self._original_terminal_attrs: list[Any] | None = None
-
-    def __enter__(self) -> TerminalPauseController:
-        if self.enabled:
-            self._original_terminal_attrs = termios.tcgetattr(sys.stdin)
-            tty.setcbreak(sys.stdin.fileno())
-            console.print("Controls: press 's' to pause simulation, 'r' to resume.")
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        if self.enabled and self._original_terminal_attrs is not None:
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._original_terminal_attrs)
-
-    def wait_if_paused(self) -> None:
-        if not self.enabled:
-            return
-        self._consume_pause_command()
-        while self._paused:
-            ready, _, _ = select.select([sys.stdin], [], [], 0.1)
-            if not ready:
-                continue
-            key = sys.stdin.read(1).lower()
-            if key == "r":
-                self._paused = False
-                console.print("Simulation resumed. Press 's' to pause again.")
-
-    def _consume_pause_command(self) -> None:
-        ready, _, _ = select.select([sys.stdin], [], [], 0)
-        if not ready:
-            return
-        key = sys.stdin.read(1).lower()
-        if key == "s":
-            self._paused = True
-            console.print("Simulation paused. Press 'r' to resume.")
 
 
 @app.callback()
@@ -172,11 +120,6 @@ def run_episode_command(
         if realtime_plot is not None:
             realtime_plot.start_animation(observation)
 
-    pause_controller = TerminalPauseController(enabled=not no_visual)
-
-    def on_before_step(observation) -> None:
-        pause_controller.wait_if_paused()
-
     def on_step(observation, record) -> None:
         if artifact_writer is not None:
             artifact_writer.write_step(record)
@@ -191,14 +134,12 @@ def run_episode_command(
 
     hooks = EpisodeHooks(
         on_episode_start=on_episode_start,
-        on_before_step=on_before_step,
         on_step=on_step,
         on_episode_finish=on_episode_finish,
     )
 
     try:
-        with pause_controller:
-            result = run_episode(coordinator, hooks)
+        result = run_episode(coordinator, hooks)
     except Exception:
         if artifact_writer is not None:
             artifact_writer.finalize_manifest(completed=False, status="failed")

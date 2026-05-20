@@ -17,8 +17,7 @@ from wsmpc.mpc.numeric_features import (
     normalized_energy_error,
     phase_proxy_error,
 )
-from wsmpc.utils.config_schema import PendulumConfig
-from wsmpc.utils.loaders import load_config
+from wsmpc.utils.config_schema import PendulumConfig, load_config
 
 
 def test_mpc_features_match_upright_convention() -> None:

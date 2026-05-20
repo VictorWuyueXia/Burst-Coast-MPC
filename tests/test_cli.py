@@ -1,7 +1,7 @@
 from typer.testing import CliRunner
 
-from wsmpc.cli import TerminalPauseController, app
-from wsmpc.utils.loaders import load_config
+from wsmpc.cli import app
+from wsmpc.utils.config_schema import load_config
 
 
 def test_cli_run_episode(monkeypatch) -> None:
@@ -55,12 +55,3 @@ def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> N
     assert "pendulum_baseline" in result.output
     assert "artifact_dir" in result.output
     assert len(list(tmp_path.iterdir())) == 1
-
-
-def test_terminal_pause_controller_disabled_does_not_block() -> None:
-    controller = TerminalPauseController(enabled=False)
-
-    with controller:
-        controller.wait_if_paused()
-
-    assert controller.enabled is False

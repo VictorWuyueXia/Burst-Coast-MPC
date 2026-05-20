@@ -5,7 +5,7 @@ import pytest
 
 from wsmpc.environment import Environment
 from wsmpc.mpc.numeric_features import phase_proxy_error
-from wsmpc.utils.loaders import load_config
+from wsmpc.utils.config_schema import load_config
 from wsmpc.utils.messages import ActionCommand
 
 

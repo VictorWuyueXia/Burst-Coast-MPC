@@ -2,17 +2,12 @@
 # --- Operating system --------------------------------------------------------
 .DS_Store
 ._*
-Thumbs.db
-ehthumbs.db
-Desktop.ini
 $RECYCLE.BIN/
 
 # --- Secrets and local environment -------------------------------------------
 .env
 .env.*
-!.env.example
 .direnv/
-.python-version.local
 
 # --- Python bytecode and caches ----------------------------------------------
 __pycache__/
@@ -59,30 +54,18 @@ comet_ml/
 # --- Scratch, debug, and one-off scripts -------------------------------------
 tmp/
 temp/
-scratch/
 debug/
 *.tmp
-*.bak
-*.swp
-*~
 
 # --- IDEs and editors --------------------------------------------------------
 .idea/
 
 # VS Code: ignore machine-local state; keep shareable team files
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/tasks.json
+.vscode/
 
 # Cursor: keep project rules; ignore local index/cache if present
-.cursor/*
-!.cursor/rules/
-!.cursor/rules/**
+.cursor/
 
 # --- Tool-specific caches ----------------------------------------------------
 .matplotlib/
 .cache/
-*.prof
-*.lprof

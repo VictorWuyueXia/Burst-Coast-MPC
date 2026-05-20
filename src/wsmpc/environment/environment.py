@@ -167,30 +167,6 @@ class Environment:
         )
         return observation, record
 
-    def rollout(self, x0: NDArray[np.float64], actions: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Roll out a deterministic action sequence with preallocated trajectory storage."""
-
-        # Validate rollout size before allocation to avoid accidental large memory requests.
-        action_array = np.asarray(actions, dtype=np.float64)
-        if action_array.ndim != 1:
-            msg = "actions must be a one-dimensional array"
-            raise ValueError(msg)
-        if action_array.size > self.config.simulation.max_rollout_steps:
-            msg = "actions exceed max-rollout-steps"
-            raise ValueError(msg)
-
-        # The recurrence is sequential, while each dynamics evaluation uses NumPy math internally.
-        trajectory = np.empty((action_array.size + 1, 2), dtype=np.float64)
-        trajectory[0] = np.asarray(x0, dtype=np.float64)
-        for index, torque_nm in enumerate(action_array):
-            trajectory[index + 1] = rk4_step(
-                trajectory[index],
-                float(torque_nm),
-                self.config.simulation.timestep_s,
-                self.config.pendulum,
-            )
-        return trajectory
-
     def _make_observation(self) -> StateObs:
         """Build a typed observation from current true state and diagnostics."""
 

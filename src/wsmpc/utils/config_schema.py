@@ -3,9 +3,30 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Literal
 
+from omegaconf import OmegaConf
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from wsmpc.utils.time import realtime
+
+CONFIG_ROOT = Path(__file__).resolve().parents[3] / "configs"
+STANDARD_PACKAGE = "standard"
+
+
+def load_config(package_name: str) -> RootConfig:
+    """Load one complete config package and validate every required field."""
+
+    # Register the YAML-only realtime helper at the exact point where YAML is resolved.
+    OmegaConf.register_new_resolver("realtime", realtime, replace=True)
+    package_path = CONFIG_ROOT / package_name / "config.yaml"
+    if not package_path.exists():
+        msg = f"Config package not found: {package_path}"
+        raise FileNotFoundError(msg)
+    package_cfg = OmegaConf.load(package_path)
+    resolved = OmegaConf.to_container(package_cfg, resolve=True)
+    return RootConfig.model_validate(resolved)
 
 
 class ConfigBase(BaseModel):
