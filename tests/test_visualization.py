@@ -74,6 +74,31 @@ def test_realtime_episode_plot_accepts_records() -> None:
     assert plot.animation is None
 
 
+def test_artifact_figures_cover_static_diagnostics() -> None:
+    _require_matplotlib()
+    from matplotlib import pyplot as plt
+
+    from wsmpc.visualization.artifact_plots import create_artifact_figures
+
+    config, _, record = _one_record()
+    figures = create_artifact_figures([record], config.environment, config.mpc)
+
+    assert set(figures) == {"states", "energy", "phase", "commands"}
+    assert [axis.get_ylabel() for axis in figures["states"].axes] == [
+        "theta rad",
+        "omega rad/s",
+    ]
+    assert figures["energy"].axes[0].get_ylabel() == "energy J"
+    assert figures["energy"].axes[1].get_ylabel() == "energy error J"
+    assert figures["phase"].axes[0].get_xlabel() == "c_phi - 1"
+    assert figures["phase"].axes[0].get_ylabel() == "s_phi"
+    command_labels = {line.get_label() for line in figures["commands"].axes[0].lines}
+    assert command_labels == {"commanded", "applied"}
+
+    for figure in figures.values():
+        plt.close(figure)
+
+
 def test_realtime_episode_plot_embeds_animation_when_requested() -> None:
     _require_matplotlib()
     from wsmpc.visualization.realtime import RealtimeEpisodePlot

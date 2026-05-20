@@ -17,6 +17,7 @@ from wsmpc.utils.artifacts import (
 from wsmpc.utils.config_schema import STANDARD_PACKAGE, load_config
 from wsmpc.utils.logging import EpisodeHooks, configure_logging, episode_output, run_episode
 from wsmpc.utils.resources import configure_runtime_resources
+from wsmpc.visualization.artifact_plots import create_artifact_figures
 
 app = typer.Typer(help="Wake-sleep MPC research CLI.")
 console = Console()
@@ -147,6 +148,13 @@ def run_episode_command(
         raise
 
     if artifact_writer is not None:
+        from matplotlib import pyplot as plt
+
+        figures = create_artifact_figures(result.records, config.environment, config.mpc)
+        for name, figure in figures.items():
+            artifact_writer.write_figure(name, figure)
+        for figure in figures.values():
+            plt.close(figure)
         artifact_writer.finalize_manifest(
             completed=result.summary.status != "interrupted",
             status=result.summary.status,

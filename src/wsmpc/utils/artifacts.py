@@ -157,6 +157,15 @@ class ArtifactWriter:
             summary.model_dump(mode="json", by_alias=True),
         )
 
+    def write_figure(self, name: str, figure: Any) -> Path:
+        """Save one diagnostic Matplotlib figure into the figures artifact directory."""
+
+        figures_dir = self.run_dir / "figures"
+        figures_dir.mkdir(exist_ok=True)
+        path = figures_dir / f"{name}.png"
+        figure.savefig(path, dpi=150, bbox_inches="tight")
+        return path
+
     def finalize_manifest(
         self,
         *,
@@ -227,19 +236,10 @@ class ArtifactWriter:
     def _file_entries(self) -> list[dict[str, Any]]:
         """Return existing artifact files with byte sizes for quick integrity checks."""
 
-        names = [
-            "config.json",
-            "metadata.json",
-            "steps.csv",
-            "summary.json",
-            "run.log",
-            "manifest.json",
-        ]
         entries: list[dict[str, Any]] = []
-        for name in names:
-            path = self.run_dir / name
-            if path.exists():
-                entries.append({"path": name, "bytes": path.stat().st_size})
+        for path in sorted(item for item in self.run_dir.rglob("*") if item.is_file()):
+            relative_path = path.relative_to(self.run_dir).as_posix()
+            entries.append({"path": relative_path, "bytes": path.stat().st_size})
         return entries
 
     def _write_json(self, name: str, data: Any) -> None:

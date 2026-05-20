@@ -3,10 +3,17 @@ import json
 import logging
 import re
 
+import pytest
+
 from wsmpc.coordinator import Coordinator
 from wsmpc.utils.artifacts import STEP_CSV_HEADERS, ArtifactWriter
 from wsmpc.utils.config_schema import load_config
 from wsmpc.utils.logging import EpisodeHooks, run_episode
+
+
+def _require_matplotlib() -> None:
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
 
 
 def test_artifact_writer_records_short_episode(tmp_path) -> None:
@@ -40,6 +47,15 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
     )
 
     result = run_episode(coordinator, hooks)
+    _require_matplotlib()
+    from matplotlib import pyplot as plt
+
+    from wsmpc.visualization.artifact_plots import create_artifact_figures
+
+    figures = create_artifact_figures(result.records, config.environment, config.mpc)
+    for name, figure in figures.items():
+        writer.write_figure(name, figure)
+        plt.close(figure)
     writer.finalize_manifest(completed=True, status=result.summary.status)
 
     assert re.fullmatch(r"smoke-run_\d{8}T\d{6}", writer.run_dir.name)
@@ -52,6 +68,10 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
         "manifest.json",
     ]:
         assert (writer.run_dir / name).exists()
+    for name in ["states", "energy", "phase", "commands"]:
+        figure_path = writer.run_dir / "figures" / f"{name}.png"
+        assert figure_path.exists()
+        assert figure_path.stat().st_size > 0
 
     with (writer.run_dir / "steps.csv").open(encoding="utf-8", newline="") as file:
         rows = list(csv.DictReader(file))
@@ -68,4 +88,12 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
     assert manifest["artifact_format_version"] == 1
     assert manifest["row_counts"]["steps"] == summary["records_emitted"]
     assert manifest["completed"] is True
+    manifest_paths = {entry["path"] for entry in manifest["files"]}
+    expected_figures = {
+        "figures/states.png",
+        "figures/energy.png",
+        "figures/phase.png",
+        "figures/commands.png",
+    }
+    assert expected_figures <= manifest_paths
     assert summary["final_observation"]["theta-rad"] == result.summary.final_observation.theta_rad
