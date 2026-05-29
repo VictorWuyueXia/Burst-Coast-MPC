@@ -1,8 +1,9 @@
-"""Synchronous experiment coordinator with built-in MPC."""
+"""Synchronous experiment coordinator with event-triggered replanning."""
 
 from __future__ import annotations
 
 import logging
+import math
 
 from wsmpc.environment import Environment
 from wsmpc.mpc.controller import CasadiMPCController
@@ -14,12 +15,13 @@ from wsmpc.utils.config_schema import (
     RuntimeConfig,
 )
 from wsmpc.utils.log_events import log_event
+from wsmpc.utils.logging import ThirdPersonObservers
 from wsmpc.utils.messages import EpisodeResult, ExperimentSummary, StateObs, StepRecord
 from wsmpc.utils.time import monotonic_s
 
 
 class Coordinator:
-    """Owns deterministic episode ordering and always uses CasADi MPC."""
+    """Own deterministic episode ordering, event triggers, and CasADi MPC execution."""
 
     identity = "Coordinator"
 
@@ -54,61 +56,119 @@ class Coordinator:
             action="create_coordinator",
             action_result="ready",
             mode=self.config.mode,
+            event_trigger=self.config.event_trigger,
             global_seed=self.experiment_config.global_seed,
         )
 
-    def run_episode(self) -> EpisodeResult:
-        """Run one deterministic MPC episode."""
+    def run_episode(
+        self,
+        third_person_observers: ThirdPersonObservers | None = None,
+    ) -> EpisodeResult:
+        """Run one deterministic MPC episode with optional third-person observers."""
 
-        from wsmpc.utils.logging import run_episode
-
-        return run_episode(self)
-
-    def create_environment(self) -> Environment:
-        """Create a fresh environment for one episode."""
-
-        return Environment(
+        # third person observers for real time visualization
+        third_person_observers = third_person_observers or ThirdPersonObservers()
+        # 0. takes the wall time
+        wall_started_at = monotonic_s()
+        ## 0.1. Create environment
+        environment = Environment(
             self.environment_config,
             run_id=self.experiment_config.run_id,
             episode_id=self.experiment_config.episode_id,
             logger=self.logger,
         )
+        ## 0.2. Reset environment
+        observation = environment.reset(self.experiment_config.initial_state)
+        records: list[StepRecord] = []
+        goal_hold_count = 1 if observation.goal_reached else 0
 
-    def should_stop_for_goal(self, goal_hold_count: int) -> bool:
-        """Check the configured goal hold rule."""
-
-        return (
-            self.experiment_config.stop_on_goal
-            and goal_hold_count >= self.environment_config.goal.hold_steps
+        log_event(
+            self.logger,
+            logging.INFO,
+            identity=self.identity,
+            status="running",
+            action="episode_start",
+            action_result="initialized",
+            t_index=observation.t_index,
+            t_sec=observation.t_sec,
+            max_steps=self.experiment_config.max_steps,
         )
+        if third_person_observers.at_episode_start is not None:
+            third_person_observers.at_episode_start(observation)
+        
+        # Main loop
+        status = "max_steps_reached"
+        try:
+            for _ in range(self.experiment_config.max_steps):
+                # 1. check if goal is reached
+                if (
+                    self.experiment_config.stop_on_goal
+                    and goal_hold_count >= self.environment_config.goal.hold_steps
+                ):
+                    status = "goal_reached"
+                    break
 
-    def log_decision_epoch(self, observation: StateObs) -> None:
-        """Log deterministic decision epochs."""
+                # 2. observe the current state
+                if third_person_observers.before_step is not None:
+                    third_person_observers.before_step(observation)
 
-        is_decision_epoch = observation.t_index % self.config.decision_interval_steps == 0
-        if is_decision_epoch and observation.t_index % self.config.debug_log_every_n_steps == 0:
-            log_event(
-                self.logger,
-                logging.DEBUG,
-                identity=self.identity,
-                status="running",
-                action="decision_epoch",
-                action_result="mpc_action_selected",
-                t_index=observation.t_index,
-                t_sec=observation.t_sec,
-            )
+                # 3. check for event-trigger
+                event_triggered = self.config.event_trigger and self.event_trigger(observation)
 
-    def build_summary(
-        self,
-        *,
-        status: str,
-        observation: StateObs,
-        records: list[StepRecord],
-        wall_started_at: float,
-    ) -> ExperimentSummary:
-        """Build the final typed summary for CLI output and tests."""
+                # 4. MPC controller and policy
+                action = self.mpc_controller.select_action(
+                    observation,
+                    force_replan=event_triggered,
+                )
+                is_decision_epoch = observation.t_index % self.config.decision_interval_steps == 0
+                if (
+                    is_decision_epoch
+                    and observation.t_index % self.config.debug_log_every_n_steps == 0
+                ):
+                    log_event(
+                        self.logger,
+                        logging.DEBUG,
+                        identity=self.identity,
+                        status="running",
+                        action="decision_epoch",
+                        action_result="mpc_action_selected",
+                        t_index=observation.t_index,
+                        t_sec=observation.t_sec,
+                    )
 
-        return ExperimentSummary(
+                # 5. apply the action and step the environment
+                observation, record = environment.step(action)
+
+                records.append(record)
+                log_event(
+                    self.logger,
+                    logging.DEBUG,
+                    identity="Environment",
+                    status="running",
+                    action="step_record",
+                    action_result=record.action_result,
+                    t_index=record.t_index,
+                    t_sec=record.t_sec,
+                    u_commanded_nm=f"{record.u_commanded_nm:.6f}",
+                    u_applied_nm=f"{record.u_applied_nm:.6f}",
+                    mode=record.mode,
+                )
+                if third_person_observers.after_step is not None:
+                    third_person_observers.after_step(observation, record)
+
+                goal_hold_count = goal_hold_count + 1 if observation.goal_reached else 0
+
+                # 6. Re-check if goal is reached
+                if (
+                    self.experiment_config.stop_on_goal
+                    and goal_hold_count >= self.environment_config.goal.hold_steps
+                ):
+                    status = "goal_reached"
+                    break
+        except KeyboardInterrupt:
+            status = "interrupted"
+
+        summary = ExperimentSummary(
             run_id=self.experiment_config.run_id,
             episode_id=self.experiment_config.episode_id,
             status=status,
@@ -120,3 +180,26 @@ class Coordinator:
             total_wall_time_s=monotonic_s() - wall_started_at,
             final_observation=observation,
         )
+        log_event(
+            self.logger,
+            logging.WARNING if status == "interrupted" else logging.INFO,
+            identity=self.identity,
+            status=summary.status,
+            action="episode_interrupt" if status == "interrupted" else "episode_finish",
+            action_result=summary.status,
+            t_index=summary.final_t_index,
+            t_sec=summary.final_t_sec,
+            total_steps=summary.total_steps,
+            goal_reached=summary.goal_reached,
+            total_wall_time_s=f"{summary.total_wall_time_s:.6f}",
+        )
+        if third_person_observers.at_episode_finish is not None:
+            third_person_observers.at_episode_finish(summary)
+        return EpisodeResult(summary=summary, records=records)
+
+    def event_trigger(self, observation: StateObs) -> bool:
+        """Return true near either upright or downward angular section."""
+
+        wrapped_angle = abs(observation.wrapped_angle_error_rad)
+        angle_tolerance = self.environment_config.goal.angle_tolerance_rad
+        return wrapped_angle <= angle_tolerance or abs(math.pi - wrapped_angle) <= angle_tolerance

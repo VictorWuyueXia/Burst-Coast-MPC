@@ -33,6 +33,7 @@ def _one_record():
             t_sec=observation.t_sec,
             u_nm=0.25,
             source="test",
+            early_wake_flag=False,
         )
     )
     return config, next_observation, record

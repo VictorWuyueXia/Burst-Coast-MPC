@@ -100,7 +100,7 @@ def build_single_shooting_problem(
         objective += energy_phase_value_symbolic(x, environment.pendulum)
         x = rk4_step_symbolic(x, 0.0, environment.simulation.timestep_s, environment.pendulum)
 
-    objective += weights.Q_TERMINAL * energy_phase_value_symbolic(x, environment.pendulum)
+    objective += weights.w_terminal * energy_phase_value_symbolic(x, environment.pendulum)
 
     nlp = {"x": decision, "f": objective}
     solver = ca.nlpsol("natural_period_mpc", "ipopt", nlp, IPOPT_OPTIONS)
@@ -123,8 +123,8 @@ def _burst_stage_cost(x: Any, u: Any, previous_u: Any, environment: EnvironmentC
     smoothness = normalized_delta_u**2
     return (
         energy_phase_value_symbolic(x, environment.pendulum)
-        + weights.RHO_SATURATION * saturation_attraction
-        + weights.RHO_DELTA_U * smoothness
+        + weights.w_saturation * saturation_attraction
+        + weights.w_delta_u * smoothness
     )
 
 
@@ -134,7 +134,7 @@ def split_candidates(environment: EnvironmentConfig, mpc: MPCConfig) -> list[Spl
     total_steps = prediction_horizon_steps(environment)
     candidates: list[SplitCandidate] = []
     for lambda_value in mpc.split_ratios:
-        burst_steps = max(1, round(lambda_value * total_steps))
+        burst_steps = round(lambda_value * total_steps)
         candidates.append(
             SplitCandidate(
                 lambda_value=lambda_value,
@@ -147,8 +147,8 @@ def split_candidates(environment: EnvironmentConfig, mpc: MPCConfig) -> list[Spl
 
 
 def prediction_horizon_steps(environment: EnvironmentConfig) -> int:
-    """Return the fixed half-natural-period horizon in simulator steps."""
+    """Return the fixed full-natural-period horizon in simulator steps."""
 
     omega_n = natural_frequency_rad_s(environment.pendulum)
-    half_period_s = math.pi / omega_n
-    return max(1, round(half_period_s / environment.simulation.timestep_s))
+    full_period_s = math.tau / omega_n
+    return round(full_period_s / environment.simulation.timestep_s)

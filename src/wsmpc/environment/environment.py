@@ -144,7 +144,7 @@ class Environment:
             plan_id=action.plan_id,
             constraint_margin=observation.constraint_margin,
             goal_flag=observation.goal_reached,
-            early_wake_flag=False,
+            early_wake_flag=action.early_wake_flag,
             step_compute_wall_s=compute_wall_s,
             pace_sleep_s=pace_sleep_s,
             action_result="applied",

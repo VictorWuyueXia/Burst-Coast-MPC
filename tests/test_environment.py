@@ -27,6 +27,7 @@ def test_environment_step_returns_finite_observation_and_record() -> None:
             t_sec=observation.t_sec,
             u_nm=0.0,
             source="test",
+            early_wake_flag=False,
         )
     )
 

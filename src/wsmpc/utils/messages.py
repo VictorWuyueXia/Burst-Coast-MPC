@@ -23,6 +23,7 @@ class ActionCommand(MessageBase):
     t_sec: float
     u_nm: float = Field(alias="u-nm")
     source: str
+    early_wake_flag: bool = Field(alias="early-wake-flag")
     plan_id: str | None = None
 
 

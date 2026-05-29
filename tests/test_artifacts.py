@@ -8,7 +8,7 @@ import pytest
 from wsmpc.coordinator import Coordinator
 from wsmpc.utils.artifacts import STEP_CSV_HEADERS, ArtifactWriter
 from wsmpc.utils.config_schema import load_config
-from wsmpc.utils.logging import EpisodeHooks, run_episode
+from wsmpc.utils.logging import ThirdPersonObservers
 
 
 def _require_matplotlib() -> None:
@@ -41,12 +41,12 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
         config.runtime,
         logger=logging.getLogger("test"),
     )
-    hooks = EpisodeHooks(
-        on_step=lambda observation, record: writer.write_step(record),
-        on_episode_finish=lambda summary: writer.write_summary(summary),
+    third_person_observers = ThirdPersonObservers(
+        after_step=lambda observation, record: writer.write_step(record),
+        at_episode_finish=lambda summary: writer.write_summary(summary),
     )
 
-    result = run_episode(coordinator, hooks)
+    result = coordinator.run_episode(third_person_observers)
     _require_matplotlib()
     from matplotlib import pyplot as plt
 

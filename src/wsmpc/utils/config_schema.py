@@ -74,6 +74,7 @@ class CoordinatorConfig(ConfigBase):
 
     node_id: str = Field(alias="node-id")
     mode: Literal["synchronous"]
+    event_trigger: bool = Field(alias="event-trigger")
     decision_interval_steps: int = Field(alias="decision-interval-steps")
     debug_log_every_n_steps: int = Field(alias="debug-log-every-n-steps")
 
@@ -91,7 +92,6 @@ class SimulationConfig(ConfigBase):
 
     timestep_s: float = Field(alias="timestep-s")
     pace_s: float = Field(alias="pace-s")
-    max_rollout_steps: int = Field(alias="max-rollout-steps")
 
     @field_validator("timestep_s")
     @classmethod
@@ -106,14 +106,6 @@ class SimulationConfig(ConfigBase):
     def _pace_must_be_nonnegative(cls, value: float) -> float:
         if value < 0.0:
             msg = "pace-s must be nonnegative"
-            raise ValueError(msg)
-        return value
-
-    @field_validator("max_rollout_steps")
-    @classmethod
-    def _max_rollout_steps_must_be_positive(cls, value: int) -> int:
-        if value <= 0:
-            msg = "max-rollout-steps must be positive"
             raise ValueError(msg)
         return value
 
@@ -181,7 +173,7 @@ class EnvironmentConfig(ConfigBase):
 class MPCConfig(ConfigBase):
     """Configuration for the CasADi split-ratio MPC controller."""
 
-    controller: Literal["IP-energy-eventTriggered", "IP-dynamics-naturalPeriod"]
+    controller: Literal["IP-dynamics-naturalPeriod"]
     split_ratios: list[float] = Field(alias="split-ratios")
 
     @field_validator("split_ratios")
@@ -202,11 +194,10 @@ class RuntimeConfig(ConfigBase):
     node_id: str = Field(alias="node-id")
     max_worker_threads: int = Field(alias="max-worker-threads")
     blas_threads: int = Field(alias="blas-threads")
-    torch_threads: int = Field(alias="torch-threads")
     cpu_affinity: list[int] = Field(alias="cpu-affinity")
     set_env: bool = Field(alias="set-env")
 
-    @field_validator("max_worker_threads", "blas_threads", "torch_threads")
+    @field_validator("max_worker_threads", "blas_threads")
     @classmethod
     def _thread_counts_must_be_positive(cls, value: int) -> int:
         if value <= 0:

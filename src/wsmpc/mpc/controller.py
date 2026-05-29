@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from wsmpc.mpc.ip_dynamics_natural_period import CONFIG_NAME as NATURAL_PERIOD_NAME
 from wsmpc.mpc.ip_dynamics_natural_period.controller import NaturalPeriodMPCController
-from wsmpc.mpc.ip_energy_event_triggered import CONFIG_NAME as ENERGY_EVENT_NAME
-from wsmpc.mpc.ip_energy_event_triggered.controller import EnergyEventMPCController
 from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig, RuntimeConfig
 from wsmpc.utils.messages import ActionCommand, StateObs
 
@@ -23,15 +20,9 @@ class CasadiMPCController:
         *,
         logger: logging.Logger,
     ) -> None:
-        if mpc.controller == ENERGY_EVENT_NAME:
-            self.controller = EnergyEventMPCController(environment, mpc, runtime, logger=logger)
-        elif mpc.controller == NATURAL_PERIOD_NAME:
-            self.controller = NaturalPeriodMPCController(environment, mpc, runtime, logger=logger)
-        else:
-            msg = f"Unknown MPC controller: {mpc.controller}"
-            raise ValueError(msg)
+        self.controller = NaturalPeriodMPCController(environment, mpc, runtime, logger=logger)
 
-    def select_action(self, observation: StateObs) -> ActionCommand:
+    def select_action(self, observation: StateObs, *, force_replan: bool) -> ActionCommand:
         """Return one action from the configured concrete MPC controller."""
 
-        return self.controller.select_action(observation)
+        return self.controller.select_action(observation, force_replan=force_replan)

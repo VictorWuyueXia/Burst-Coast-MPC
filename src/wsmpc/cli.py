@@ -15,7 +15,7 @@ from wsmpc.utils.artifacts import (
     detach_run_log_handler,
 )
 from wsmpc.utils.config_schema import STANDARD_PACKAGE, load_config
-from wsmpc.utils.logging import EpisodeHooks, configure_logging, episode_output, run_episode
+from wsmpc.utils.logging import ThirdPersonObservers, configure_logging, episode_output
 from wsmpc.utils.resources import configure_runtime_resources
 from wsmpc.visualization.artifact_plots import create_artifact_figures
 
@@ -116,29 +116,29 @@ def run_episode_command(
         logger=logger,
     )
 
-    def on_episode_start(observation) -> None:
+    def observe_episode_start(observation) -> None:
         if realtime_plot is not None:
             realtime_plot.start_animation(observation)
 
-    def on_step(observation, record) -> None:
+    def observe_after_step(observation, record) -> None:
         if artifact_writer is not None:
             artifact_writer.write_step(record)
         if realtime_plot is not None:
             realtime_plot.add_step(observation, record)
 
-    def on_episode_finish(summary) -> None:
+    def observe_episode_finish(summary) -> None:
         if artifact_writer is not None:
             artifact_writer.write_summary(summary)
         if realtime_plot is not None:
             realtime_plot.finish()
 
-    hooks = EpisodeHooks(
-        on_episode_start=on_episode_start,
-        on_step=on_step,
-        on_episode_finish=on_episode_finish,
+    third_person_observers = ThirdPersonObservers(
+        at_episode_start=observe_episode_start,
+        after_step=observe_after_step,
+        at_episode_finish=observe_episode_finish,
     )
 
-    result = run_episode(coordinator, hooks)
+    result = coordinator.run_episode(third_person_observers)
 
     if artifact_writer is not None:
         from matplotlib import pyplot as plt

@@ -5,21 +5,21 @@ import pytest
 
 from wsmpc.environment.dynamics import pendulum_derivatives, pendulum_energy, rk4_step
 from wsmpc.mpc.discrete_model import natural_frequency_rad_s, rollout_burst_coast
+from wsmpc.mpc.ip_dynamics_natural_period.features import (
+    energy_gate,
+    energy_phase_value,
+    local_upright_error,
+    normalized_energy_error,
+    phase_proxy_error,
+)
 from wsmpc.mpc.ip_dynamics_natural_period.problem import (
     prediction_horizon_steps,
     split_candidates,
 )
-from wsmpc.mpc.ip_energy_event_triggered import defaults as energy_defaults
-from wsmpc.mpc.ip_energy_event_triggered.features import (
-    energy_momentum_value,
-    local_upright_gate,
-    normalized_energy_error,
-    normalized_momentum_error,
-)
 from wsmpc.utils.config_schema import PendulumConfig, load_config
 
 
-def test_energy_event_features_match_upright_convention() -> None:
+def test_natural_period_features_match_upright_convention() -> None:
     config = load_config("default")
     pendulum = config.environment.pendulum
     upright = np.array([0.0, 0.0])
@@ -31,31 +31,10 @@ def test_energy_event_features_match_upright_convention() -> None:
     )
     assert normalized_energy_error(upright, pendulum) == pytest.approx(0.0)
     assert normalized_energy_error(bottom, pendulum) == pytest.approx(-1.0)
-    assert normalized_momentum_error(upright, pendulum) == pytest.approx(0.0)
-    assert local_upright_gate(upright) == pytest.approx(1.0)
-    assert energy_momentum_value(upright, pendulum) == pytest.approx(0.0)
-
-
-def test_energy_event_momentum_capture_strength_tracks_energy_error() -> None:
-    config = load_config("default")
-    pendulum = config.environment.pendulum
-    omega_n = natural_frequency_rad_s(pendulum)
-    near_upright = np.array([0.0, 0.1 * omega_n])
-    away_from_upright = np.array([0.7, 0.1 * omega_n])
-
-    near_energy_error = float(normalized_energy_error(near_upright, pendulum))
-    away_energy_error = float(normalized_energy_error(away_from_upright, pendulum))
-    near_momentum_cost = float(energy_momentum_value(near_upright, pendulum)) - (
-        near_energy_error**2
-    )
-    away_momentum_cost = float(energy_momentum_value(away_from_upright, pendulum)) - (
-        away_energy_error**2
-    )
-    raw_capture = 0.1**2 / (near_energy_error**2 + energy_defaults.EPSILON_ENERGY**2)
-
-    assert raw_capture > 3.9
-    assert abs(away_energy_error) > abs(near_energy_error)
-    assert away_momentum_cost < near_momentum_cost * 0.05
+    assert phase_proxy_error(upright, pendulum) == pytest.approx([0.0, 0.0])
+    assert local_upright_error(upright, pendulum) == pytest.approx([0.0, 0.0])
+    assert energy_gate(upright, pendulum) == pytest.approx(1.0)
+    assert energy_phase_value(upright, pendulum) == pytest.approx(0.0)
 
 
 def test_current_gravity_sign_matches_theta_zero_upright_formulation() -> None:
@@ -99,8 +78,8 @@ def test_prediction_horizon_split_dimensions_and_zero_coast_rollout() -> None:
     total_steps = prediction_horizon_steps(config.environment)
     candidates = split_candidates(config.environment, config.mpc)
 
-    assert total_steps == 6
-    assert [candidate.burst_steps for candidate in candidates] == [1, 3, 6]
+    assert total_steps == 12
+    assert [candidate.burst_steps for candidate in candidates] == [2, 6, 12]
     for candidate in candidates:
         assert candidate.burst_steps >= 1
         assert candidate.coast_steps >= 0
@@ -112,8 +91,8 @@ def test_prediction_horizon_split_dimensions_and_zero_coast_rollout() -> None:
         candidates[1],
         config.environment,
     )
-    assert states.shape == (7, 2)
-    assert inputs.shape == (6,)
-    assert inputs[:3] == pytest.approx([1.0, 1.0, 1.0])
-    assert inputs[3:] == pytest.approx([0.0, 0.0, 0.0])
+    assert states.shape == (13, 2)
+    assert inputs.shape == (12,)
+    assert inputs[:6] == pytest.approx([1.0] * 6)
+    assert inputs[6:] == pytest.approx([0.0] * 6)
     assert np.isfinite(states).all()

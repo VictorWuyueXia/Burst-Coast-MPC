@@ -11,7 +11,6 @@ def test_runtime_resource_configuration_does_not_crash() -> None:
                 "node-id": "Runtime",
                 "max-worker-threads": 1,
                 "blas-threads": 1,
-                "torch-threads": 1,
                 "cpu-affinity": [],
                 "set-env": True,
             }

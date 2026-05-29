@@ -14,6 +14,7 @@ experiment:
 coordinator:
   node-id: Coordinator
   mode: synchronous
+  event-trigger: true
   decision-interval-steps: 1
   debug-log-every-n-steps: 1
 environment:
@@ -21,7 +22,6 @@ environment:
   simulation:
     timestep-s: 0.01
     pace-s: ${realtime:${environment.simulation.timestep-s}}
-    max-rollout-steps: 10000
   pendulum:
     mass-kg: 1.0
     gravity-m-s2: 9.80665
@@ -35,12 +35,11 @@ environment:
     omega-tolerance-rad-s: 0.05
     hold-steps: 25
 mpc:
-  controller: IP-energy-eventTriggered
+  controller: IP-dynamics-naturalPeriod
   split-ratios: [0.1, 0.2, 0.3]
 runtime:
   node-id: Runtime
   max-worker-threads: 2
   blas-threads: 1
-  torch-threads: 1
   cpu-affinity: []
   set-env: true

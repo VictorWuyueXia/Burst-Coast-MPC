@@ -16,6 +16,8 @@ Adhere strictly to our coding style descipline, realizing goals with simplest po
 
 
 
-- clean up config files
-- move main run_episode logics into coordinator, which should only contain two methods: init() and run_episode(), event-trigger()
-- add a parameter "event-trigger=ture" in config#coordinator and logic in run_episode that if ture, trigger replanning based on a rule defined by event-trigger(). For this version, the event-trigger is when state is sufficiently close to theta=0
++ clean up config files
+
+
++ move main run_episode logics into coordinator, which should only contain two methods: init() and run_episode(), event-trigger()
++ add a parameter "event-trigger=ture" in config#coordinator and logic in run_episode that if ture, trigger replanning based on a rule defined by event-trigger(). For this version, the event-trigger is when state is sufficiently close to theta=0

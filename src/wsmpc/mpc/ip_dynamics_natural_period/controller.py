@@ -45,10 +45,10 @@ class NaturalPeriodMPCController:
         self._previous_input_nm = 0.0
         self._plan_counter = count()
 
-    def select_action(self, observation: StateObs) -> ActionCommand:
+    def select_action(self, observation: StateObs, *, force_replan: bool) -> ActionCommand:
         """Return the next executable action for the current observation."""
 
-        if self._active_plan is None or self._active_plan.next_input_index >= (
+        if force_replan or self._active_plan is None or self._active_plan.next_input_index >= (
             self._active_plan.plan.predicted_inputs_nm.size
         ):
             selected_plan = self._solve_new_plan(observation)
@@ -72,6 +72,7 @@ class NaturalPeriodMPCController:
             t_sec=observation.t_sec,
             u_nm=torque_nm,
             source=source,
+            early_wake_flag=force_replan,
             plan_id=active_plan.plan.plan_id,
         )
 

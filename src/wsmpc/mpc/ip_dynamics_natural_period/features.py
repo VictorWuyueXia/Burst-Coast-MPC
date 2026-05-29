@@ -56,7 +56,7 @@ def energy_gate(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[np.float6
     """Return the energy-shell gate that activates phase and local terms."""
 
     energy_error = normalized_energy_error(state, pendulum)
-    return np.exp(-(energy_error**2) / (weights.SIGMA_ENERGY**2))
+    return np.exp(-(energy_error**2) / (weights.signal_energy**2))
 
 
 def energy_phase_value(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[np.float64]:
@@ -71,9 +71,9 @@ def energy_phase_value(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[np
     phase_cost = np.sum(np.asarray(weights.Q_PHASE_DIAG) * phase_error**2, axis=-1)
     local_cost = np.sum(np.asarray(weights.Q_LOCAL_DIAG) * local_error**2, axis=-1)
     return (
-        weights.Q_ENERGY * energy_error**2
-        + weights.Q_PHASE * gate * phase_cost
-        + weights.Q_LOCAL * gate * local_cost
+        weights.w_energy * energy_error**2
+        + weights.w_phase * gate * phase_cost
+        + weights.w_local * gate * local_cost
     )
 
 
@@ -119,7 +119,7 @@ def energy_gate_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
     """Return symbolic energy-shell gate."""
 
     energy_error = normalized_energy_error_symbolic(x, pendulum)
-    return ca.exp(-(energy_error**2) / (weights.SIGMA_ENERGY**2))
+    return ca.exp(-(energy_error**2) / (weights.signal_energy**2))
 
 
 def energy_phase_value_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
@@ -138,7 +138,7 @@ def energy_phase_value_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
         + weights.Q_LOCAL_DIAG[1] * local_error[1] ** 2
     )
     return (
-        weights.Q_ENERGY * energy_error**2
-        + weights.Q_PHASE * gate * phase_cost
-        + weights.Q_LOCAL * gate * local_cost
+        weights.w_energy * energy_error**2
+        + weights.w_phase * gate * phase_cost
+        + weights.w_local * gate * local_cost
     )
