@@ -7,15 +7,16 @@ from typing import Any
 import numpy as np
 
 from wsmpc.environment.dynamics import upright_energy
-from wsmpc.mpc.numeric_features import phase_proxy_error
-from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig
+from wsmpc.mpc.ip_dynamics_natural_period.features import phase_proxy_error
+from wsmpc.utils.config_schema import EnvironmentConfig
 from wsmpc.utils.messages import StepRecord
+
+DIAGNOSTIC_PHASE_EPSILON = 1.0e-6
 
 
 def create_artifact_figures(
     records: list[StepRecord],
     environment: EnvironmentConfig,
-    mpc: MPCConfig,
 ) -> dict[str, Any]:
     """Create the standard static figures saved with each experiment run."""
 
@@ -25,7 +26,7 @@ def create_artifact_figures(
     figures = {
         "states": _create_states_figure(plt, data),
         "energy": _create_energy_figure(plt, data, upright_energy(environment.pendulum)),
-        "phase": _create_phase_figure(plt, data, environment, mpc),
+        "phase": _create_phase_figure(plt, data, environment),
         "commands": _create_commands_figure(plt, data),
     }
     return figures
@@ -85,7 +86,6 @@ def _create_phase_figure(
     plt: Any,
     data: dict[str, np.ndarray],
     environment: EnvironmentConfig,
-    mpc: MPCConfig,
 ) -> Any:
     """Plot the MPC phase proxy error trajectory in phase coordinates."""
 
@@ -93,7 +93,7 @@ def _create_phase_figure(
     phase_error = phase_proxy_error(
         states,
         environment.pendulum,
-        epsilon_phi=mpc.cost.epsilon_phi,
+        epsilon_phi=DIAGNOSTIC_PHASE_EPSILON,
     )
     figure, axis = plt.subplots(figsize=(6, 6))
     axis.plot(phase_error[:, 0], phase_error[:, 1], label="trajectory")

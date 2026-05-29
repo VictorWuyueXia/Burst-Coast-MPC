@@ -178,55 +178,11 @@ class EnvironmentConfig(ConfigBase):
     goal: GoalConfig
 
 
-class MPCCostConfig(ConfigBase):
-    """Energy-phase objective weights used by the nonlinear MPC problem."""
-
-    epsilon_phi: float = Field(alias="epsilon-phi")
-    sigma_energy: float = Field(alias="sigma-energy")
-    q_energy: float = Field(alias="q-energy")
-    q_phase: float = Field(alias="q-phase")
-    q_local: float = Field(alias="q-local")
-    q_terminal: float = Field(alias="q-terminal")
-    rho_saturation: float = Field(alias="rho-saturation")
-    rho_delta_u: float = Field(alias="rho-delta-u")
-    q_phase_diag: list[float] = Field(alias="q-phase-diag")
-    q_local_diag: list[float] = Field(alias="q-local-diag")
-
-    @field_validator(
-        "epsilon_phi",
-        "sigma_energy",
-        "q_energy",
-        "q_terminal",
-    )
-    @classmethod
-    def _positive_cost_values(cls, value: float) -> float:
-        if value <= 0.0 or not math.isfinite(value):
-            msg = "positive MPC cost values must be finite and greater than zero"
-            raise ValueError(msg)
-        return value
-
-    @field_validator("q_phase", "q_local", "rho_saturation", "rho_delta_u")
-    @classmethod
-    def _nonnegative_cost_values(cls, value: float) -> float:
-        if value < 0.0 or not math.isfinite(value):
-            msg = "nonnegative MPC cost values must be finite"
-            raise ValueError(msg)
-        return value
-
-    @field_validator("q_phase_diag", "q_local_diag")
-    @classmethod
-    def _diagonal_weights_must_be_positive_pairs(cls, value: list[float]) -> list[float]:
-        if len(value) != 2 or any(entry <= 0.0 or not math.isfinite(entry) for entry in value):
-            msg = "MPC diagonal weight lists must contain two positive finite values"
-            raise ValueError(msg)
-        return value
-
-
 class MPCConfig(ConfigBase):
     """Configuration for the CasADi split-ratio MPC controller."""
 
+    controller: Literal["IP-energy-eventTriggered", "IP-dynamics-naturalPeriod"]
     split_ratios: list[float] = Field(alias="split-ratios")
-    cost: MPCCostConfig
 
     @field_validator("split_ratios")
     @classmethod

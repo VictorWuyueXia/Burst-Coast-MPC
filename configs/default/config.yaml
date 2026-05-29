@@ -35,18 +35,8 @@ environment:
     omega-tolerance-rad-s: 0.05
     hold-steps: 25
 mpc:
+  controller: IP-energy-eventTriggered
   split-ratios: [0.1, 0.2, 0.3]
-  cost:
-    epsilon-phi: 1.0e-6
-    sigma-energy: 0.5
-    q-energy: 1.0
-    q-phase: 0.0
-    q-local: 0.0
-    q-terminal: 5.0
-    rho-saturation: 0.0
-    rho-delta-u: 1.0e-3
-    q-phase-diag: [1.0, 1.0]
-    q-local-diag: [1.0, 1.0]
 runtime:
   node-id: Runtime
   max-worker-threads: 2

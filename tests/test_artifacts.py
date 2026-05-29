@@ -52,7 +52,7 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
 
     from wsmpc.visualization.artifact_plots import create_artifact_figures
 
-    figures = create_artifact_figures(result.records, config.environment, config.mpc)
+    figures = create_artifact_figures(result.records, config.environment)
     for name, figure in figures.items():
         writer.write_figure(name, figure)
         plt.close(figure)

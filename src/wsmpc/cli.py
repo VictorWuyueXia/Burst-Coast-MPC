@@ -103,7 +103,6 @@ def run_episode_command(
 
         realtime_plot = RealtimeEpisodePlot(
             config.environment.pendulum,
-            phase_epsilon_phi=config.mpc.cost.epsilon_phi,
             update_every=1,
             include_animation=True,
         )
@@ -139,18 +138,12 @@ def run_episode_command(
         on_episode_finish=on_episode_finish,
     )
 
-    try:
-        result = run_episode(coordinator, hooks)
-    except Exception:
-        if artifact_writer is not None:
-            artifact_writer.finalize_manifest(completed=False, status="failed")
-        detach_run_log_handler(logger, run_log_handler)
-        raise
+    result = run_episode(coordinator, hooks)
 
     if artifact_writer is not None:
         from matplotlib import pyplot as plt
 
-        figures = create_artifact_figures(result.records, config.environment, config.mpc)
+        figures = create_artifact_figures(result.records, config.environment)
         for name, figure in figures.items():
             artifact_writer.write_figure(name, figure)
         for figure in figures.values():

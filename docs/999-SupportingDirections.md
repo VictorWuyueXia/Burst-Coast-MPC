@@ -7,6 +7,6 @@ RL critic Q values ->
 4. Dynamic DeltaT
 
 To support the project:
-1. Reduced-order dynamics representations
+1. Reduced-order dynamics representations by energy and phase
 based on energy-like, phase
 2. Distributed RL+MPC as non convex solver

@@ -6,9 +6,11 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
-from wsmpc.mpc.numeric_features import phase_proxy_error
+from wsmpc.mpc.ip_dynamics_natural_period.features import phase_proxy_error
 from wsmpc.utils.config_schema import PendulumConfig
 from wsmpc.utils.messages import StateObs, StepRecord
+
+DIAGNOSTIC_PHASE_EPSILON = 1.0e-6
 
 
 @dataclass
@@ -37,14 +39,12 @@ class RealtimeEpisodePlot:
         self,
         pendulum: PendulumConfig,
         *,
-        phase_epsilon_phi: float,
         update_every: int = 1,
         include_animation: bool = False,
     ) -> None:
         self.pendulum = pendulum
         self.update_every = max(1, update_every)
         self.include_animation = include_animation
-        self.phase_epsilon_phi = phase_epsilon_phi
         self.buffer = _SeriesBuffer()
 
         # Import Matplotlib lazily so non-visual runs stay dependency-light at import time.
@@ -85,7 +85,7 @@ class RealtimeEpisodePlot:
         phase_error = phase_proxy_error(
             [record.theta_rad, record.omega_rad_s],
             self.pendulum,
-            epsilon_phi=self.phase_epsilon_phi,
+            epsilon_phi=DIAGNOSTIC_PHASE_EPSILON,
         )
         self.buffer.phase_c_error.append(float(phase_error[0]))
         self.buffer.phase_s.append(float(phase_error[1]))
@@ -266,18 +266,17 @@ class PendulumAnimation:
         self.pendulum = pendulum
         self.update_every = max(1, update_every)
         self._record_count = 0
-        self._torque_arrow_start = (0.0, 0.0)
-        self._torque_arrow_end = (0.0, 0.0)
-        self._torque_arrow_rad = 0.0
+        self._torque_head = None
 
         # Import Matplotlib lazily so animation support is only required when requested.
         if plt_module is None:
             import matplotlib.pyplot as plt
         else:
             plt = plt_module
-        from matplotlib.patches import FancyArrowPatch
+        from matplotlib.patches import RegularPolygon
 
         self._plt = plt
+        self._RegularPolygon = RegularPolygon
         if axis is None:
             self.figure, self.axis = plt.subplots(figsize=(6, 6))
             self.figure.canvas.manager.set_window_title("Wake-Sleep MPC Pendulum")
@@ -302,18 +301,7 @@ class PendulumAnimation:
             zorder=3,
         )
         self._pivot = self.axis.scatter([0.0], [0.0], s=40, color="black", zorder=4)
-        self._torque_arrow = FancyArrowPatch(
-            (0.0, 0.0),
-            (0.0, 0.0),
-            arrowstyle="-|>",
-            connectionstyle="arc3,rad=0.45",
-            mutation_scale=10.0,
-            linewidth=1.0,
-            color="tab:red",
-            alpha=0.0,
-            zorder=5,
-        )
-        self.axis.add_patch(self._torque_arrow)
+        (self._torque_arc,) = self.axis.plot([], [], color="tab:red", alpha=0.0, zorder=5)
         if self._owns_figure:
             plt.show(block=False)
 
@@ -356,35 +344,65 @@ class PendulumAnimation:
     def _update_torque_arrow(self, u_applied_nm: float) -> None:
         """Scale and orient the torque arrow around the pivot from applied torque."""
 
-        torque_limit = max(self.pendulum.torque_limit_nm, 1e-12)
-        normalized_torque = max(-1.0, min(1.0, u_applied_nm / torque_limit))
+        normalized_torque = max(-1.0, min(1.0, u_applied_nm / self.pendulum.torque_limit_nm))
         magnitude = abs(normalized_torque)
         if magnitude < 1e-6:
-            self._torque_arrow.set_alpha(0.0)
+            self._torque_arc.set_alpha(0.0)
+            self._remove_torque_head()
             return
 
-        radius = self.pendulum.length_m * (0.22 + 0.18 * magnitude)
-        start_deg, end_deg = (-135.0, 135.0) if normalized_torque > 0.0 else (135.0, -135.0)
-        start = self._point_on_circle(radius, start_deg)
-        end = self._point_on_circle(radius, end_deg)
-        rad = 0.55 if normalized_torque > 0.0 else -0.55
+        # Draw torque as a circular arrow so sign maps directly to rotation direction.
+        radius = self.pendulum.length_m * (0.18 + 0.22 * magnitude)
+        start_deg, end_deg = (135.0, -145.0) if normalized_torque > 0.0 else (-145.0, 135.0)
+        angles = [
+            math.radians(start_deg + (end_deg - start_deg) * index / 48.0)
+            for index in range(49)
+        ]
+        arc_x = [radius * math.cos(angle) for angle in angles]
+        arc_y = [radius * math.sin(angle) for angle in angles]
+        color = "tab:red" if normalized_torque > 0.0 else "tab:blue"
 
-        self._torque_arrow_start = start
-        self._torque_arrow_end = end
-        self._torque_arrow_rad = rad
-        self._torque_arrow.set_positions(start, end)
-        self._torque_arrow.set_connectionstyle(f"arc3,rad={rad}")
-        self._torque_arrow.set_mutation_scale(8.0 + 18.0 * magnitude)
-        self._torque_arrow.set_linewidth(1.0 + 3.0 * magnitude)
-        self._torque_arrow.set_color("tab:red" if normalized_torque > 0.0 else "tab:blue")
-        self._torque_arrow.set_alpha(0.9)
+        self._torque_arc.set_data(arc_x, arc_y)
+        self._torque_arc.set_linewidth(1.0 + 3.0 * magnitude)
+        self._torque_arc.set_color(color)
+        self._torque_arc.set_alpha(0.9)
+        self._replace_torque_head(
+            arc_x[-1],
+            arc_y[-1],
+            radius=self.pendulum.length_m * (0.025 + 0.035 * magnitude),
+            orientation=angles[-1] + (-math.pi / 2.0 if normalized_torque > 0.0 else math.pi / 2.0),
+            color=color,
+        )
 
-    @staticmethod
-    def _point_on_circle(radius: float, angle_deg: float) -> tuple[float, float]:
-        """Return a data-coordinate point on a pivot-centered circle."""
+    def _replace_torque_head(
+        self,
+        x_pos: float,
+        y_pos: float,
+        *,
+        radius: float,
+        orientation: float,
+        color: str,
+    ) -> None:
+        """Replace the arrowhead so it remains tangent to the current circular torque arc."""
 
-        angle_rad = math.radians(angle_deg)
-        return radius * math.cos(angle_rad), radius * math.sin(angle_rad)
+        self._remove_torque_head()
+        self._torque_head = self._RegularPolygon(
+            (x_pos, y_pos),
+            numVertices=3,
+            radius=radius,
+            orientation=orientation,
+            color=color,
+            alpha=0.9,
+            zorder=6,
+        )
+        self.axis.add_patch(self._torque_head)
+
+    def _remove_torque_head(self) -> None:
+        """Remove the current torque arrowhead before drawing the next signed command."""
+
+        if self._torque_head is not None:
+            self._torque_head.remove()
+            self._torque_head = None
 
     def _bob_size(self) -> float:
         """Scale bob area by the square root of mass for perceptible mass changes."""

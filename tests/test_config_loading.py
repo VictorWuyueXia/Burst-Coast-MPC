@@ -11,6 +11,8 @@ def test_standard_config_loads_as_atomic_package() -> None:
     assert isinstance(config, RootConfig)
     assert config.environment.simulation.pace_s == config.environment.simulation.timestep_s
     assert config.experiment.run_id == "pendulum_baseline"
+    assert config.mpc.controller == "IP-energy-eventTriggered"
+    assert not hasattr(config.mpc, "cost")
 
 
 def test_missing_package_fails_loudly() -> None:
@@ -30,3 +32,18 @@ def test_missing_parameter_fails_schema_validation(tmp_path, monkeypatch) -> Non
 
     with pytest.raises(ValidationError):
         load_config("partial")
+
+
+def test_unknown_mpc_controller_fails_schema_validation(tmp_path, monkeypatch) -> None:
+    config_root = tmp_path / "configs"
+    invalid_dir = config_root / "invalid"
+    invalid_dir.mkdir(parents=True)
+    text = (config_schema.CONFIG_ROOT / "default" / "config.yaml").read_text(encoding="utf-8")
+    (invalid_dir / "config.yaml").write_text(
+        text.replace("IP-energy-eventTriggered", "missing-controller"),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(config_schema, "CONFIG_ROOT", config_root)
+
+    with pytest.raises(ValidationError):
+        load_config("invalid")

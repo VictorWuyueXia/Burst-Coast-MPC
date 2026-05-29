@@ -4,9 +4,10 @@ import math
 import pytest
 
 from wsmpc.environment import Environment
-from wsmpc.mpc.numeric_features import phase_proxy_error
+from wsmpc.mpc.ip_dynamics_natural_period.features import phase_proxy_error
 from wsmpc.utils.config_schema import load_config
 from wsmpc.utils.messages import ActionCommand
+from wsmpc.visualization.realtime import DIAGNOSTIC_PHASE_EPSILON
 
 
 def _require_matplotlib() -> None:
@@ -44,7 +45,6 @@ def test_realtime_episode_plot_accepts_records() -> None:
     config, observation, record = _one_record()
     plot = RealtimeEpisodePlot(
         config.environment.pendulum,
-        phase_epsilon_phi=config.mpc.cost.epsilon_phi,
         update_every=1,
     )
 
@@ -60,7 +60,7 @@ def test_realtime_episode_plot_accepts_records() -> None:
     phase_error = phase_proxy_error(
         [record.theta_rad, record.omega_rad_s],
         config.environment.pendulum,
-        config.mpc.cost.epsilon_phi,
+        DIAGNOSTIC_PHASE_EPSILON,
     )
     assert plot.buffer.phase_c_error == pytest.approx([phase_error[0]])
     assert plot.buffer.phase_s == pytest.approx([phase_error[1]])
@@ -81,7 +81,7 @@ def test_artifact_figures_cover_static_diagnostics() -> None:
     from wsmpc.visualization.artifact_plots import create_artifact_figures
 
     config, _, record = _one_record()
-    figures = create_artifact_figures([record], config.environment, config.mpc)
+    figures = create_artifact_figures([record], config.environment)
 
     assert set(figures) == {"states", "energy", "phase", "commands"}
     assert [axis.get_ylabel() for axis in figures["states"].axes] == [
@@ -106,7 +106,6 @@ def test_realtime_episode_plot_embeds_animation_when_requested() -> None:
     config, observation, record = _one_record()
     plot = RealtimeEpisodePlot(
         config.environment.pendulum,
-        phase_epsilon_phi=config.mpc.cost.epsilon_phi,
         update_every=1,
         include_animation=True,
     )
@@ -148,25 +147,28 @@ def test_pendulum_animation_torque_arrow_tracks_action() -> None:
     animation = PendulumAnimation(config.environment.pendulum, update_every=1)
 
     animation._update_torque_arrow(0.0)
-    assert animation._torque_arrow.get_alpha() == pytest.approx(0.0)
+    assert animation._torque_arc.get_alpha() == pytest.approx(0.0)
+    assert animation._torque_head is None
 
     animation._update_torque_arrow(config.environment.pendulum.torque_limit_nm * 0.25)
-    positive_start = animation._torque_arrow_start
-    positive_end = animation._torque_arrow_end
-    positive_rad = animation._torque_arrow_rad
-    positive_scale = animation._torque_arrow.get_mutation_scale()
-    assert animation._torque_arrow.get_alpha() == pytest.approx(0.9)
+    positive_x, positive_y = animation._torque_arc.get_data()
+    positive_width = animation._torque_arc.get_linewidth()
+    positive_radius = math.hypot(positive_x[0], positive_y[0])
+    assert animation._torque_arc.get_alpha() == pytest.approx(0.9)
+    assert animation._torque_head is not None
 
     animation._update_torque_arrow(-config.environment.pendulum.torque_limit_nm * 0.25)
-    negative_start = animation._torque_arrow_start
-    negative_end = animation._torque_arrow_end
-    negative_rad = animation._torque_arrow_rad
-    assert negative_start == pytest.approx(positive_end)
-    assert negative_end == pytest.approx(positive_start)
-    assert negative_rad == pytest.approx(-positive_rad)
+    negative_x, negative_y = animation._torque_arc.get_data()
+    assert negative_x[0] == pytest.approx(positive_x[-1])
+    assert negative_y[0] == pytest.approx(positive_y[-1])
+    assert negative_x[-1] == pytest.approx(positive_x[0])
+    assert negative_y[-1] == pytest.approx(positive_y[0])
 
     animation._update_torque_arrow(config.environment.pendulum.torque_limit_nm)
-    assert animation._torque_arrow.get_mutation_scale() > positive_scale
+    full_x, full_y = animation._torque_arc.get_data()
+    full_radius = math.hypot(full_x[0], full_y[0])
+    assert full_radius > positive_radius
+    assert animation._torque_arc.get_linewidth() > positive_width
 
     animation.add_step(observation, record)
-    assert animation._torque_arrow.get_alpha() == pytest.approx(0.9)
+    assert animation._torque_arc.get_alpha() == pytest.approx(0.9)
