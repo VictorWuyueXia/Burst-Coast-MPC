@@ -33,7 +33,7 @@ environment:
   goal:
     angle-tolerance-rad: 0.05
     omega-tolerance-rad-s: 0.05
-    hold-steps: 25
+    hold-steps: 5
 mpc:
   controller: IP-dynamics-naturalPeriod
   split-ratios: [0.1, 0.2, 0.3]

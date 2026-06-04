@@ -1,3 +1,7 @@
+Two actor-critic formulations:
+1. learn state value V, and let dynamic programming to compile prediction horizon -- coast horizon for each state is when dynamics evolve the system with monotone decreasing state value (later formulate this as neural CLBF)
+2. directly train state-action Q value, with action for each state being the prediction horizon (which is also replanning timing)
+
 
 
 RL critic Q values ->
