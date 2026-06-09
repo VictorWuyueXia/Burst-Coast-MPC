@@ -33,6 +33,7 @@ class Environment:
         episode_id: int,
         logger: logging.Logger,
     ) -> None:
+        # Store the episode identity with the true state vector owned by this environment.
         self.config = config
         self.run_id = run_id
         self.episode_id = episode_id
@@ -40,6 +41,7 @@ class Environment:
         self._state = np.zeros(2, dtype=np.float64)
         self._t_index = 0
 
+        # Announce the deterministic simulator clock and optional pacing contract.
         log_event(
             self.logger,
             logging.INFO,
@@ -97,6 +99,7 @@ class Environment:
     def step(self, action: ActionCommand) -> tuple[StateObs, StepRecord]:
         """Apply one action, advance true state, pace wall-clock time, and record diagnostics."""
 
+        # 1. Accept the controller command at the current simulator index.
         step_started_at = monotonic_s()
         log_event(
             self.logger,
@@ -129,6 +132,7 @@ class Environment:
         pace_sleep_s = max(0.0, self.config.simulation.pace_s - compute_wall_s)
         sleep_s(pace_sleep_s)
 
+        # 2. Preserve both command and applied torque in the typed step record.
         record = StepRecord(
             run_id=self.run_id,
             episode_id=self.episode_id,
@@ -150,6 +154,7 @@ class Environment:
             action_result="applied",
         )
 
+        # 3. Emit the completed transition after all diagnostics are computed.
         log_event(
             self.logger,
             logging.DEBUG,
@@ -179,12 +184,14 @@ class Environment:
             self.config.pendulum.theta_limit_abs_rad - abs(theta_rad),
             self.config.pendulum.omega_limit_abs_rad_s - abs(omega_rad_s),
         )
+        # Goal membership is evaluated on wrapped angle and true angular velocity.
         wrapped_angle_error_rad = float(feature[1])
         goal_reached = (
             abs(wrapped_angle_error_rad) <= self.config.goal.angle_tolerance_rad
             and abs(omega_rad_s) <= self.config.goal.omega_tolerance_rad_s
         )
 
+        # The observation is the only state view exported to controllers and recorders.
         return StateObs(
             run_id=self.run_id,
             episode_id=self.episode_id,

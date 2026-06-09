@@ -44,6 +44,7 @@ class NaturalPeriodMPCController:
         self.environment = environment
         self.mpc = mpc
         self.logger = logger
+        # The controller keeps exactly one executable burst-coast plan cursor.
         self._active_plan: _ActivePlan | None = None
         self._previous_input_nm = 0.0
         self._plan_counter = count()
@@ -51,12 +52,14 @@ class NaturalPeriodMPCController:
     def select_action(self, observation: StateObs, *, force_replan: bool) -> ActionCommand:
         """Return the next executable action for the current observation."""
 
+        # 1. Replan only when forced, absent, or exhausted.
         if force_replan or self._active_plan is None or self._active_plan.next_input_index >= (
             self._active_plan.plan.predicted_inputs_nm.size
         ):
             selected_plan = self._solve_new_plan(observation)
             self._active_plan = _ActivePlan(plan=selected_plan)
 
+        # 2. Emit the next stored torque command and advance the plan cursor.
         active_plan = self._active_plan
         assert active_plan is not None
         input_index = active_plan.next_input_index
@@ -86,6 +89,7 @@ class NaturalPeriodMPCController:
     ) -> SelectedPlan:
         """Solve one sampled burst-coast candidate and make it the active plan."""
 
+        # 1. Convert the sampled RL action into the fixed candidate dimensions used by MPC.
         state = np.asarray([observation.theta_rad, observation.omega_rad_s], dtype=np.float64)
         candidate = SplitCandidate(
             lambda_value=monte_carlo_action.bbar,
@@ -99,6 +103,7 @@ class NaturalPeriodMPCController:
             candidate,
             self.environment,
         )
+        # 2. Install the sampled plan so the normal action path can execute it step by step.
         plan = self._selected_plan(observation, selected, [selected])
         self._active_plan = _ActivePlan(plan=plan)
         log_event(
@@ -121,8 +126,9 @@ class NaturalPeriodMPCController:
         return plan
 
     def _solve_new_plan(self, observation: StateObs) -> SelectedPlan:
-        """Solve all split candidates in parallel and choose the minimum objective."""
+        """Solve all split candidates serially and choose the minimum objective."""
 
+        # 1. Enumerate every configured split ratio at the current measured state.
         state = np.asarray([observation.theta_rad, observation.omega_rad_s], dtype=np.float64)
         candidates = split_candidates(self.environment, self.mpc)
         # Serial candidate solves keep runtime policy fixed and inspection straightforward.
@@ -130,6 +136,7 @@ class NaturalPeriodMPCController:
             solve_candidate(state, self._previous_input_nm, candidate, self.environment)
             for candidate in candidates
         ]
+        # 2. Select the minimum-objective candidate and publish the solver decision.
         selected = min(solutions, key=lambda solution: solution.objective_value)
         plan = self._selected_plan(observation, selected, solutions)
         self._log_solver_result(observation, plan)
@@ -143,6 +150,7 @@ class NaturalPeriodMPCController:
     ) -> SelectedPlan:
         """Convert the best candidate solve into an executable plan."""
 
+        # Aggregate solve time across evaluated candidates for decision-latency diagnostics.
         return SelectedPlan(
             plan_id=self._plan_id(observation, selected),
             candidate=selected.candidate,
@@ -157,6 +165,7 @@ class NaturalPeriodMPCController:
     def _plan_id(self, observation: StateObs, selected: CandidateSolution) -> str:
         """Build a compact deterministic plan identifier for logs and records."""
 
+        # The ID binds simulator time, local counter, and selected split ratio.
         plan_number = next(self._plan_counter)
         lambda_text = f"{selected.candidate.lambda_value:.3f}".rstrip("0").rstrip(".")
         return f"mpc-{observation.t_index}-{plan_number}-lambda-{lambda_text}"
@@ -164,6 +173,7 @@ class NaturalPeriodMPCController:
     def _log_solver_result(self, observation: StateObs, selected: SelectedPlan) -> None:
         """Emit one structured log event per MPC decision."""
 
+        # Log one solver-selection record at the same boundary where a new plan becomes active.
         log_event(
             self.logger,
             logging.INFO,

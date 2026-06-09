@@ -22,6 +22,7 @@ def create_artifact_figures(
 
     import matplotlib.pyplot as plt
 
+    # Pack records once so every diagnostic uses the same aligned arrays.
     data = _records_to_arrays(records)
     figures = {
         "states": _create_states_figure(plt, data),
@@ -38,6 +39,7 @@ def create_rl_timeseries_figure(records: list[RLStepRecord]) -> Any:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import FuncFormatter, MaxNLocator
 
+    # Build the Monte Carlo figure from replanning-level arrays, not dense step rows.
     return _create_rl_timeseries_figure(
         plt,
         FuncFormatter,
@@ -82,6 +84,7 @@ def _rl_records_to_arrays(records: list[RLStepRecord]) -> dict[str, np.ndarray]:
 def _create_states_figure(plt: Any, data: dict[str, np.ndarray]) -> Any:
     """Plot angular position and velocity on aligned time axes."""
 
+    # Position and velocity share time alignment but keep independent physical scales.
     figure, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
     axes[0].plot(data["t_sec"], data["theta_rad"], label="theta")
     axes[0].set_ylabel("theta rad")
@@ -97,6 +100,7 @@ def _create_states_figure(plt: Any, data: dict[str, np.ndarray]) -> Any:
 def _create_energy_figure(plt: Any, data: dict[str, np.ndarray], target_energy_j: float) -> Any:
     """Plot total energy and upright-relative energy error over time."""
 
+    # Energy diagnostics expose both absolute energy and upright-relative error.
     figure, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
     axes[0].plot(data["t_sec"], data["energy_j"], label="energy")
     axes[0].axhline(target_energy_j, linestyle="--", color="black", label="upright")
@@ -118,6 +122,7 @@ def _create_phase_figure(
 ) -> Any:
     """Plot the MPC phase proxy error trajectory in phase coordinates."""
 
+    # Phase coordinates are recomputed from dense state rows for formulation inspection.
     states = np.column_stack((data["theta_rad"], data["omega_rad_s"]))
     phase_error = phase_proxy_error(
         states,
@@ -200,6 +205,7 @@ def _create_rl_timeseries_figure(
 def _time_bar_width(t_sec: np.ndarray) -> float:
     """Choose a visible bar width from the transition spacing."""
 
+    # A singleton transition still receives a visible finite-width bar.
     unique_t_sec = np.unique(t_sec)
     if unique_t_sec.size < 2:
         return 0.1
@@ -217,6 +223,7 @@ def _finish_rl_axes(axes: Any, solve_axis: Any) -> None:
 def _create_commands_figure(plt: Any, data: dict[str, np.ndarray]) -> Any:
     """Plot commanded and applied torque histories on the same time axis."""
 
+    # Commanded and applied torque are kept separate to reveal saturation.
     figure, axis = plt.subplots(figsize=(8, 4))
     axis.plot(data["t_sec"], data["u_commanded_nm"], linestyle="--", label="commanded")
     axis.plot(data["t_sec"], data["u_applied_nm"], label="applied")

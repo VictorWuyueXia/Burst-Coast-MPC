@@ -43,6 +43,7 @@ class RealtimeEpisodePlot:
         update_every: int = 1,
         include_animation: bool = False,
     ) -> None:
+        # Bind pendulum constants, refresh cadence, and the in-memory plotting buffer.
         self.pendulum = pendulum
         self.update_every = max(1, update_every)
         self.include_animation = include_animation
@@ -55,6 +56,7 @@ class RealtimeEpisodePlot:
         self.kinetic_goal_j = 0.0
         self.potential_goal_j = 2.0 * pendulum.mass_kg * pendulum.gravity_m_s2 * pendulum.length_m
         self.phase_goal = (0.0, 0.0)
+        # Build all figure artists once so step updates only replace data arrays.
         self.figure, self.axes = self._create_figure()
         self._lines = self._create_lines()
         self.animation = (
@@ -73,6 +75,7 @@ class RealtimeEpisodePlot:
     def add_step(self, observation: StateObs, record: StepRecord) -> None:
         """Append one record and refresh the plot on the configured cadence."""
 
+        # 1. Append dense record fields into column-wise diagnostic buffers.
         self.buffer.t_sec.append(record.t_sec)
         self.buffer.theta_rad.append(record.theta_rad)
         self.buffer.omega_rad_s.append(record.omega_rad_s)
@@ -93,9 +96,11 @@ class RealtimeEpisodePlot:
         self.buffer.goal_flag.append(1.0 if record.goal_flag else 0.0)
         self.buffer.u_commanded_nm.append(record.u_commanded_nm)
         self.buffer.u_applied_nm.append(record.u_applied_nm)
+        # 2. Forward the same observation to the optional embedded animation.
         if self.animation is not None:
             self.animation.add_step(observation, record)
 
+        # 3. Refresh Matplotlib on the configured sample cadence.
         if len(self.buffer.t_sec) % self.update_every == 0:
             self.update()
 
@@ -160,6 +165,7 @@ class RealtimeEpisodePlot:
     def _create_figure(self) -> tuple[Any, dict[str, Any]]:
         """Create one window with diagnostic subfigures and optional animation space."""
 
+        # Allocate the animation axis only when the operator requested a visual pendulum.
         if self.include_animation:
             figure = self._plt.figure(figsize=(12, 8))
             figure.canvas.manager.set_window_title("Wake-Sleep MPC Realtime View")
@@ -175,6 +181,7 @@ class RealtimeEpisodePlot:
             kinetic_axis, potential_axis, phase_axis, action_axis = axes
             animation_axis = None
 
+        # Label each diagnostic panel with its physical quantity and units.
         kinetic_axis.set_title("Kinetic Energy")
         kinetic_axis.set_xlabel("t sec")
         kinetic_axis.set_ylabel("J")
@@ -197,6 +204,7 @@ class RealtimeEpisodePlot:
             "phase": phase_axis,
             "action": action_axis,
         }
+        # Keep the optional animation axis addressable by name for embedded rendering.
         if animation_axis is not None:
             axes_by_name["animation"] = animation_axis
         return figure, axes_by_name
@@ -204,6 +212,7 @@ class RealtimeEpisodePlot:
     def _create_lines(self) -> dict[str, Any]:
         """Create line artists for current values and goal references."""
 
+        # Every line artist is created empty and populated during refresh calls.
         return {
             "kinetic_current": self.axes["kinetic"].plot([], [], label="current")[0],
             "kinetic_goal": self.axes["kinetic"].plot(

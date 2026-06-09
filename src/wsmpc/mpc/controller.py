@@ -21,6 +21,7 @@ class CasadiMPCController:
         *,
         logger: logging.Logger,
     ) -> None:
+        # The active configuration always dispatches to the natural-period formulation.
         self.controller = NaturalPeriodMPCController(environment, mpc, logger=logger)
 
     def select_action(self, observation: StateObs, *, force_replan: bool) -> ActionCommand:

@@ -58,12 +58,14 @@ def run_episode_command(
 ) -> None:
     """Run one MPC experiment episode."""
 
+    # 1. Load the selected runtime package and bind one logger for the command.
     configure_logging()
     config = load_config(config_package)
     logger = logging.getLogger("wsmpc")
     if alias is not None:
         config.artifacts.alias = alias
 
+    # 2. Open artifact streams before the coordinator emits per-step records.
     artifact_writer: ArtifactWriter | None = None
     run_log_handler: logging.Handler | None = None
     if config.artifacts.enabled:
@@ -86,6 +88,7 @@ def run_episode_command(
             artifact_writer.run_dir,
         )
 
+    # 3. Create realtime diagnostics only when the operator has not disabled visuals.
     realtime_plot = None
     if not no_visual:
         from wsmpc.visualization.realtime import RealtimeEpisodePlot
@@ -96,6 +99,7 @@ def run_episode_command(
             include_animation=True,
         )
 
+    # 4. Bridge coordinator events into the active visualization and artifact sinks.
     def observe_episode_start(observation) -> None:
         if realtime_plot is not None:
             realtime_plot.start_animation(observation)
@@ -106,6 +110,7 @@ def run_episode_command(
         if realtime_plot is not None:
             realtime_plot.add_step(observation, record)
 
+    # 5. Run the coordinator-owned episode loop with only the required observers.
     coordinator = Coordinator(
         config.coordinator,
         config.environment,
@@ -120,6 +125,7 @@ def run_episode_command(
         )
     )
 
+    # 6. Write post-run summary and figures after the complete record list is known.
     if artifact_writer is not None:
         from matplotlib import pyplot as plt
 
@@ -135,6 +141,7 @@ def run_episode_command(
     if realtime_plot is not None:
         realtime_plot.finish()
 
+    # 7. Emit one concise terminal summary for scripts and human inspection.
     artifact_dir = None
     if artifact_writer is not None:
         artifact_dir = str(artifact_writer.run_dir)
@@ -153,6 +160,7 @@ def generate_mc_data_command(
 ) -> None:
     """Generate sequential Monte Carlo datasets for offline RL."""
 
+    # 1. Load the dedicated Monte Carlo config and validate the one CLI sweep parameter.
     configure_logging()
     config = load_data_generation_config()
     if epochs <= 0:
@@ -164,6 +172,7 @@ def generate_mc_data_command(
     total_rl_steps = 0
     base_alias = config.artifacts.alias
     for epoch_index in range(epochs):
+        # 2. Derive the epoch-local config so seeds, IDs, and aliases remain disjoint.
         epoch_config = config.model_copy(deep=True)
         if config.data_generation.seed is not None:
             epoch_config.data_generation.seed = config.data_generation.seed + epoch_index
@@ -176,6 +185,7 @@ def generate_mc_data_command(
             else:
                 epoch_config.artifacts.alias = f"{base_alias}-epoch-{epoch_index + 1}"
 
+        # 3. Open one artifact run before dense simulation records are generated.
         artifact_writer = ArtifactWriter.create(
             epoch_config.artifacts.root_dir,
             alias=epoch_config.artifacts.alias,
@@ -195,11 +205,13 @@ def generate_mc_data_command(
             artifact_writer.run_dir,
         )
 
+        # 4. Generate dense step records plus return-labeled RL transition rows.
         generator = MonteCarloDataGenerator(epoch_config, logger)
         step_records, rl_records = generator.run(artifact_writer)
         artifact_writer.write_rl_steps(rl_records)
         from matplotlib import pyplot as plt
 
+        # 5. Save RL diagnostics first, then optional dense episode diagnostics.
         rl_figure = create_rl_timeseries_figure(rl_records)
         artifact_writer.write_figure("rl_timeseries", rl_figure)
         plt.close(rl_figure)
@@ -214,6 +226,7 @@ def generate_mc_data_command(
         artifact_dirs.append(str(artifact_writer.run_dir))
         total_rl_steps += len(rl_records)
 
+    # 6. Report the generated artifact roots and row count for downstream scripts.
     console.print(
         {
             "run_id": config.experiment.run_id,

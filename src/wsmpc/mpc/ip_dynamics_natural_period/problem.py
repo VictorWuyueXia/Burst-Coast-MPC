@@ -36,6 +36,7 @@ def solve_candidate(
 ) -> CandidateSolution:
     """Solve one natural-period split-ratio candidate."""
 
+    # 1. Build and solve the candidate NLP at the current measured state.
     started_at = monotonic_s()
     solver, initial_guess, lower_bounds, upper_bounds = build_single_shooting_problem(
         state, previous_input_nm, candidate, environment
@@ -48,6 +49,7 @@ def solve_candidate(
         msg = f"CasADi solver failed for lambda={candidate.lambda_value}: {message}"
         raise RuntimeError(msg)
 
+    # 2. Replay the optimized burst sequence to expose predicted states and full inputs.
     burst_inputs = np.asarray(raw_solution["x"], dtype=np.float64).reshape(candidate.burst_steps)
     predicted_states, predicted_inputs = rollout_burst_coast(
         state,
@@ -74,11 +76,13 @@ def build_single_shooting_problem(
 ) -> tuple[Any, NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
     """Build the natural-period burst-coast single-shooting NLP."""
 
+    # 1. Initialize symbolic decision variables from the measured pendulum state.
     x0 = np.asarray(state, dtype=np.float64).reshape(2)
     decision = ca.MX.sym("v", candidate.burst_steps)
     x = ca.vertcat(float(x0[0]), float(x0[1]))
     objective = 0.0
 
+    # 2. Accumulate burst-stage cost while propagating actuated RK4 dynamics.
     previous_u = float(previous_input_nm)
     for index in range(candidate.burst_steps):
         u = decision[index]
@@ -86,10 +90,12 @@ def build_single_shooting_problem(
         x = rk4_step_symbolic(x, u, environment.simulation.timestep_s, environment.pendulum)
         previous_u = u
 
+    # 3. Continue the horizon through unactuated coast dynamics.
     for _ in range(candidate.coast_steps):
         objective += energy_phase_value_symbolic(x, environment.pendulum)
         x = rk4_step_symbolic(x, 0.0, environment.simulation.timestep_s, environment.pendulum)
 
+    # 4. Add terminal value and bind the bounded IPOPT decision problem.
     objective += weights.w_terminal * energy_phase_value_symbolic(x, environment.pendulum)
 
     nlp = {"x": decision, "f": objective}
@@ -106,6 +112,7 @@ def build_single_shooting_problem(
 def _burst_stage_cost(x: Any, u: Any, previous_u: Any, environment: EnvironmentConfig) -> Any:
     """Evaluate the actuated stage cost for the burst segment."""
 
+    # Normalize torque and torque change against the physical actuator limit.
     torque_limit = environment.pendulum.torque_limit_nm
     normalized_u = u / torque_limit
     normalized_delta_u = (u - previous_u) / torque_limit
@@ -121,6 +128,7 @@ def _burst_stage_cost(x: Any, u: Any, previous_u: Any, environment: EnvironmentC
 def split_candidates(environment: EnvironmentConfig, mpc: MPCConfig) -> list[SplitCandidate]:
     """Create fixed-dimension candidates from configured split ratios."""
 
+    # Convert each split ratio into integer burst/coast dimensions for one fixed horizon.
     total_steps = prediction_horizon_steps(environment)
     candidates: list[SplitCandidate] = []
     for lambda_value in mpc.split_ratios:
@@ -139,6 +147,7 @@ def split_candidates(environment: EnvironmentConfig, mpc: MPCConfig) -> list[Spl
 def prediction_horizon_steps(environment: EnvironmentConfig) -> int:
     """Return the fixed full-natural-period horizon in simulator steps."""
 
+    # The controller horizon is one natural period measured in simulator time steps.
     omega_n = natural_frequency_rad_s(environment.pendulum)
     full_period_s = math.tau / omega_n
     return round(full_period_s / environment.simulation.timestep_s)

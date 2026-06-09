@@ -11,6 +11,7 @@ from wsmpc.utils.config_schema import PendulumConfig
 def wrap_angle(angle_rad: ArrayLike) -> NDArray[np.float64]:
     """Wrap angles to (-pi, pi] using NumPy batch operations."""
 
+    # atan2(sin, cos) gives branch-stable wrapping for scalar and batched states.
     angle = np.asarray(angle_rad, dtype=np.float64)
     return np.arctan2(np.sin(angle), np.cos(angle))
 
@@ -22,6 +23,7 @@ def pendulum_energy(
 ) -> NDArray[np.float64]:
     """Compute mechanical energy in joules with zero potential at downward position."""
 
+    # Vectorized kinetic and potential terms preserve the true nonlinear energy geometry.
     theta_array = np.asarray(theta_rad, dtype=np.float64)
     omega_array = np.asarray(omega_rad_s, dtype=np.float64)
     inertia = config.mass_kg * config.length_m**2
@@ -39,6 +41,7 @@ def upright_energy(config: PendulumConfig) -> float:
 def state_features(state: ArrayLike, config: PendulumConfig) -> NDArray[np.float64]:
     """Return [energy error J, wrapped angle error rad, omega rad/s]."""
 
+    # Package the physical diagnostics used by observation construction and tests.
     state_array = np.asarray(state, dtype=np.float64)
     theta_rad = state_array[..., 0]
     omega_rad_s = state_array[..., 1]
@@ -50,6 +53,7 @@ def state_features(state: ArrayLike, config: PendulumConfig) -> NDArray[np.float
 def clip_torque(torque_nm: ArrayLike, config: PendulumConfig) -> NDArray[np.float64]:
     """Clip torque commands in N m so scalar and batched actions share one path."""
 
+    # Saturation is applied at the plant boundary before integration.
     torque_nm_array = np.asarray(torque_nm, dtype=np.float64)
     return np.clip(torque_nm_array, -config.torque_limit_nm, config.torque_limit_nm)
 

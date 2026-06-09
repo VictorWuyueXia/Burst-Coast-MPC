@@ -18,6 +18,7 @@ from wsmpc.utils.logging import ThirdPersonObservers
 from wsmpc.utils.messages import EpisodeResult, ExperimentSummary, StateObs, StepRecord
 from wsmpc.utils.time import monotonic_s
 
+# Empty observer set keeps the normal episode path explicit and allocation-free.
 EMPTY_THIRD_PERSON_OBSERVERS = ThirdPersonObservers()
 
 
@@ -35,6 +36,7 @@ class Coordinator:
         *,
         logger: logging.Logger,
     ) -> None:
+        # Bind the three experiment contracts the coordinator advances together.
         self.config = coordinator_config
         self.environment_config = environment_config
         self.experiment_config = experiment_config
@@ -42,6 +44,7 @@ class Coordinator:
         self.logger = logger
         self.mpc_controller = CasadiMPCController(environment_config, mpc_config, logger=logger)
 
+        # Announce the synchronous coordinator mode before the first episode starts.
         log_event(
             self.logger,
             logging.INFO,
@@ -59,6 +62,7 @@ class Coordinator:
     ) -> EpisodeResult:
         """Run one deterministic MPC episode with optional third-person observers."""
 
+        # 1. Construct the environment and reset the physical state once per episode.
         wall_started_at = monotonic_s()
         environment = Environment(
             self.environment_config,
@@ -71,6 +75,7 @@ class Coordinator:
         goal_hold_count = 1 if observation.goal_reached else 0
         status = "max_steps_reached"
 
+        # 2. Publish the reset observation to logs and optional observers.
         log_event(
             self.logger,
             logging.INFO,
@@ -85,6 +90,7 @@ class Coordinator:
         if third_person_observers.at_episode_start is not None:
             third_person_observers.at_episode_start(observation)
 
+        # 3. Advance the closed-loop system until the goal or horizon terminates the episode.
         for _ in range(self.experiment_config.max_steps):
             if (
                 self.experiment_config.stop_on_goal
@@ -96,7 +102,7 @@ class Coordinator:
             if third_person_observers.before_step is not None:
                 third_person_observers.before_step(observation)
 
-            # Event-triggered replanning is owned by the coordinator at the observation boundary.
+            # 4. Evaluate wake-trigger logic at the observation boundary before selecting action.
             event_triggered = self.config.event_trigger and self.event_trigger(observation)
             action = self.mpc_controller.select_action(
                 observation,
@@ -117,6 +123,7 @@ class Coordinator:
                     t_sec=observation.t_sec,
                 )
 
+            # 5. Apply the selected action, record the transition, and notify observers.
             observation, record = environment.step(action)
             records.append(record)
             log_event(
@@ -135,6 +142,7 @@ class Coordinator:
             if third_person_observers.after_step is not None:
                 third_person_observers.after_step(observation, record)
 
+            # 6. Update the hold counter after each transition so goal dwell is consecutive.
             goal_hold_count = goal_hold_count + 1 if observation.goal_reached else 0
             if (
                 self.experiment_config.stop_on_goal
@@ -143,6 +151,7 @@ class Coordinator:
                 status = "goal_reached"
                 break
 
+        # 7. Summarize the terminal observation and total wall-clock episode cost.
         summary = ExperimentSummary(
             run_id=self.experiment_config.run_id,
             episode_id=self.experiment_config.episode_id,
@@ -155,6 +164,7 @@ class Coordinator:
             total_wall_time_s=monotonic_s() - wall_started_at,
             final_observation=observation,
         )
+        # 8. Emit the finish event and expose the immutable episode result to callers.
         log_event(
             self.logger,
             logging.INFO,
@@ -175,6 +185,7 @@ class Coordinator:
     def event_trigger(self, observation: StateObs) -> bool:
         """Return true near either upright or downward angular section."""
 
+        # The trigger fires near the two angular sections where a new plan is informative.
         wrapped_angle = abs(observation.wrapped_angle_error_rad)
         angle_tolerance = self.environment_config.goal.angle_tolerance_rad
         return wrapped_angle <= angle_tolerance or abs(math.pi - wrapped_angle) <= angle_tolerance

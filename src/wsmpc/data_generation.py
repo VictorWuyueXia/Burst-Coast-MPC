@@ -26,6 +26,7 @@ class MonteCarloDataGenerator:
     identity = "MonteCarloDataGenerator"
 
     def __init__(self, config: DataGenerationRootConfig, logger: logging.Logger) -> None:
+        # Bind the data-generation package and seeded sampler for the full run.
         self.config = config
         self.logger = logger
         self.rng = np.random.default_rng(config.data_generation.seed)
@@ -33,9 +34,11 @@ class MonteCarloDataGenerator:
     def run(self, artifact_writer: ArtifactWriter) -> tuple[list[StepRecord], list[RLStepRecord]]:
         """Generate sequential Monte Carlo transitions with backward returns."""
 
+        # 1. Accumulate dense simulator records and sparse RL transition records together.
         step_records: list[StepRecord] = []
         rl_records: list[RLStepRecord] = []
         for episode_offset in range(self.config.data_generation.episodes):
+            # 2. Create one independent environment-controller pair per sampled episode.
             episode_id = self.config.experiment.episode_id + episode_offset
             environment = Environment(
                 self.config.environment,
@@ -48,6 +51,7 @@ class MonteCarloDataGenerator:
                 self.config.mpc,
                 logger=self.logger,
             )
+            # 3. Sample the physical initial condition from the declared Monte Carlo domain.
             initial_state = sample_uniform_initial_state(
                 self.rng,
                 self.config.data_generation,
@@ -58,6 +62,7 @@ class MonteCarloDataGenerator:
             goal_hold_count = 1 if observation.goal_reached else 0
             status = "max_steps_reached"
 
+            # 4. Log the sampled initial condition so the episode is reproducible.
             log_event(
                 self.logger,
                 logging.INFO,
@@ -72,6 +77,7 @@ class MonteCarloDataGenerator:
             )
 
             while observation.t_index < self.config.experiment.max_steps:
+                # 5. Stop only when the configured goal dwell has been satisfied.
                 if (
                     self.config.experiment.stop_on_goal
                     and goal_hold_count >= self.config.environment.goal.hold_steps
@@ -79,6 +85,7 @@ class MonteCarloDataGenerator:
                     status = "goal_reached"
                     break
 
+                # 6. Sample one normalized burst-horizon action and solve its MPC plan.
                 start_observation = observation
                 monte_carlo_action = sample_uniform_monte_carlo_action(
                     self.rng,
@@ -91,7 +98,7 @@ class MonteCarloDataGenerator:
                 )
                 segment_records: list[StepRecord] = []
 
-                # Execute the sampled plan as one RL transition while preserving dense step logs.
+                # 7. Execute the sampled plan as one RL transition with dense step logging.
                 for _ in range(selected_plan.predicted_inputs_nm.size):
                     action = controller.select_action(observation, force_replan=False)
                     observation, step_record = environment.step(action)
@@ -108,6 +115,7 @@ class MonteCarloDataGenerator:
                         status = "goal_reached"
                         break
 
+                # 8. Convert the executed segment into one immediate-cost transition row.
                 done = status == "goal_reached" or observation.t_index >= (
                     self.config.experiment.max_steps
                 )
@@ -157,12 +165,14 @@ class MonteCarloDataGenerator:
                 if done:
                     break
 
+            # 9. Sweep backward through the episode to attach Monte Carlo return costs.
             returned_records: list[RLStepRecord] = []
             return_cost = 0.0
             for record in reversed(episode_records):
                 return_cost = record.step_cost + self.config.data_generation.gamma * return_cost
                 returned_records.append(record.model_copy(update={"return_cost": return_cost}))
             rl_records.extend(reversed(returned_records))
+            # 10. Report the sparse transition count emitted by this sampled episode.
             log_event(
                 self.logger,
                 logging.INFO,

@@ -20,11 +20,13 @@ class PendulumAnimation:
         axis: Any | None = None,
         plt_module: Any | None = None,
     ) -> None:
+        # Bind pendulum geometry and drawing cadence before any Matplotlib artists are created.
         self.pendulum = pendulum
         self.update_every = max(1, update_every)
         self._record_count = 0
         self._torque_head = None
 
+        # Import Matplotlib objects lazily so non-visual execution stays lightweight.
         if plt_module is None:
             import matplotlib.pyplot as plt
         else:
@@ -33,6 +35,7 @@ class PendulumAnimation:
 
         self._plt = plt
         self._RegularPolygon = RegularPolygon
+        # Use either the embedded diagnostics axis or a standalone animation window.
         if axis is None:
             self.figure, self.axis = plt.subplots(figsize=(6, 6))
             self.figure.canvas.manager.set_window_title("Wake-Sleep MPC Pendulum")
@@ -88,6 +91,7 @@ class PendulumAnimation:
     def _draw(self, observation: StateObs, *, u_applied_nm: float) -> None:
         """Update rod, bob, and torque indicator for one observation."""
 
+        # Update body geometry first, then redraw the signed torque indicator.
         bob_x, bob_y = self.bob_position(observation.theta_rad, self.pendulum.length_m)
         self._rod.set_data([0.0, bob_x], [0.0, bob_y])
         self._bob.set_offsets([[bob_x, bob_y]])
@@ -140,6 +144,7 @@ class PendulumAnimation:
     ) -> None:
         """Replace the arrowhead so it remains tangent to the current circular torque arc."""
 
+        # Rebuild the arrowhead because Matplotlib patches are cheaper to replace than reshape.
         self._remove_torque_head()
         self._torque_head = self._RegularPolygon(
             (x_pos, y_pos),
@@ -155,6 +160,7 @@ class PendulumAnimation:
     def _remove_torque_head(self) -> None:
         """Remove the current torque arrowhead before drawing the next signed command."""
 
+        # Removing the old patch keeps the axis from accumulating stale arrowheads.
         if self._torque_head is not None:
             self._torque_head.remove()
             self._torque_head = None
