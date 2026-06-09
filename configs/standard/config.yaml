@@ -4,7 +4,6 @@ artifacts:
   enabled: true
 experiment:
   run-id: pendulum_baseline
-  global-seed: 32
   episode-id: 0
   max-steps: 3000
   stop-on-goal: true

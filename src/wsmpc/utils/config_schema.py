@@ -69,7 +69,6 @@ class ExperimentConfig(ConfigBase):
     """Top-level experiment controls owned by the Coordinator."""
 
     run_id: str = Field(alias="run-id")
-    global_seed: int = Field(alias="global-seed")
     episode_id: int = Field(alias="episode-id")
     max_steps: int = Field(alias="max-steps")
     stop_on_goal: bool = Field(alias="stop-on-goal")
@@ -244,7 +243,7 @@ class DataGenerationConfig(ConfigBase):
     """Monte Carlo data-generation controls for offline RL."""
 
     episodes: int
-    seed: int
+    seed: int | None
     visual_artifacts: bool = Field(alias="visual-artifacts")
     theta_rad_sample_range: list[float] = Field(alias="theta-rad-sample-range")
     omega_eq_scale_sample_range: list[float] = Field(alias="omega-eq-scale-sample-range")

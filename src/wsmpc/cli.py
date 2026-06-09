@@ -23,7 +23,7 @@ from wsmpc.utils.config_schema import (
 )
 from wsmpc.utils.logging import ThirdPersonObservers, configure_logging, episode_output
 from wsmpc.utils.resources import configure_runtime_resources
-from wsmpc.visualization.artifact_plots import create_artifact_figures
+from wsmpc.visualization.artifact_plots import create_artifact_figures, create_rl_timeseries_figure
 
 app = typer.Typer(help="Wake-sleep MPC research CLI.")
 console = Console()
@@ -189,7 +189,8 @@ def generate_mc_data_command(
     base_alias = config.artifacts.alias
     for epoch_index in range(epochs):
         epoch_config = config.model_copy(deep=True)
-        epoch_config.data_generation.seed = config.data_generation.seed + epoch_index
+        if config.data_generation.seed is not None:
+            epoch_config.data_generation.seed = config.data_generation.seed + epoch_index
         epoch_config.experiment.episode_id = (
             config.experiment.episode_id + epoch_index * config.data_generation.episodes
         )
@@ -219,9 +220,12 @@ def generate_mc_data_command(
         generator = MonteCarloDataGenerator(epoch_config, logger)
         step_records, rl_records = generator.run(artifact_writer)
         artifact_writer.write_rl_steps(rl_records)
-        if epoch_config.data_generation.visual_artifacts:
-            from matplotlib import pyplot as plt
+        from matplotlib import pyplot as plt
 
+        rl_figure = create_rl_timeseries_figure(rl_records)
+        artifact_writer.write_figure("rl_timeseries", rl_figure)
+        plt.close(rl_figure)
+        if epoch_config.data_generation.visual_artifacts:
             figures = create_artifact_figures(step_records, epoch_config.environment)
             for name, figure in figures.items():
                 artifact_writer.write_figure(name, figure)

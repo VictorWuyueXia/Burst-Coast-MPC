@@ -35,6 +35,7 @@ def test_data_generation_config_loads_with_event_trigger_disabled() -> None:
     assert isinstance(config, DataGenerationRootConfig)
     assert config.coordinator.event_trigger is False
     assert config.runtime.max_worker_threads == 1
+    assert config.data_generation.seed is None
     assert config.data_generation.visual_artifacts is True
     assert 0.0 <= config.data_generation.bbar_min <= config.data_generation.bbar_max <= 1.0
     assert 0.0 <= config.data_generation.hbar_min <= config.data_generation.hbar_max <= 1.0

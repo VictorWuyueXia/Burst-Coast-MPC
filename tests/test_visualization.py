@@ -6,7 +6,7 @@ import pytest
 from wsmpc.environment import Environment
 from wsmpc.mpc.ip_dynamics_natural_period.features import phase_proxy_error
 from wsmpc.utils.config_schema import load_config
-from wsmpc.utils.messages import ActionCommand
+from wsmpc.utils.messages import ActionCommand, RLStepRecord
 from wsmpc.visualization.realtime import DIAGNOSTIC_PHASE_EPSILON
 
 
@@ -98,6 +98,100 @@ def test_artifact_figures_cover_static_diagnostics() -> None:
 
     for figure in figures.values():
         plt.close(figure)
+
+
+def test_rl_timeseries_figure_covers_transition_diagnostics() -> None:
+    _require_matplotlib()
+    from matplotlib import pyplot as plt
+
+    from wsmpc.visualization.artifact_plots import create_rl_timeseries_figure
+
+    rl_records = [
+        RLStepRecord(
+            run_id="run",
+            episode_id=0,
+            replan_index=0,
+            start_t_index=0,
+            start_t_sec=0.0,
+            end_t_index=2,
+            end_t_sec=0.02,
+            s_sin_theta=0.0,
+            s_cos_theta=1.0,
+            s_omega_rad_s=0.0,
+            bbar=0.5,
+            hbar=0.8,
+            burst_steps=2,
+            horizon_steps=4,
+            next_s_sin_theta=0.1,
+            next_s_cos_theta=0.99,
+            next_s_omega_rad_s=0.2,
+            done=False,
+            step_cost=1.0,
+            return_cost=1.5,
+            u_nm_json="[0.1, 0.2]",
+            solve_time_s=0.03,
+            plan_id="plan-0",
+        ),
+        RLStepRecord(
+            run_id="run",
+            episode_id=0,
+            replan_index=1,
+            start_t_index=2,
+            start_t_sec=0.02,
+            end_t_index=5,
+            end_t_sec=0.05,
+            s_sin_theta=0.1,
+            s_cos_theta=0.99,
+            s_omega_rad_s=0.2,
+            bbar=0.7,
+            hbar=0.9,
+            burst_steps=3,
+            horizon_steps=5,
+            next_s_sin_theta=0.2,
+            next_s_cos_theta=0.98,
+            next_s_omega_rad_s=0.3,
+            done=True,
+            step_cost=0.8,
+            return_cost=0.8,
+            u_nm_json="[0.3, 0.4, 0.5]",
+            solve_time_s=0.04,
+            plan_id="plan-1",
+        ),
+    ]
+    figure = create_rl_timeseries_figure(rl_records)
+    main_axes = figure.axes[:4]
+    solve_axis = figure.axes[4]
+
+    assert [axis.get_ylabel() for axis in main_axes] == [
+        "hbar",
+        "replan index",
+        "bbar / hbar",
+        "cost",
+    ]
+    assert [axis.get_xlabel() for axis in main_axes] == [
+        "bbar",
+        "",
+        "",
+        "t sec",
+    ]
+    figure.canvas.draw()
+    assert all(float(tick).is_integer() for tick in main_axes[1].get_yticks())
+    time_tick_labels = [label.get_text() for label in main_axes[3].get_xticklabels()]
+    assert all(label.lstrip("-").isdigit() for label in time_tick_labels if label)
+    assert main_axes[1].get_shared_x_axes().joined(main_axes[1], main_axes[2])
+    assert main_axes[1].get_shared_x_axes().joined(main_axes[1], main_axes[3])
+    assert solve_axis.get_ylabel() == "solve-time-s"
+    assert main_axes[0].get_box_aspect() == pytest.approx(1.0)
+    assert main_axes[2].get_legend()._loc == 1
+    assert len(main_axes[0].collections) == 1
+    assert len(main_axes[1].patches) == 2
+    assert len(solve_axis.patches) == 2
+    assert solve_axis.patches[0].get_alpha() == pytest.approx(0.5)
+    for axis in [*main_axes, solve_axis]:
+        grid_lines = [*axis.get_xgridlines(), *axis.get_ygridlines()]
+        assert not any(line.get_visible() for line in grid_lines)
+
+    plt.close(figure)
 
 
 def test_realtime_episode_plot_embeds_animation_when_requested() -> None:

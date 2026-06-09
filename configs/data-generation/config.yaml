@@ -4,7 +4,6 @@ artifacts:
   enabled: true
 experiment:
   run-id: pendulum_monte_carlo
-  global-seed: 32
   episode-id: 0
   max-steps: 10000
   stop-on-goal: true
@@ -45,7 +44,7 @@ runtime:
   set-env: true
 data-generation:
   episodes: 1
-  seed: 32
+  seed: null
   visual-artifacts: true
   theta-rad-sample-range: [-3.141592653589793, 3.141592653589793]
   omega-eq-scale-sample-range: [-1.5, 1.5]

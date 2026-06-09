@@ -99,7 +99,7 @@ def test_cli_generate_mc_data_writes_step_and_rl_artifacts(tmp_path, monkeypatch
     assert len(run_dirs) == 1
     assert (run_dirs[0] / "steps.csv").exists()
     assert (run_dirs[0] / "rl_steps.csv").exists()
-    for name in ["states", "energy", "phase", "commands"]:
+    for name in ["states", "energy", "phase", "commands", "rl_timeseries"]:
         assert (run_dirs[0] / "figures" / f"{name}.png").exists()
     assert "epochs" in result.output
     assert "rl_steps" in result.output
@@ -137,3 +137,5 @@ def test_cli_generate_mc_data_epochs_create_separate_artifacts(tmp_path, monkeyp
     for run_dir in run_dirs:
         assert (run_dir / "steps.csv").exists()
         assert (run_dir / "rl_steps.csv").exists()
+        assert (run_dir / "figures" / "rl_timeseries.png").exists()
+        assert not (run_dir / "figures" / "states.png").exists()

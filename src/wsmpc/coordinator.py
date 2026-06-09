@@ -57,7 +57,6 @@ class Coordinator:
             action_result="ready",
             mode=self.config.mode,
             event_trigger=self.config.event_trigger,
-            global_seed=self.experiment_config.global_seed,
         )
 
     def run_episode(
