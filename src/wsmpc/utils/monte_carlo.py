@@ -31,8 +31,9 @@ def sample_uniform_monte_carlo_action(
 
     bbar = float(rng.uniform(config.bbar_min, config.bbar_max))
     hbar = float(rng.uniform(config.hbar_min, config.hbar_max))
-    horizon_steps = round(hbar * prediction_horizon_steps(environment))
-    burst_steps = round(bbar * 0.5 * horizon_steps)
+    # The normalized action is realized as the smallest valid split candidate when it rounds down.
+    horizon_steps = max(1, round(hbar * prediction_horizon_steps(environment)))
+    burst_steps = max(1, round(bbar * 0.5 * horizon_steps))
     if horizon_steps <= 0 or burst_steps <= 0 or burst_steps > horizon_steps:
         msg = (
             "Monte Carlo action produced invalid MPC dimensions: "

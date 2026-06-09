@@ -44,7 +44,7 @@ def test_uniform_monte_carlo_action_maps_to_positive_candidate_dimensions() -> N
     assert action.coast_steps == action.horizon_steps - action.burst_steps
 
 
-def test_uniform_monte_carlo_action_raises_on_zero_burst() -> None:
+def test_uniform_monte_carlo_action_wraps_zero_dimensions_to_one_step() -> None:
     config = load_data_generation_config()
     generation = DataGenerationConfig(
         episodes=1,
@@ -55,16 +55,21 @@ def test_uniform_monte_carlo_action_raises_on_zero_burst() -> None:
         gamma=0.99,
         bbar_min=0.0,
         bbar_max=0.0,
-        hbar_min=1.0,
-        hbar_max=1.0,
+        hbar_min=0.0,
+        hbar_max=0.0,
         time_weight=1.0,
         action_weight=1.0,
         compute_weight=0.0,
         fail_penalty=1.0,
     )
 
-    with pytest.raises(ValueError, match="invalid MPC dimensions"):
-        sample_uniform_monte_carlo_action(np.random.default_rng(1), generation, config.environment)
+    action = sample_uniform_monte_carlo_action(np.random.default_rng(1), generation, config.environment)
+
+    assert action.bbar == pytest.approx(0.0)
+    assert action.hbar == pytest.approx(0.0)
+    assert action.horizon_steps == 1
+    assert action.burst_steps == 1
+    assert action.coast_steps == 0
 
 
 def test_uniform_initial_state_samples_declared_physical_domain() -> None:
