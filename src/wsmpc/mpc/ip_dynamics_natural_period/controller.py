@@ -8,11 +8,16 @@ from itertools import count
 
 import numpy as np
 
-from wsmpc.mpc.ip_dynamics_natural_period.problem import solve_candidate_task, split_candidates
-from wsmpc.mpc.types import CandidateSolution, SelectedPlan
+from wsmpc.mpc.ip_dynamics_natural_period.problem import (
+    solve_candidate,
+    solve_candidate_task,
+    split_candidates,
+)
+from wsmpc.mpc.types import CandidateSolution, SelectedPlan, SplitCandidate
 from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig, RuntimeConfig
 from wsmpc.utils.log_events import log_event
 from wsmpc.utils.messages import ActionCommand, StateObs
+from wsmpc.utils.monte_carlo import MonteCarloAction
 from wsmpc.utils.parallel import ordered_process_map
 
 
@@ -75,6 +80,48 @@ class NaturalPeriodMPCController:
             early_wake_flag=force_replan,
             plan_id=active_plan.plan.plan_id,
         )
+
+    def start_monte_carlo_plan(
+        self,
+        observation: StateObs,
+        monte_carlo_action: MonteCarloAction,
+    ) -> SelectedPlan:
+        """Solve one sampled burst-coast candidate and make it the active plan."""
+
+        state = np.asarray([observation.theta_rad, observation.omega_rad_s], dtype=np.float64)
+        candidate = SplitCandidate(
+            lambda_value=monte_carlo_action.bbar,
+            total_steps=monte_carlo_action.horizon_steps,
+            burst_steps=monte_carlo_action.burst_steps,
+            coast_steps=monte_carlo_action.coast_steps,
+        )
+        selected = solve_candidate(
+            state,
+            self._previous_input_nm,
+            candidate,
+            self.environment,
+            self.mpc,
+        )
+        plan = self._selected_plan(observation, selected, [selected])
+        self._active_plan = _ActivePlan(plan=plan)
+        log_event(
+            self.logger,
+            logging.INFO,
+            identity=self.identity,
+            status="ready",
+            action="solve_monte_carlo_candidate",
+            action_result="plan_selected",
+            t_index=observation.t_index,
+            t_sec=observation.t_sec,
+            plan_id=plan.plan_id,
+            bbar=f"{monte_carlo_action.bbar:.6f}",
+            hbar=f"{monte_carlo_action.hbar:.6f}",
+            burst_steps=monte_carlo_action.burst_steps,
+            horizon_steps=monte_carlo_action.horizon_steps,
+            solve_time_s=f"{plan.solve_time_s:.6f}",
+            objective_value=f"{plan.objective_value:.9f}",
+        )
+        return plan
 
     def _solve_new_plan(self, observation: StateObs) -> SelectedPlan:
         """Solve all split candidates in parallel and choose the minimum objective."""

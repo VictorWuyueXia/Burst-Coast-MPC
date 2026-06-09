@@ -13,10 +13,27 @@ from wsmpc.utils.time import realtime
 
 CONFIG_ROOT = Path(__file__).resolve().parents[3] / "configs"
 STANDARD_PACKAGE = "standard"
+DATA_GENERATION_PACKAGE = "data-generation"
 
 
 def load_config(package_name: str) -> RootConfig:
     """Load one complete config package and validate every required field."""
+
+    resolved = _load_resolved_config(package_name)
+    return RootConfig.model_validate(resolved)
+
+
+def load_data_generation_config(
+    package_name: str = DATA_GENERATION_PACKAGE,
+) -> DataGenerationRootConfig:
+    """Load the Monte Carlo data-generation config package."""
+
+    resolved = _load_resolved_config(package_name)
+    return DataGenerationRootConfig.model_validate(resolved)
+
+
+def _load_resolved_config(package_name: str) -> dict:
+    """Resolve one YAML config package before Pydantic validation."""
 
     # Register the YAML-only realtime helper at the exact point where YAML is resolved.
     OmegaConf.register_new_resolver("realtime", realtime, replace=True)
@@ -24,9 +41,7 @@ def load_config(package_name: str) -> RootConfig:
     if not package_path.exists():
         msg = f"Config package not found: {package_path}"
         raise FileNotFoundError(msg)
-    package_cfg = OmegaConf.load(package_path)
-    resolved = OmegaConf.to_container(package_cfg, resolve=True)
-    return RootConfig.model_validate(resolved)
+    return OmegaConf.to_container(OmegaConf.load(package_path), resolve=True)
 
 
 class ConfigBase(BaseModel):
@@ -223,3 +238,85 @@ class RootConfig(ConfigBase):
     mpc: MPCConfig
     runtime: RuntimeConfig
     artifacts: ArtifactConfig
+
+
+class DataGenerationConfig(ConfigBase):
+    """Monte Carlo data-generation controls for offline RL."""
+
+    episodes: int
+    seed: int
+    visual_artifacts: bool = Field(alias="visual-artifacts")
+    theta_rad_sample_range: list[float] = Field(alias="theta-rad-sample-range")
+    omega_eq_scale_sample_range: list[float] = Field(alias="omega-eq-scale-sample-range")
+    gamma: float
+    bbar_min: float = Field(alias="bbar-min")
+    bbar_max: float = Field(alias="bbar-max")
+    hbar_min: float = Field(alias="hbar-min")
+    hbar_max: float = Field(alias="hbar-max")
+    time_weight: float = Field(alias="time-weight")
+    action_weight: float = Field(alias="action-weight")
+    compute_weight: float = Field(alias="compute-weight")
+    fail_penalty: float = Field(alias="fail-penalty")
+
+    @field_validator("episodes")
+    @classmethod
+    def _episodes_must_be_positive(cls, value: int) -> int:
+        if value <= 0:
+            msg = "episodes must be positive"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("gamma", "bbar_min", "bbar_max", "hbar_min", "hbar_max")
+    @classmethod
+    def _normalized_values_must_be_unit_interval(cls, value: float) -> float:
+        if value < 0.0 or value > 1.0 or not math.isfinite(value):
+            msg = "normalized data-generation values must be finite values in [0, 1]"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("time_weight", "action_weight", "compute_weight", "fail_penalty")
+    @classmethod
+    def _cost_weights_must_be_nonnegative(cls, value: float) -> float:
+        if value < 0.0 or not math.isfinite(value):
+            msg = "cost weights must be finite nonnegative values"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("theta_rad_sample_range", "omega_eq_scale_sample_range")
+    @classmethod
+    def _sample_ranges_must_be_two_ordered_finite_values(
+        cls,
+        value: list[float],
+    ) -> list[float]:
+        if len(value) != 2:
+            msg = "sample ranges must contain exactly two values"
+            raise ValueError(msg)
+        if any(not math.isfinite(bound) for bound in value):
+            msg = "sample range bounds must be finite"
+            raise ValueError(msg)
+        if value[1] < value[0]:
+            msg = "sample range upper bound must be greater than or equal to lower bound"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("bbar_max")
+    @classmethod
+    def _bbar_range_must_be_ordered(cls, value: float, info) -> float:
+        if "bbar_min" in info.data and value < info.data["bbar_min"]:
+            msg = "bbar-max must be greater than or equal to bbar-min"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("hbar_max")
+    @classmethod
+    def _hbar_range_must_be_ordered(cls, value: float, info) -> float:
+        if "hbar_min" in info.data and value < info.data["hbar_min"]:
+            msg = "hbar-max must be greater than or equal to hbar-min"
+            raise ValueError(msg)
+        return value
+
+
+class DataGenerationRootConfig(RootConfig):
+    """Complete runtime config plus required Monte Carlo generation controls."""
+
+    data_generation: DataGenerationConfig = Field(alias="data-generation")

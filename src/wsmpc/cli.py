@@ -9,12 +9,18 @@ import typer
 from rich.console import Console
 
 from wsmpc.coordinator import Coordinator
+from wsmpc.data_generation import MonteCarloDataGenerator
 from wsmpc.utils.artifacts import (
     ArtifactWriter,
     attach_run_log_handler,
     detach_run_log_handler,
 )
-from wsmpc.utils.config_schema import STANDARD_PACKAGE, load_config
+from wsmpc.utils.config_schema import (
+    DATA_GENERATION_PACKAGE,
+    STANDARD_PACKAGE,
+    load_config,
+    load_data_generation_config,
+)
 from wsmpc.utils.logging import ThirdPersonObservers, configure_logging, episode_output
 from wsmpc.utils.resources import configure_runtime_resources
 from wsmpc.visualization.artifact_plots import create_artifact_figures
@@ -156,6 +162,84 @@ def run_episode_command(
 
     artifact_dir = str(artifact_writer.run_dir) if artifact_writer is not None else None
     console.print(episode_output(result.summary, artifact_dir=artifact_dir))
+
+
+@app.command("generate-mc-data")
+def generate_mc_data_command(
+    epochs: Annotated[
+        int,
+        typer.Option(
+            "--epochs",
+            help="Independent Monte Carlo artifact runs to generate.",
+        ),
+    ] = 1,
+) -> None:
+    """Generate one sequential Monte Carlo dataset for offline RL."""
+
+    configure_logging()
+    config = load_data_generation_config()
+    if epochs <= 0:
+        msg = "--epochs must be positive"
+        raise typer.BadParameter(msg)
+    logger = logging.getLogger("wsmpc")
+    configure_runtime_resources(config.runtime, logger=logger)
+
+    artifact_dirs: list[str] = []
+    total_rl_steps = 0
+    base_alias = config.artifacts.alias
+    for epoch_index in range(epochs):
+        epoch_config = config.model_copy(deep=True)
+        epoch_config.data_generation.seed = config.data_generation.seed + epoch_index
+        epoch_config.experiment.episode_id = (
+            config.experiment.episode_id + epoch_index * config.data_generation.episodes
+        )
+        if epochs > 1:
+            alias_root = base_alias or DATA_GENERATION_PACKAGE
+            epoch_config.artifacts.alias = f"{alias_root}-epoch-{epoch_index + 1}"
+
+        artifact_writer = ArtifactWriter.create(
+            epoch_config.artifacts.root_dir,
+            alias=epoch_config.artifacts.alias,
+            config_package=DATA_GENERATION_PACKAGE,
+            cli_args={
+                "config_package": DATA_GENERATION_PACKAGE,
+                "epochs": epochs,
+                "epoch_index": epoch_index,
+            },
+        )
+        artifact_writer.write_config(epoch_config)
+        artifact_writer.open_step_writer()
+        run_log_handler = attach_run_log_handler(logger, artifact_writer.run_dir)
+        logger.info(
+            "identity=Artifacts status=initialized action=create_run_directory "
+            "action_result=ready run_dir=%s",
+            artifact_writer.run_dir,
+        )
+
+        generator = MonteCarloDataGenerator(epoch_config, logger)
+        step_records, rl_records = generator.run(artifact_writer)
+        artifact_writer.write_rl_steps(rl_records)
+        if epoch_config.data_generation.visual_artifacts:
+            from matplotlib import pyplot as plt
+
+            figures = create_artifact_figures(step_records, epoch_config.environment)
+            for name, figure in figures.items():
+                artifact_writer.write_figure(name, figure)
+            for figure in figures.values():
+                plt.close(figure)
+        artifact_writer.finalize_manifest(completed=True, status="monte_carlo_generated")
+        detach_run_log_handler(logger, run_log_handler)
+        artifact_dirs.append(str(artifact_writer.run_dir))
+        total_rl_steps += len(rl_records)
+
+    console.print(
+        {
+            "run_id": config.experiment.run_id,
+            "epochs": epochs,
+            "rl_steps": total_rl_steps,
+            "artifact_dirs": artifact_dirs,
+        }
+    )
 
 
 def main() -> None:

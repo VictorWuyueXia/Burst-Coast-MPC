@@ -1,0 +1,60 @@
+artifacts:
+  root-dir: artifacts/experiments
+  alias: monte-carlo-data
+  enabled: true
+experiment:
+  run-id: pendulum_monte_carlo
+  global-seed: 32
+  episode-id: 0
+  max-steps: 10000
+  stop-on-goal: true
+  initial-state:
+    theta-rad: 0.0
+    omega-rad-s: 0.0
+coordinator:
+  node-id: Coordinator
+  mode: synchronous
+  event-trigger: false
+  decision-interval-steps: 1
+  debug-log-every-n-steps: 1
+environment:
+  node-id: Environment
+  simulation:
+    timestep-s: 0.01
+    pace-s: 0.0
+  pendulum:
+    mass-kg: 1.0
+    gravity-m-s2: 9.80665
+    length-m: 1.0
+    damping-nms: 0
+    torque-limit-nm: 1.0
+    theta-limit-abs-rad: 6.283
+    omega-limit-abs-rad-s: 3.142
+  goal:
+    angle-tolerance-rad: 0.05
+    omega-tolerance-rad-s: 0.05
+    hold-steps: 5
+mpc:
+  controller: IP-dynamics-naturalPeriod
+  split-ratios: [0.1]
+runtime:
+  node-id: Runtime
+  max-worker-threads: 1
+  blas-threads: 1
+  cpu-affinity: []
+  set-env: true
+data-generation:
+  episodes: 1
+  seed: 32
+  visual-artifacts: true
+  theta-rad-sample-range: [-3.141592653589793, 3.141592653589793]
+  omega-eq-scale-sample-range: [-1.5, 1.5]
+  gamma: 0.99
+  bbar-min: 0.1
+  bbar-max: 1.0
+  hbar-min: 0.4
+  hbar-max: 1.0
+  time-weight: 1.0
+  action-weight: 1.0
+  compute-weight: 0.1
+  fail-penalty: 100.0

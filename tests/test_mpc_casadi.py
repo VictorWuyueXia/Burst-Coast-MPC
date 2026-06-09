@@ -21,6 +21,9 @@ from wsmpc.mpc.ip_dynamics_natural_period.features import (
     phase_proxy_error_symbolic,
 )
 from wsmpc.mpc.ip_dynamics_natural_period.problem import (
+    prediction_horizon_steps,
+)
+from wsmpc.mpc.ip_dynamics_natural_period.problem import (
     solve_candidate as solve_natural_candidate,
 )
 from wsmpc.mpc.ip_dynamics_natural_period.problem import (
@@ -28,6 +31,7 @@ from wsmpc.mpc.ip_dynamics_natural_period.problem import (
 )
 from wsmpc.utils.config_schema import load_config
 from wsmpc.utils.messages import StateObs
+from wsmpc.utils.monte_carlo import MonteCarloAction
 
 
 def _small_mpc_config():
@@ -218,3 +222,39 @@ def test_controller_force_replan_starts_new_plan() -> None:
 
     assert first_action.plan_id != second_action.plan_id
     assert second_action.early_wake_flag is True
+
+
+def test_controller_starts_direct_monte_carlo_plan_without_candidate_enumeration(
+    monkeypatch,
+) -> None:
+    config = _small_mpc_config()
+    observation = _observation(config)
+    controller = CasadiMPCController(
+        config.environment,
+        config.mpc,
+        config.runtime,
+        logger=logging.getLogger("test"),
+    )
+    horizon_steps = prediction_horizon_steps(config.environment)
+    monte_carlo_action = MonteCarloAction(
+        bbar=1.0,
+        hbar=1.0,
+        horizon_steps=horizon_steps,
+        burst_steps=round(0.5 * horizon_steps),
+        coast_steps=horizon_steps - round(0.5 * horizon_steps),
+    )
+
+    def fail_split_candidates(*args):
+        raise RuntimeError("split enumeration should not run")
+
+    monkeypatch.setattr(
+        "wsmpc.mpc.ip_dynamics_natural_period.controller.split_candidates",
+        fail_split_candidates,
+    )
+
+    plan = controller.start_monte_carlo_plan(observation, monte_carlo_action)
+    action = controller.select_action(observation, force_replan=False)
+
+    assert plan.candidate.total_steps == horizon_steps
+    assert plan.candidate.burst_steps == monte_carlo_action.burst_steps
+    assert action.plan_id == plan.plan_id

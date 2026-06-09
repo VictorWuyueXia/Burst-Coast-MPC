@@ -66,6 +66,34 @@ class StepRecord(MessageBase):
     action_result: str
 
 
+class RLStepRecord(MessageBase):
+    """One replanning transition row for Monte Carlo RL training."""
+
+    run_id: str = Field(alias="run-id")
+    episode_id: int = Field(alias="episode-id")
+    replan_index: int = Field(alias="replan-index")
+    start_t_index: int = Field(alias="start-t-index")
+    start_t_sec: float = Field(alias="start-t-sec")
+    end_t_index: int = Field(alias="end-t-index")
+    end_t_sec: float = Field(alias="end-t-sec")
+    s_sin_theta: float = Field(alias="s-sin-theta")
+    s_cos_theta: float = Field(alias="s-cos-theta")
+    s_omega_rad_s: float = Field(alias="s-omega-rad-s")
+    bbar: float
+    hbar: float
+    burst_steps: int = Field(alias="burst-steps")
+    horizon_steps: int = Field(alias="horizon-steps")
+    next_s_sin_theta: float = Field(alias="next-s-sin-theta")
+    next_s_cos_theta: float = Field(alias="next-s-cos-theta")
+    next_s_omega_rad_s: float = Field(alias="next-s-omega-rad-s")
+    done: bool
+    step_cost: float = Field(alias="step-cost")
+    return_cost: float = Field(alias="return-cost")
+    u_nm_json: str = Field(alias="u-nm-json")
+    solve_time_s: float = Field(alias="solve-time-s")
+    plan_id: str = Field(alias="plan-id")
+
+
 class NodeStatus(MessageBase):
     """Lifecycle and health update emitted by a runtime component."""
 

@@ -36,3 +36,32 @@
 - Adhere strictly to our coding style descipline, realizing goals with simplest possbile method, write your logic in compact streamlined line-of-logic files, avoid short wrapper/helper functions, avoid unescesary CLI/configs, avoid fallback values or behaviors, avoid try/with/except. Include this rule in your plan.
 
 - Eplicitly write all your planned class/objects, functions/methods, independent variables, data classes, wrappers/helpers, and parameters in you plan. Each with their specific role and task. You should have a maximum of a handful of each, devided my task oriented workflow or task independent standard operations, and minimize the presence of wrappers/helpers, and parameters. You will not be allowed to exceed your planned structure budget.
+
+
+
+
+
+
+
+[5.5-RL-dev-plan.md](docs/5.5-RL-dev-plan.md) reflects my current stage of dev plan. The overall goal of this stage is to devlop the actor-critic RL closely coupled with our existing burst-coast MPC controller.
+
+Now make plan for the first dev step: Generate Monte Carlo data for offline training. Run the standalone MPC simulation under sampled or scripted $(\bar B,\bar H)$ policies. Log full trajectories, including:$(s_k, a_k, G_k, s_{k+1}, d_k,  u_k, t_{\mathrm{solve},k})$ At episode end, compute Monte Carlo returns:$G_k = \sum_{i=k}^{T} \gamma^{i-k}c_i$
+
+This creates the initial offline dataset:$\mathcal D_{\mathrm{MC}} = \left\{(s_k, a_k, G_k)\right\}$
+
+I want to make changes with minimum touch on current logics. 
+- we should make a dedicated config file "data-generation" for this step, including config parameters to make a uniform montecarlo generation of B and H
+- We should add small quick functions in utils to generate monte carlo actions.
+- we should add time counting and re-plann step logs, in parallel to the current detailed steps.csv log. The new logs are dedicated for RL training, which adhere to the RL expected information.
+- we should not be using parallel computing for this step, as each time we only carry out one set of B and H.
+
+
+
+# Coding Style Descipline
+- Adhere strictly to our coding style descipline, realizing goals with simplest possbile method, write your logic in compact streamlined line-of-logic files, avoid short wrapper/helper functions, avoid unescesary CLI/configs, avoid fallback values or behaviors, avoid try/with/except. Include this rule in your plan.
+
+- Eplicitly write all your planned class/objects, functions/methods, independent variables, data classes, wrappers/helpers, and parameters in you plan. Each with their specific role and task. You should have a maximum of a handful of each, devided my task oriented workflow or task independent standard operations, and minimize the presence of wrappers/helpers, and parameters. You will not be allowed to exceed your planned structure budget.
+
+
+
+there should be no event trigger logic activated for this step

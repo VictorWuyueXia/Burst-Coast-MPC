@@ -16,11 +16,14 @@ from typing import Any
 
 from wsmpc import __version__
 from wsmpc.utils.config_schema import RootConfig
-from wsmpc.utils.messages import ExperimentSummary, StepRecord
+from wsmpc.utils.messages import ExperimentSummary, RLStepRecord, StepRecord
 
 ARTIFACT_FORMAT_VERSION = 1
 STEP_CSV_HEADERS = tuple(
     field.alias or name for name, field in StepRecord.model_fields.items()
+)
+RL_STEP_CSV_HEADERS = tuple(
+    field.alias or name for name, field in RLStepRecord.model_fields.items()
 )
 
 
@@ -89,6 +92,7 @@ class ArtifactWriter:
         self.started_at = started_at or datetime.now().astimezone()
         self.finished_at: datetime | None = None
         self.step_count = 0
+        self.rl_step_count = 0
         self._step_file = None
         self._step_writer: csv.DictWriter[str] | None = None
 
@@ -156,6 +160,18 @@ class ArtifactWriter:
             "summary.json",
             summary.model_dump(mode="json", by_alias=True),
         )
+
+    def write_rl_steps(self, records: list[RLStepRecord]) -> None:
+        """Write replanning-level RL transitions after Monte Carlo returns are known."""
+
+        path = self.run_dir / "rl_steps.csv"
+        with path.open("w", newline="", encoding="utf-8") as file:
+            writer: csv.DictWriter[str] = csv.DictWriter(file, fieldnames=RL_STEP_CSV_HEADERS)
+            writer.writeheader()
+            for record in records:
+                row = record.model_dump(mode="json", by_alias=True)
+                writer.writerow({header: row[header] for header in RL_STEP_CSV_HEADERS})
+        self.rl_step_count = len(records)
 
     def write_figure(self, name: str, figure: Any) -> Path:
         """Save one diagnostic Matplotlib figure into the figures artifact directory."""
@@ -227,7 +243,7 @@ class ArtifactWriter:
             "artifact_format_version": ARTIFACT_FORMAT_VERSION,
             "run_dir": str(self.run_dir),
             "files": self._file_entries(),
-            "row_counts": {"steps": self.step_count},
+            "row_counts": {"steps": self.step_count, "rl_steps": self.rl_step_count},
             "completed": completed,
             "completion_status": status,
         }

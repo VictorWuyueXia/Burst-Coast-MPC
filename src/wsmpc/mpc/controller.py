@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 
 from wsmpc.mpc.ip_dynamics_natural_period.controller import NaturalPeriodMPCController
+from wsmpc.mpc.types import SelectedPlan
 from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig, RuntimeConfig
 from wsmpc.utils.messages import ActionCommand, StateObs
+from wsmpc.utils.monte_carlo import MonteCarloAction
 
 
 class CasadiMPCController:
@@ -26,3 +28,12 @@ class CasadiMPCController:
         """Return one action from the configured concrete MPC controller."""
 
         return self.controller.select_action(observation, force_replan=force_replan)
+
+    def start_monte_carlo_plan(
+        self,
+        observation: StateObs,
+        monte_carlo_action: MonteCarloAction,
+    ) -> SelectedPlan:
+        """Start one sampled Monte Carlo plan on the concrete MPC controller."""
+
+        return self.controller.start_monte_carlo_plan(observation, monte_carlo_action)
