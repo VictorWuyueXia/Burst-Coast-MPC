@@ -5,7 +5,7 @@ artifacts:
 experiment:
   run-id: pendulum_monte_carlo
   episode-id: 0
-  max-steps: 10000
+  max-steps: 3000
   stop-on-goal: true
   initial-state:
     theta-rad: 0.0
@@ -48,12 +48,12 @@ data-generation:
   visual-artifacts: true
   theta-rad-sample-range: [-3.141592653589793, 3.141592653589793]
   omega-eq-scale-sample-range: [-1.5, 1.5]
-  gamma: 0.99
-  bbar-min: 0.1
+  gamma: 1
+  bbar-min: 0.01
   bbar-max: 1.0
-  hbar-min: 0.4
+  hbar-min: 0.01
   hbar-max: 1.0
   time-weight: 1.0
   action-weight: 1.0
-  compute-weight: 0.1
-  fail-penalty: 100.0
+  compute-weight: 1.0
+  fail-penalty: 1e2
