@@ -63,7 +63,11 @@ def test_uniform_monte_carlo_action_wraps_zero_dimensions_to_one_step() -> None:
         fail_penalty=1.0,
     )
 
-    action = sample_uniform_monte_carlo_action(np.random.default_rng(1), generation, config.environment)
+    action = sample_uniform_monte_carlo_action(
+        np.random.default_rng(1),
+        generation,
+        config.environment,
+    )
 
     assert action.bbar == pytest.approx(0.0)
     assert action.hbar == pytest.approx(0.0)

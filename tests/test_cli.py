@@ -17,7 +17,6 @@ def test_cli_run_episode(monkeypatch) -> None:
     config.experiment.max_steps = 2
     config.environment.simulation.timestep_s = 0.25
     config.environment.simulation.pace_s = 0.0
-    config.runtime.max_worker_threads = 1
     config.artifacts.enabled = False
 
     def load_config_stub(package_name: str):
@@ -42,7 +41,6 @@ def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> N
     config.experiment.max_steps = 2
     config.environment.simulation.timestep_s = 0.25
     config.environment.simulation.pace_s = 0.0
-    config.runtime.max_worker_threads = 1
 
     def load_config_stub(package_name: str):
         return config
@@ -85,7 +83,6 @@ def test_cli_generate_mc_data_writes_step_and_rl_artifacts(tmp_path, monkeypatch
     config.environment.simulation.timestep_s = 0.25
     config.environment.simulation.pace_s = 0.0
     config.environment.goal.hold_steps = 999
-    config.runtime.max_worker_threads = 1
 
     def load_data_generation_config_stub():
         return config
@@ -120,7 +117,6 @@ def test_cli_generate_mc_data_epochs_create_separate_artifacts(tmp_path, monkeyp
     config.environment.simulation.timestep_s = 0.25
     config.environment.simulation.pace_s = 0.0
     config.environment.goal.hold_steps = 999
-    config.runtime.max_worker_threads = 1
 
     def load_data_generation_config_stub():
         return config

@@ -46,7 +46,6 @@ class MonteCarloDataGenerator:
             controller = CasadiMPCController(
                 self.config.environment,
                 self.config.mpc,
-                self.config.runtime,
                 logger=self.logger,
             )
             initial_state = sample_uniform_initial_state(

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -92,20 +91,6 @@ class RLStepRecord(MessageBase):
     u_nm_json: str = Field(alias="u-nm-json")
     solve_time_s: float = Field(alias="solve-time-s")
     plan_id: str = Field(alias="plan-id")
-
-
-class NodeStatus(MessageBase):
-    """Lifecycle and health update emitted by a runtime component."""
-
-    node_id: str = Field(alias="node-id")
-    identity: str
-    status: str
-    action: str
-    action_result: str
-    t_index: int | None = None
-    t_sec: float | None = None
-    detail: dict[str, Any] = Field(default_factory=dict)
-    updated_wall_time_s: float
 
 
 class ExperimentSummary(MessageBase):

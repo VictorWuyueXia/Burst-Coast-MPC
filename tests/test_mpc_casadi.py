@@ -39,7 +39,6 @@ def _small_mpc_config():
     config.environment.simulation.pace_s = 0.0
     config.environment.goal.hold_steps = 999
     config.environment.simulation.timestep_s = 0.25
-    config.runtime.max_worker_threads = 1
     config.mpc.split_ratios = [0.5, 1.0]
     return config
 
@@ -124,7 +123,6 @@ def test_natural_period_solver_returns_bounded_finite_candidate_solution() -> No
         0.0,
         candidate,
         config.environment,
-        config.mpc,
     )
 
     assert np.isfinite(solution.objective_value)
@@ -140,7 +138,6 @@ def test_controller_uses_natural_period_formulation() -> None:
     natural_controller = CasadiMPCController(
         config.environment,
         config.mpc,
-        config.runtime,
         logger=logging.getLogger("test"),
     )
 
@@ -152,7 +149,6 @@ def test_controller_selects_plan_and_raises_when_solver_fails(monkeypatch) -> No
     controller = CasadiMPCController(
         config.environment,
         config.mpc,
-        config.runtime,
         logger=logging.getLogger("test"),
     )
     observation = _observation(config)
@@ -168,7 +164,7 @@ def test_controller_selects_plan_and_raises_when_solver_fails(monkeypatch) -> No
         raise RuntimeError("solver failed")
 
     monkeypatch.setattr(
-        "wsmpc.mpc.ip_dynamics_natural_period.controller.solve_candidate_task",
+        "wsmpc.mpc.ip_dynamics_natural_period.controller.solve_candidate",
         fail_candidate,
     )
     controller.controller._active_plan = None
@@ -184,7 +180,6 @@ def test_controller_reuses_selected_plan_until_inputs_are_exhausted() -> None:
     controller = CasadiMPCController(
         config.environment,
         config.mpc,
-        config.runtime,
         logger=logging.getLogger("test"),
     )
     first_action = controller.select_action(observation, force_replan=False)
@@ -207,7 +202,6 @@ def test_controller_force_replan_starts_new_plan() -> None:
     controller = CasadiMPCController(
         config.environment,
         config.mpc,
-        config.runtime,
         logger=logging.getLogger("test"),
     )
 
@@ -232,7 +226,6 @@ def test_controller_starts_direct_monte_carlo_plan_without_candidate_enumeration
     controller = CasadiMPCController(
         config.environment,
         config.mpc,
-        config.runtime,
         logger=logging.getLogger("test"),
     )
     horizon_steps = prediction_horizon_steps(config.environment)

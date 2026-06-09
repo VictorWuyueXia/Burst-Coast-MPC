@@ -36,9 +36,3 @@ environment:
 mpc:
   controller: IP-dynamics-naturalPeriod
   split-ratios: [0.1, 0.2, 0.3]
-runtime:
-  node-id: Runtime
-  max-worker-threads: 2
-  blas-threads: 1
-  cpu-affinity: []
-  set-env: true

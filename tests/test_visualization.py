@@ -217,7 +217,7 @@ def test_realtime_episode_plot_embeds_animation_when_requested() -> None:
 
 def test_pendulum_animation_bob_position_and_update() -> None:
     _require_matplotlib()
-    from wsmpc.visualization.realtime import PendulumAnimation
+    from wsmpc.visualization.animation import PendulumAnimation
 
     config, observation, record = _one_record()
     animation = PendulumAnimation(config.environment.pendulum, update_every=1)
@@ -236,7 +236,7 @@ def test_pendulum_animation_bob_position_and_update() -> None:
 
 def test_pendulum_animation_torque_arrow_tracks_action() -> None:
     _require_matplotlib()
-    from wsmpc.visualization.realtime import PendulumAnimation
+    from wsmpc.visualization.animation import PendulumAnimation
 
     config, observation, record = _one_record()
     animation = PendulumAnimation(config.environment.pendulum, update_every=1)

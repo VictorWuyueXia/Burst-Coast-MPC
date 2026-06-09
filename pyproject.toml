@@ -24,8 +24,6 @@ dependencies = [  # Core libraries needed to run the project
   "omegaconf>=2.3",      # Configuration management
   "typer>=0.12",         # Command-line interface tools
   "rich>=13.7",          # Pretty terminal formatting
-  "psutil>=5.9",         # System/process utilities
-  "threadpoolctl>=3.5",  # Thread control (e.g., for numpy)
   "matplotlib>=3.8",     # Plotting and visualization
 ]
 

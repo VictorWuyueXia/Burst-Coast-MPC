@@ -11,11 +11,10 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from types import TracebackType
 from typing import Any
 
 from wsmpc import __version__
-from wsmpc.utils.config_schema import RootConfig
+from wsmpc.utils.config_schema import DataGenerationRootConfig, RootConfig
 from wsmpc.utils.messages import ExperimentSummary, RLStepRecord, StepRecord
 
 ARTIFACT_FORMAT_VERSION = 1
@@ -66,11 +65,9 @@ def attach_run_log_handler(logger: logging.Logger, run_dir: str | Path) -> loggi
     return handler
 
 
-def detach_run_log_handler(logger: logging.Logger, handler: logging.Handler | None) -> None:
+def detach_run_log_handler(logger: logging.Logger, handler: logging.Handler) -> None:
     """Remove and close a run-specific file handler."""
 
-    if handler is None:
-        return
     logger.removeHandler(handler)
     handler.close()
 
@@ -121,7 +118,7 @@ class ArtifactWriter:
             started_at=started_at,
         )
 
-    def write_config(self, config: RootConfig) -> None:
+    def write_config(self, config: RootConfig | DataGenerationRootConfig) -> None:
         """Write the resolved runtime config using human-readable YAML aliases."""
 
         self._write_json(
@@ -133,7 +130,8 @@ class ArtifactWriter:
         """Open the stable CSV record stream and write its header row."""
 
         if self._step_writer is not None:
-            return
+            msg = "Step writer is already open for this artifact run"
+            raise RuntimeError(msg)
         self._step_file = (self.run_dir / "steps.csv").open("w", newline="", encoding="utf-8")
         self._step_writer = csv.DictWriter(self._step_file, fieldnames=STEP_CSV_HEADERS)
         self._step_writer.writeheader()
@@ -150,8 +148,8 @@ class ArtifactWriter:
         row = record.model_dump(mode="json", by_alias=True)
         self._step_writer.writerow({header: row[header] for header in STEP_CSV_HEADERS})
         self.step_count += 1
-        if self._step_file is not None:
-            self._step_file.flush()
+        assert self._step_file is not None
+        self._step_file.flush()
 
     def write_summary(self, summary: ExperimentSummary) -> None:
         """Write the final typed episode summary with nested observation aliases."""
@@ -165,12 +163,13 @@ class ArtifactWriter:
         """Write replanning-level RL transitions after Monte Carlo returns are known."""
 
         path = self.run_dir / "rl_steps.csv"
-        with path.open("w", newline="", encoding="utf-8") as file:
-            writer: csv.DictWriter[str] = csv.DictWriter(file, fieldnames=RL_STEP_CSV_HEADERS)
-            writer.writeheader()
-            for record in records:
-                row = record.model_dump(mode="json", by_alias=True)
-                writer.writerow({header: row[header] for header in RL_STEP_CSV_HEADERS})
+        file = path.open("w", newline="", encoding="utf-8")
+        writer: csv.DictWriter[str] = csv.DictWriter(file, fieldnames=RL_STEP_CSV_HEADERS)
+        writer.writeheader()
+        for record in records:
+            row = record.model_dump(mode="json", by_alias=True)
+            writer.writerow({header: row[header] for header in RL_STEP_CSV_HEADERS})
+        file.close()
         self.rl_step_count = len(records)
 
     def write_figure(self, name: str, figure: Any) -> Path:
@@ -202,21 +201,6 @@ class ArtifactWriter:
             self._step_file.close()
             self._step_file = None
             self._step_writer = None
-
-    def __enter__(self) -> ArtifactWriter:
-        """Return the active writer for context-manager use."""
-
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        """Ensure open file handles are released if a caller exits early."""
-
-        self.close()
 
     def _write_metadata(self) -> None:
         """Write run metadata that helps reproduce the local execution context."""
@@ -262,9 +246,10 @@ class ArtifactWriter:
         """Write deterministic, inspectable JSON."""
 
         path = self.run_dir / name
-        with path.open("w", encoding="utf-8") as file:
-            json.dump(data, file, indent=2, sort_keys=True)
-            file.write("\n")
+        file = path.open("w", encoding="utf-8")
+        json.dump(data, file, indent=2, sort_keys=True)
+        file.write("\n")
+        file.close()
 
 
 def _read_git_state() -> tuple[str, bool]:

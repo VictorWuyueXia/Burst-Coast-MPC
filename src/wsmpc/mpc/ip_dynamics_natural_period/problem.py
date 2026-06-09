@@ -28,21 +28,11 @@ IPOPT_OPTIONS = {
 }
 
 
-def solve_candidate_task(
-    task: tuple[np.ndarray, float, SplitCandidate, EnvironmentConfig, MPCConfig],
-) -> CandidateSolution:
-    """Solve one candidate from a process-pool task tuple."""
-
-    state, previous_input_nm, candidate, environment, mpc = task
-    return solve_candidate(state, previous_input_nm, candidate, environment, mpc)
-
-
 def solve_candidate(
     state: np.ndarray,
     previous_input_nm: float,
     candidate: SplitCandidate,
     environment: EnvironmentConfig,
-    mpc: MPCConfig,
 ) -> CandidateSolution:
     """Solve one natural-period split-ratio candidate."""
 

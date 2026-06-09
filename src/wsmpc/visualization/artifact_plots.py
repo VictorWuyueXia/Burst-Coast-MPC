@@ -36,8 +36,7 @@ def create_rl_timeseries_figure(records: list[RLStepRecord]) -> Any:
     """Create the replanning-level Monte Carlo diagnostic figure."""
 
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import FuncFormatter
-    from matplotlib.ticker import MaxNLocator
+    from matplotlib.ticker import FuncFormatter, MaxNLocator
 
     return _create_rl_timeseries_figure(
         plt,

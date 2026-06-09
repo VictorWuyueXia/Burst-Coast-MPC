@@ -10,15 +10,15 @@ import numpy as np
 
 from wsmpc.mpc.ip_dynamics_natural_period.problem import (
     solve_candidate,
-    solve_candidate_task,
     split_candidates,
 )
 from wsmpc.mpc.types import CandidateSolution, SelectedPlan, SplitCandidate
-from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig, RuntimeConfig
+from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig
 from wsmpc.utils.log_events import log_event
 from wsmpc.utils.messages import ActionCommand, StateObs
 from wsmpc.utils.monte_carlo import MonteCarloAction
-from wsmpc.utils.parallel import ordered_process_map
+
+MPC_WORKER_COUNT = 1
 
 
 @dataclass
@@ -38,13 +38,11 @@ class NaturalPeriodMPCController:
         self,
         environment: EnvironmentConfig,
         mpc: MPCConfig,
-        runtime: RuntimeConfig,
         *,
         logger: logging.Logger,
     ) -> None:
         self.environment = environment
         self.mpc = mpc
-        self.runtime = runtime
         self.logger = logger
         self._active_plan: _ActivePlan | None = None
         self._previous_input_nm = 0.0
@@ -100,7 +98,6 @@ class NaturalPeriodMPCController:
             self._previous_input_nm,
             candidate,
             self.environment,
-            self.mpc,
         )
         plan = self._selected_plan(observation, selected, [selected])
         self._active_plan = _ActivePlan(plan=plan)
@@ -128,21 +125,11 @@ class NaturalPeriodMPCController:
 
         state = np.asarray([observation.theta_rad, observation.omega_rad_s], dtype=np.float64)
         candidates = split_candidates(self.environment, self.mpc)
-        tasks = [
-            (
-                state,
-                self._previous_input_nm,
-                candidate,
-                self.environment,
-                self.mpc,
-            )
+        # Serial candidate solves keep runtime policy fixed and inspection straightforward.
+        solutions = [
+            solve_candidate(state, self._previous_input_nm, candidate, self.environment)
             for candidate in candidates
         ]
-        solutions = ordered_process_map(
-            solve_candidate_task,
-            tasks,
-            max_workers=self.runtime.max_worker_threads,
-        )
         selected = min(solutions, key=lambda solution: solution.objective_value)
         plan = self._selected_plan(observation, selected, solutions)
         self._log_solver_result(observation, plan)
@@ -190,5 +177,6 @@ class NaturalPeriodMPCController:
             lambda_value=f"{selected.candidate.lambda_value:.6f}",
             burst_steps=selected.candidate.burst_steps,
             coast_steps=selected.candidate.coast_steps,
+            worker_count=MPC_WORKER_COUNT,
             objective_value=f"{selected.objective_value:.9f}",
         )

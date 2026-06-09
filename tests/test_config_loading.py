@@ -19,22 +19,25 @@ def test_standard_config_loads_as_atomic_package() -> None:
     assert config.coordinator.event_trigger is True
     assert config.mpc.controller == "IP-dynamics-naturalPeriod"
     assert not hasattr(config.mpc, "cost")
+    assert not hasattr(config, "runtime")
     assert not hasattr(config.environment.simulation, "max_rollout_steps")
-    assert not hasattr(config.runtime, "torch_threads")
 
 
-def test_default_config_enables_event_trigger() -> None:
+def test_default_config_enables_event_trigger_without_runtime_surface() -> None:
     config = load_config("default")
 
     assert config.coordinator.event_trigger is True
+    assert not hasattr(config, "runtime")
 
 
 def test_data_generation_config_loads_with_event_trigger_disabled() -> None:
     config = load_data_generation_config()
 
     assert isinstance(config, DataGenerationRootConfig)
-    assert config.coordinator.event_trigger is False
-    assert config.runtime.max_worker_threads == 1
+    assert not hasattr(config, "coordinator")
+    assert not hasattr(config, "runtime")
+    assert not hasattr(config.experiment, "initial_state")
+    assert not hasattr(config.artifacts, "enabled")
     assert config.data_generation.seed is None
     assert config.data_generation.visual_artifacts is True
     assert 0.0 <= config.data_generation.bbar_min <= config.data_generation.bbar_max <= 1.0
@@ -83,7 +86,7 @@ def test_invalid_data_generation_bounds_fail_schema_validation(tmp_path, monkeyp
         encoding="utf-8"
     )
     (invalid_dir / "config.yaml").write_text(
-        text.replace("bbar-min: 0.1", "bbar-min: 1.1"),
+        text.replace("bbar-min: 0.01", "bbar-min: 1.1"),
         encoding="utf-8",
     )
     monkeypatch.setattr(config_schema, "CONFIG_ROOT", config_root)

@@ -6,7 +6,7 @@ import logging
 
 from wsmpc.mpc.ip_dynamics_natural_period.controller import NaturalPeriodMPCController
 from wsmpc.mpc.types import SelectedPlan
-from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig, RuntimeConfig
+from wsmpc.utils.config_schema import EnvironmentConfig, MPCConfig
 from wsmpc.utils.messages import ActionCommand, StateObs
 from wsmpc.utils.monte_carlo import MonteCarloAction
 
@@ -18,11 +18,10 @@ class CasadiMPCController:
         self,
         environment: EnvironmentConfig,
         mpc: MPCConfig,
-        runtime: RuntimeConfig,
         *,
         logger: logging.Logger,
     ) -> None:
-        self.controller = NaturalPeriodMPCController(environment, mpc, runtime, logger=logger)
+        self.controller = NaturalPeriodMPCController(environment, mpc, logger=logger)
 
     def select_action(self, observation: StateObs, *, force_replan: bool) -> ActionCommand:
         """Return one action from the configured concrete MPC controller."""

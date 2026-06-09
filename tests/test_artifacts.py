@@ -23,7 +23,6 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
     config.environment.goal.hold_steps = 999
     config.environment.simulation.pace_s = 0.0
     config.environment.simulation.timestep_s = 0.25
-    config.runtime.max_worker_threads = 1
     config.artifacts.root_dir = str(tmp_path)
     config.artifacts.alias = "Smoke Run"
     writer = ArtifactWriter.create(
@@ -39,7 +38,6 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
         config.environment,
         config.experiment,
         config.mpc,
-        config.runtime,
         logger=logging.getLogger("test"),
     )
     third_person_observers = ThirdPersonObservers(

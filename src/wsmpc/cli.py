@@ -22,30 +22,13 @@ from wsmpc.utils.config_schema import (
     load_data_generation_config,
 )
 from wsmpc.utils.logging import ThirdPersonObservers, configure_logging, episode_output
-from wsmpc.utils.resources import configure_runtime_resources
-from wsmpc.visualization.artifact_plots import create_artifact_figures, create_rl_timeseries_figure
+from wsmpc.visualization.artifact_plots import (
+    create_artifact_figures,
+    create_rl_timeseries_figure,
+)
 
 app = typer.Typer(help="Wake-sleep MPC research CLI.")
 console = Console()
-
-
-@app.callback()
-def cli_root() -> None:
-    """Wake-sleep MPC research CLI."""
-
-
-def load_runtime_context(config_package: str):
-    """Load config and configure logging."""
-
-    configure_logging()
-    config = load_config(config_package)
-    logger = logging.getLogger("wsmpc")
-    logger.debug(
-        "identity=CLI status=running action=load_runtime_context "
-        "action_result=config_validated config_package=%s",
-        config_package,
-    )
-    return config, logger
 
 
 @app.command("run-episode")
@@ -75,9 +58,9 @@ def run_episode_command(
 ) -> None:
     """Run one MPC experiment episode."""
 
-    config, logger = load_runtime_context(config_package)
-    configure_runtime_resources(config.runtime, logger=logger)
-
+    configure_logging()
+    config = load_config(config_package)
+    logger = logging.getLogger("wsmpc")
     if alias is not None:
         config.artifacts.alias = alias
 
@@ -113,15 +96,6 @@ def run_episode_command(
             include_animation=True,
         )
 
-    coordinator = Coordinator(
-        config.coordinator,
-        config.environment,
-        config.experiment,
-        config.mpc,
-        config.runtime,
-        logger=logger,
-    )
-
     def observe_episode_start(observation) -> None:
         if realtime_plot is not None:
             realtime_plot.start_animation(observation)
@@ -132,35 +106,38 @@ def run_episode_command(
         if realtime_plot is not None:
             realtime_plot.add_step(observation, record)
 
-    def observe_episode_finish(summary) -> None:
-        if artifact_writer is not None:
-            artifact_writer.write_summary(summary)
-        if realtime_plot is not None:
-            realtime_plot.finish()
-
-    third_person_observers = ThirdPersonObservers(
-        at_episode_start=observe_episode_start,
-        after_step=observe_after_step,
-        at_episode_finish=observe_episode_finish,
+    coordinator = Coordinator(
+        config.coordinator,
+        config.environment,
+        config.experiment,
+        config.mpc,
+        logger=logger,
     )
-
-    result = coordinator.run_episode(third_person_observers)
+    result = coordinator.run_episode(
+        ThirdPersonObservers(
+            at_episode_start=observe_episode_start,
+            after_step=observe_after_step,
+        )
+    )
 
     if artifact_writer is not None:
         from matplotlib import pyplot as plt
 
+        artifact_writer.write_summary(result.summary)
         figures = create_artifact_figures(result.records, config.environment)
         for name, figure in figures.items():
             artifact_writer.write_figure(name, figure)
         for figure in figures.values():
             plt.close(figure)
-        artifact_writer.finalize_manifest(
-            completed=result.summary.status != "interrupted",
-            status=result.summary.status,
-        )
-    detach_run_log_handler(logger, run_log_handler)
+        artifact_writer.finalize_manifest(completed=True, status=result.summary.status)
+        assert run_log_handler is not None
+        detach_run_log_handler(logger, run_log_handler)
+    if realtime_plot is not None:
+        realtime_plot.finish()
 
-    artifact_dir = str(artifact_writer.run_dir) if artifact_writer is not None else None
+    artifact_dir = None
+    if artifact_writer is not None:
+        artifact_dir = str(artifact_writer.run_dir)
     console.print(episode_output(result.summary, artifact_dir=artifact_dir))
 
 
@@ -174,7 +151,7 @@ def generate_mc_data_command(
         ),
     ] = 1,
 ) -> None:
-    """Generate one sequential Monte Carlo dataset for offline RL."""
+    """Generate sequential Monte Carlo datasets for offline RL."""
 
     configure_logging()
     config = load_data_generation_config()
@@ -182,7 +159,6 @@ def generate_mc_data_command(
         msg = "--epochs must be positive"
         raise typer.BadParameter(msg)
     logger = logging.getLogger("wsmpc")
-    configure_runtime_resources(config.runtime, logger=logger)
 
     artifact_dirs: list[str] = []
     total_rl_steps = 0
@@ -195,8 +171,10 @@ def generate_mc_data_command(
             config.experiment.episode_id + epoch_index * config.data_generation.episodes
         )
         if epochs > 1:
-            alias_root = base_alias or DATA_GENERATION_PACKAGE
-            epoch_config.artifacts.alias = f"{alias_root}-epoch-{epoch_index + 1}"
+            if base_alias is None:
+                epoch_config.artifacts.alias = f"{DATA_GENERATION_PACKAGE}-epoch-{epoch_index + 1}"
+            else:
+                epoch_config.artifacts.alias = f"{base_alias}-epoch-{epoch_index + 1}"
 
         artifact_writer = ArtifactWriter.create(
             epoch_config.artifacts.root_dir,
@@ -247,7 +225,7 @@ def generate_mc_data_command(
 
 
 def main() -> None:
-    """Console-script wrapper."""
+    """Run the Typer command application."""
 
     app()
 

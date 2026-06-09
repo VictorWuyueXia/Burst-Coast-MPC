@@ -1,21 +1,11 @@
 artifacts:
   root-dir: artifacts/experiments
   alias: monte-carlo-data
-  enabled: true
 experiment:
   run-id: pendulum_monte_carlo
   episode-id: 0
   max-steps: 3000
   stop-on-goal: true
-  initial-state:
-    theta-rad: 0.0
-    omega-rad-s: 0.0
-coordinator:
-  node-id: Coordinator
-  mode: synchronous
-  event-trigger: false
-  decision-interval-steps: 1
-  debug-log-every-n-steps: 1
 environment:
   node-id: Environment
   simulation:
@@ -36,12 +26,6 @@ environment:
 mpc:
   controller: IP-dynamics-naturalPeriod
   split-ratios: [0.1]
-runtime:
-  node-id: Runtime
-  max-worker-threads: 1
-  blas-threads: 1
-  cpu-affinity: []
-  set-env: true
 data-generation:
   episodes: 1
   seed: null
