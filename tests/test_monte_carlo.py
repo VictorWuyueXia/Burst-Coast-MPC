@@ -3,9 +3,9 @@ import math
 import numpy as np
 import pytest
 
-from wsmpc.mpc.ip_dynamics_natural_period.problem import prediction_horizon_steps
-from wsmpc.utils.config_schema import DataGenerationConfig, load_data_generation_config
-from wsmpc.utils.monte_carlo import (
+from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import prediction_horizon_steps
+from inverted_pendulum.utils.config_schema import DataGenerationConfig, load_data_generation_config
+from inverted_pendulum.utils.monte_carlo import (
     sample_uniform_initial_state,
     sample_uniform_monte_carlo_action,
 )

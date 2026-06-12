@@ -1,7 +1,7 @@
 from typer.testing import CliRunner
 
-from wsmpc.cli import app
-from wsmpc.utils.config_schema import load_config, load_data_generation_config
+from burst_coast_mpc.cli import app
+from inverted_pendulum.utils.config_schema import load_config, load_data_generation_config
 
 
 def _require_matplotlib() -> None:
@@ -22,11 +22,11 @@ def test_cli_run_episode(monkeypatch) -> None:
     def load_config_stub():
         return config
 
-    monkeypatch.setattr("wsmpc.cli.load_config", load_config_stub)
+    monkeypatch.setattr("burst_coast_mpc.cli.load_config", load_config_stub)
 
     result = runner.invoke(
         app,
-        ["run-episode", "--no-visual"],
+        ["--inverted-pendulum", "run-episode", "--no-visual"],
     )
 
     assert result.exit_code == 0, result.output
@@ -45,11 +45,12 @@ def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> N
     def load_config_stub():
         return config
 
-    monkeypatch.setattr("wsmpc.cli.load_config", load_config_stub)
+    monkeypatch.setattr("burst_coast_mpc.cli.load_config", load_config_stub)
 
     result = runner.invoke(
         app,
         [
+            "--inverted-pendulum",
             "run-episode",
             "--alias",
             "smoke",
@@ -85,9 +86,12 @@ def test_cli_generate_mc_data_writes_step_and_rl_artifacts(tmp_path, monkeypatch
     def load_data_generation_config_stub():
         return config
 
-    monkeypatch.setattr("wsmpc.cli.load_data_generation_config", load_data_generation_config_stub)
+    monkeypatch.setattr(
+        "burst_coast_mpc.cli.load_data_generation_config",
+        load_data_generation_config_stub,
+    )
 
-    result = runner.invoke(app, ["generate-mc-data"])
+    result = runner.invoke(app, ["--inverted-pendulum", "generate-montecarlo-data"])
 
     assert result.exit_code == 0, result.output
     run_dirs = list(tmp_path.iterdir())
@@ -119,9 +123,15 @@ def test_cli_generate_mc_data_epochs_create_separate_artifacts(tmp_path, monkeyp
     def load_data_generation_config_stub():
         return config
 
-    monkeypatch.setattr("wsmpc.cli.load_data_generation_config", load_data_generation_config_stub)
+    monkeypatch.setattr(
+        "burst_coast_mpc.cli.load_data_generation_config",
+        load_data_generation_config_stub,
+    )
 
-    result = runner.invoke(app, ["generate-mc-data", "--epochs", "2"])
+    result = runner.invoke(
+        app,
+        ["--inverted-pendulum", "generate-montecarlo-data", "--epochs", "2"],
+    )
 
     assert result.exit_code == 0, result.output
     run_dirs = sorted(tmp_path.iterdir())

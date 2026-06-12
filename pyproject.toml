@@ -11,9 +11,9 @@ build-backend = "setuptools.build_meta"  # Backend used for building
 
 # Main project metadata and dependencies
 [project]
-name = "wake-sleep-mpc"  # Project name
+name = "burst-coast-mpc"  # Project name
 version = "0.1.0"  # Project version
-description = "Wake-sleep model predictive control experiments."  # Short description
+description = "Burst-coast model predictive control experiments."  # Short description
 readme = "README.md"  # Project readme file
 requires-python = ">=3.12"  # Minimum Python version
 dependencies = [  # Core libraries needed to run the project
@@ -39,15 +39,15 @@ dev = [
 
 # Define command-line script entry point for easy CLI usage
 [project.scripts]
-wsmpc = "wsmpc.cli:main"  # Run CLI with `wsmpc` command
+burst-coast-mpc = "burst_coast_mpc.cli:main"  # Run CLI with `burst-coast-mpc` command
 
 # Configure how setuptools finds the packages
 [tool.setuptools.packages.find]
 where = ["src", "."]         # Look in the src folder and root
-include = ["wsmpc*"]         # Include the main source package
+include = ["burst_coast_mpc*", "inverted_pendulum*", "CR3BP*"]  # Include runtime and task packages
 
 [tool.setuptools.package-data]
-wsmpc = ["configs/*.yaml"]   # Ship runtime YAML configs inside the package
+inverted_pendulum = ["configs/*.yaml", "offline_training/config.yaml"]  # Ship task configs
 
 # Pytest configuration for where to find code and tests
 [tool.pytest.ini_options]

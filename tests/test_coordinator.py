@@ -1,10 +1,10 @@
 import logging
 import math
 
-from wsmpc.coordinator import Coordinator
-from wsmpc.utils.config_schema import load_config
-from wsmpc.utils.logging import ThirdPersonObservers
-from wsmpc.utils.messages import ActionCommand
+from burst_coast_mpc.coordinator import Coordinator
+from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.logging import ThirdPersonObservers
+from inverted_pendulum.utils.messages import ActionCommand
 
 
 def _fast_coordinator(config) -> Coordinator:

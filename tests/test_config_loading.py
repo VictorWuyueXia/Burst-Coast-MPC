@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-import wsmpc.utils.config_schema as config_schema
-from wsmpc.utils.config_schema import (
+import inverted_pendulum.utils.config_schema as config_schema
+from inverted_pendulum.utils.config_schema import (
     DataGenerationRootConfig,
     RootConfig,
     load_config,

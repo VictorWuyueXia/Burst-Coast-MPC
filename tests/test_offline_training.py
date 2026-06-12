@@ -7,7 +7,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-SCRIPT_DIR = Path(__file__).resolve().parents[1] / "scripts" / "offline-training"
+SCRIPT_DIR = (
+    Path(__file__).resolve().parents[1] / "src" / "inverted_pendulum" / "offline_training"
+)
 
 
 def _load_script_module(name: str):

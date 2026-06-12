@@ -3,9 +3,9 @@ import logging
 import numpy as np
 import pytest
 
-from wsmpc.environment import Environment
-from wsmpc.utils.config_schema import InitialStateConfig, load_config
-from wsmpc.utils.messages import ActionCommand
+from inverted_pendulum.environment import Environment
+from inverted_pendulum.utils.config_schema import InitialStateConfig, load_config
+from inverted_pendulum.utils.messages import ActionCommand
 
 
 def test_environment_step_returns_finite_observation_and_record() -> None:

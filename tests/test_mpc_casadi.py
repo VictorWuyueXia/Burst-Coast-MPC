@@ -4,11 +4,11 @@ import casadi as ca
 import numpy as np
 import pytest
 
-from wsmpc.environment.dynamics import pendulum_derivatives, rk4_step
-from wsmpc.mpc.controller import CasadiMPCController
-from wsmpc.mpc.discrete_model import pendulum_derivatives_symbolic, rk4_step_symbolic
-from wsmpc.mpc.ip_dynamics_natural_period.controller import NaturalPeriodMPCController
-from wsmpc.mpc.ip_dynamics_natural_period.features import (
+from inverted_pendulum.environment.dynamics import pendulum_derivatives, rk4_step
+from inverted_pendulum.mpc.controller import CasadiMPCController
+from inverted_pendulum.mpc.discrete_model import pendulum_derivatives_symbolic, rk4_step_symbolic
+from inverted_pendulum.mpc.ip_dynamics_natural_period.controller import NaturalPeriodMPCController
+from inverted_pendulum.mpc.ip_dynamics_natural_period.features import (
     energy_gate,
     energy_gate_symbolic,
     energy_phase_value,
@@ -20,18 +20,18 @@ from wsmpc.mpc.ip_dynamics_natural_period.features import (
     phase_proxy_error,
     phase_proxy_error_symbolic,
 )
-from wsmpc.mpc.ip_dynamics_natural_period.problem import (
+from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import (
     prediction_horizon_steps,
 )
-from wsmpc.mpc.ip_dynamics_natural_period.problem import (
+from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import (
     solve_candidate as solve_natural_candidate,
 )
-from wsmpc.mpc.ip_dynamics_natural_period.problem import (
+from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import (
     split_candidates as natural_split_candidates,
 )
-from wsmpc.utils.config_schema import load_config
-from wsmpc.utils.messages import StateObs
-from wsmpc.utils.monte_carlo import MonteCarloAction
+from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.messages import StateObs
+from inverted_pendulum.utils.monte_carlo import MonteCarloAction
 
 
 def _small_mpc_config():
@@ -164,7 +164,7 @@ def test_controller_selects_plan_and_raises_when_solver_fails(monkeypatch) -> No
         raise RuntimeError("solver failed")
 
     monkeypatch.setattr(
-        "wsmpc.mpc.ip_dynamics_natural_period.controller.solve_candidate",
+        "inverted_pendulum.mpc.ip_dynamics_natural_period.controller.solve_candidate",
         fail_candidate,
     )
     controller.controller._active_plan = None
@@ -241,7 +241,7 @@ def test_controller_starts_direct_monte_carlo_plan_without_candidate_enumeration
         raise RuntimeError("split enumeration should not run")
 
     monkeypatch.setattr(
-        "wsmpc.mpc.ip_dynamics_natural_period.controller.split_candidates",
+        "inverted_pendulum.mpc.ip_dynamics_natural_period.controller.split_candidates",
         fail_split_candidates,
     )
 

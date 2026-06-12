@@ -3,11 +3,11 @@ import math
 
 import pytest
 
-from wsmpc.environment import Environment
-from wsmpc.mpc.ip_dynamics_natural_period.features import phase_proxy_error
-from wsmpc.utils.config_schema import load_config
-from wsmpc.utils.messages import ActionCommand, RLStepRecord
-from wsmpc.visualization.realtime import DIAGNOSTIC_PHASE_EPSILON
+from inverted_pendulum.environment import Environment
+from inverted_pendulum.mpc.ip_dynamics_natural_period.features import phase_proxy_error
+from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.messages import ActionCommand, RLStepRecord
+from inverted_pendulum.visualization.realtime import DIAGNOSTIC_PHASE_EPSILON
 
 
 def _require_matplotlib() -> None:
@@ -41,7 +41,7 @@ def _one_record():
 
 def test_realtime_episode_plot_accepts_records() -> None:
     _require_matplotlib()
-    from wsmpc.visualization.realtime import RealtimeEpisodePlot
+    from inverted_pendulum.visualization.realtime import RealtimeEpisodePlot
 
     config, observation, record = _one_record()
     plot = RealtimeEpisodePlot(
@@ -79,7 +79,7 @@ def test_artifact_figures_cover_static_diagnostics() -> None:
     _require_matplotlib()
     from matplotlib import pyplot as plt
 
-    from wsmpc.visualization.artifact_plots import create_artifact_figures
+    from inverted_pendulum.visualization.artifact_plots import create_artifact_figures
 
     config, _, record = _one_record()
     figures = create_artifact_figures([record], config.environment)
@@ -104,7 +104,7 @@ def test_rl_timeseries_figure_covers_transition_diagnostics() -> None:
     _require_matplotlib()
     from matplotlib import pyplot as plt
 
-    from wsmpc.visualization.artifact_plots import create_rl_timeseries_figure
+    from inverted_pendulum.visualization.artifact_plots import create_rl_timeseries_figure
 
     rl_records = [
         RLStepRecord(
@@ -196,7 +196,7 @@ def test_rl_timeseries_figure_covers_transition_diagnostics() -> None:
 
 def test_realtime_episode_plot_embeds_animation_when_requested() -> None:
     _require_matplotlib()
-    from wsmpc.visualization.realtime import RealtimeEpisodePlot
+    from inverted_pendulum.visualization.realtime import RealtimeEpisodePlot
 
     config, observation, record = _one_record()
     plot = RealtimeEpisodePlot(
@@ -217,7 +217,7 @@ def test_realtime_episode_plot_embeds_animation_when_requested() -> None:
 
 def test_pendulum_animation_bob_position_and_update() -> None:
     _require_matplotlib()
-    from wsmpc.visualization.animation import PendulumAnimation
+    from inverted_pendulum.visualization.animation import PendulumAnimation
 
     config, observation, record = _one_record()
     animation = PendulumAnimation(config.environment.pendulum, update_every=1)
@@ -236,7 +236,7 @@ def test_pendulum_animation_bob_position_and_update() -> None:
 
 def test_pendulum_animation_torque_arrow_tracks_action() -> None:
     _require_matplotlib()
-    from wsmpc.visualization.animation import PendulumAnimation
+    from inverted_pendulum.visualization.animation import PendulumAnimation
 
     config, observation, record = _one_record()
     animation = PendulumAnimation(config.environment.pendulum, update_every=1)

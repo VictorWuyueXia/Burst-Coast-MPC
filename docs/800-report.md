@@ -6,7 +6,7 @@ This project studies burst-coast model predictive control for weakly actuated no
 
 ## Benchmark
 
-The pendulum is intentionally underpowered, with torque limit below the gravitational torque scale. It cannot be driven directly to upright from all states; it must exploit natural dynamics, phase timing, and energy pumping. This makes it a useful minimum benchmark for the broader wake-sleep idea: compute a short active burst, allow passive or zero-input coast, then replan only at meaningful decision epochs. The intended scientific claim is that learning timing over a burst-coast MPC structure can improve closed-loop behavior, actuation economy, and computation use for certain tasks.
+The pendulum is intentionally underpowered, with torque limit below the gravitational torque scale. It cannot be driven directly to upright from all states; it must exploit natural dynamics, phase timing, and energy pumping. This makes it a useful minimum benchmark for the broader burst-coast idea: compute a short active burst, allow passive or zero-input coast, then replan only at meaningful decision epochs. The intended scientific claim is that learning timing over a burst-coast MPC structure can improve closed-loop behavior, actuation economy, and computation use for certain tasks.
 
 ## Problem Formulation
 
@@ -69,4 +69,3 @@ G_k=\sum_{i=k}^{T}\gamma^{i-k}c_i.
 $$
 
 This creates the initial dataset $\mathcal D_{\mathrm{MC}}=\{(s_k,a_k,G_k)\}$ for critic pretraining. After that, the intended sequence is Q-network design, offline critic training, compute-time model fitting from solve logs, and then online simulated training while the MPC simulation still preserved as an independent controller.
-

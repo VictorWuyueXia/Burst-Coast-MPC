@@ -1,4 +1,4 @@
-name: wsmpc  # Project environment name for conda 
+name: burst-coast-mpc  # Project environment name for conda 
 channels:
   - conda-forge  # Use conda-forge channel for package installations
 dependencies:

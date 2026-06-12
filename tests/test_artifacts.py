@@ -5,11 +5,11 @@ import re
 
 import pytest
 
-from wsmpc.coordinator import Coordinator
-from wsmpc.utils.artifacts import RL_STEP_CSV_HEADERS, STEP_CSV_HEADERS, ArtifactWriter
-from wsmpc.utils.config_schema import load_config
-from wsmpc.utils.logging import ThirdPersonObservers
-from wsmpc.utils.messages import RLStepRecord
+from burst_coast_mpc.coordinator import Coordinator
+from inverted_pendulum.utils.artifacts import RL_STEP_CSV_HEADERS, STEP_CSV_HEADERS, ArtifactWriter
+from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.logging import ThirdPersonObservers
+from inverted_pendulum.utils.messages import RLStepRecord
 
 
 def _require_matplotlib() -> None:
@@ -49,7 +49,7 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
     _require_matplotlib()
     from matplotlib import pyplot as plt
 
-    from wsmpc.visualization.artifact_plots import create_artifact_figures
+    from inverted_pendulum.visualization.artifact_plots import create_artifact_figures
 
     figures = create_artifact_figures(result.records, config.environment)
     for name, figure in figures.items():

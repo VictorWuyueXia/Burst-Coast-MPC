@@ -67,3 +67,9 @@ Our coding style rules:
 
 
 Sweep the entire program repo and hunt for these vialation of coding style desciplines. And plan appropriate fixes.
+
+
+
+
+- do not change root dir name or git related naming yet, or you will loose your work-dir mid-run. Give step-by-step instruction for me to do it manually.
+- The current mpc/ stucture is wrapped under assumption that there would be more than one candidate mpc formulation. Now we have frozen the mpc formulation to the one in ip_dynamics_natural_peirod. Thin down the mpc module code into a simpler hard-coded mpc formulation and solver, get rid of all the wrappers and options for potential different mpc formulations, but keep the config value loadings.

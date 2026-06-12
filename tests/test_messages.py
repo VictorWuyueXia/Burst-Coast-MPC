@@ -1,4 +1,4 @@
-from wsmpc.utils.messages import ActionCommand
+from inverted_pendulum.utils.messages import ActionCommand
 
 
 def test_action_command_round_trip_json() -> None:

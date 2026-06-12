@@ -1,4 +1,4 @@
-# Wake Sleep MPC
+# Burst-Coast MPC
 
 Wake-sleep model predictive control experiments.
 
