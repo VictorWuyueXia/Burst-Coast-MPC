@@ -13,20 +13,20 @@ def _require_matplotlib() -> None:
 
 def test_cli_run_episode(monkeypatch) -> None:
     runner = CliRunner()
-    config = load_config("default")
+    config = load_config()
     config.experiment.max_steps = 2
     config.environment.simulation.timestep_s = 0.25
     config.environment.simulation.pace_s = 0.0
     config.artifacts.enabled = False
 
-    def load_config_stub(package_name: str):
+    def load_config_stub():
         return config
 
     monkeypatch.setattr("wsmpc.cli.load_config", load_config_stub)
 
     result = runner.invoke(
         app,
-        ["run-episode", "--config-package", "default", "--no-visual"],
+        ["run-episode", "--no-visual"],
     )
 
     assert result.exit_code == 0, result.output
@@ -36,13 +36,13 @@ def test_cli_run_episode(monkeypatch) -> None:
 def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> None:
     _require_matplotlib()
     runner = CliRunner()
-    config = load_config("default")
+    config = load_config()
     config.artifacts.root_dir = str(tmp_path)
     config.experiment.max_steps = 2
     config.environment.simulation.timestep_s = 0.25
     config.environment.simulation.pace_s = 0.0
 
-    def load_config_stub(package_name: str):
+    def load_config_stub():
         return config
 
     monkeypatch.setattr("wsmpc.cli.load_config", load_config_stub)
@@ -51,8 +51,6 @@ def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> N
         app,
         [
             "run-episode",
-            "--config-package",
-            "default",
             "--alias",
             "smoke",
             "--no-visual",

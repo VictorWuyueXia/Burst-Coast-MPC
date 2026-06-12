@@ -16,7 +16,7 @@ def _require_matplotlib() -> None:
 
 
 def _one_record():
-    config = load_config("default")
+    config = load_config()
     config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,

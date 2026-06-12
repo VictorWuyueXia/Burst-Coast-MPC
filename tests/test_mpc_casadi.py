@@ -35,7 +35,7 @@ from wsmpc.utils.monte_carlo import MonteCarloAction
 
 
 def _small_mpc_config():
-    config = load_config("default")
+    config = load_config()
     config.environment.simulation.pace_s = 0.0
     config.environment.goal.hold_steps = 999
     config.environment.simulation.timestep_s = 0.25

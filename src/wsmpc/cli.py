@@ -16,8 +16,6 @@ from wsmpc.utils.artifacts import (
     detach_run_log_handler,
 )
 from wsmpc.utils.config_schema import (
-    DATA_GENERATION_PACKAGE,
-    STANDARD_PACKAGE,
     load_config,
     load_data_generation_config,
 )
@@ -33,14 +31,6 @@ console = Console()
 
 @app.command("run-episode")
 def run_episode_command(
-    config_package: Annotated[
-        str,
-        typer.Option(
-            "--config-package",
-            "-c",
-            help="Config package under configs/ to load.",
-        ),
-    ] = STANDARD_PACKAGE,
     alias: Annotated[
         str | None,
         typer.Option(
@@ -58,9 +48,9 @@ def run_episode_command(
 ) -> None:
     """Run one MPC experiment episode."""
 
-    # 1. Load the selected runtime package and bind one logger for the command.
+    # 1. Load the fixed runtime config and bind one logger for the command.
     configure_logging()
-    config = load_config(config_package)
+    config = load_config()
     logger = logging.getLogger("wsmpc")
     if alias is not None:
         config.artifacts.alias = alias
@@ -72,9 +62,8 @@ def run_episode_command(
         artifact_writer = ArtifactWriter.create(
             config.artifacts.root_dir,
             alias=config.artifacts.alias,
-            config_package=config_package,
+            config_package="default-config",
             cli_args={
-                "config_package": config_package,
                 "alias": alias,
                 "no_visual": no_visual,
             },
@@ -181,7 +170,7 @@ def generate_mc_data_command(
         )
         if epochs > 1:
             if base_alias is None:
-                epoch_config.artifacts.alias = f"{DATA_GENERATION_PACKAGE}-epoch-{epoch_index + 1}"
+                epoch_config.artifacts.alias = f"data-generation-epoch-{epoch_index + 1}"
             else:
                 epoch_config.artifacts.alias = f"{base_alias}-epoch-{epoch_index + 1}"
 
@@ -189,9 +178,8 @@ def generate_mc_data_command(
         artifact_writer = ArtifactWriter.create(
             epoch_config.artifacts.root_dir,
             alias=epoch_config.artifacts.alias,
-            config_package=DATA_GENERATION_PACKAGE,
+            config_package="data-generation-config",
             cli_args={
-                "config_package": DATA_GENERATION_PACKAGE,
                 "epochs": epochs,
                 "epoch_index": epoch_index,
             },

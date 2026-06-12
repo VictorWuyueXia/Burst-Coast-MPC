@@ -11,36 +11,36 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from wsmpc.utils.time import realtime
 
-CONFIG_ROOT = Path(__file__).resolve().parents[3] / "configs"
-STANDARD_PACKAGE = "standard"
-DATA_GENERATION_PACKAGE = "data-generation"
+CONFIG_ROOT = Path(__file__).resolve().parents[1] / "configs"
+DEFAULT_CONFIG_PATH = CONFIG_ROOT / "default-config.yaml"
+DATA_GENERATION_CONFIG_PATH = CONFIG_ROOT / "data-generation-config.yaml"
 
 
-def load_config(package_name: str) -> RootConfig:
-    """Load one complete episode config package and validate every required field."""
+def load_config(config_path: Path = DEFAULT_CONFIG_PATH) -> RootConfig:
+    """Load the complete default episode config and validate every required field."""
 
-    resolved = _load_resolved_config(package_name)
+    resolved = _load_resolved_config(config_path)
     return RootConfig.model_validate(resolved)
 
 
 def load_data_generation_config(
-    package_name: str = DATA_GENERATION_PACKAGE,
+    config_path: Path = DATA_GENERATION_CONFIG_PATH,
 ) -> DataGenerationRootConfig:
-    """Load the Monte Carlo data-generation config package."""
+    """Load the complete Monte Carlo data-generation config."""
 
-    resolved = _load_resolved_config(package_name)
+    resolved = _load_resolved_config(config_path)
     return DataGenerationRootConfig.model_validate(resolved)
 
 
-def _load_resolved_config(package_name: str) -> dict:
-    """Resolve one YAML config package before Pydantic validation."""
+def _load_resolved_config(config_path: Path) -> dict:
+    """Resolve one YAML config file before Pydantic validation."""
 
+    # Bind the realtime resolver only at the YAML boundary.
     OmegaConf.register_new_resolver("realtime", realtime, replace=True)
-    package_path = CONFIG_ROOT / package_name / "config.yaml"
-    if not package_path.exists():
-        msg = f"Config package not found: {package_path}"
+    if not config_path.exists():
+        msg = f"Config file not found: {config_path}"
         raise FileNotFoundError(msg)
-    return OmegaConf.to_container(OmegaConf.load(package_path), resolve=True)
+    return OmegaConf.to_container(OmegaConf.load(config_path), resolve=True)
 
 
 class ConfigBase(BaseModel):

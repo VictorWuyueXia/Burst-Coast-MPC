@@ -44,7 +44,10 @@ wsmpc = "wsmpc.cli:main"  # Run CLI with `wsmpc` command
 # Configure how setuptools finds the packages
 [tool.setuptools.packages.find]
 where = ["src", "."]         # Look in the src folder and root
-include = ["wsmpc*", "configs*"]  # Include main code and configs
+include = ["wsmpc*"]         # Include the main source package
+
+[tool.setuptools.package-data]
+wsmpc = ["configs/*.yaml"]   # Ship runtime YAML configs inside the package
 
 # Pytest configuration for where to find code and tests
 [tool.pytest.ini_options]

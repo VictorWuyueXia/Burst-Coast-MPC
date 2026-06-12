@@ -18,7 +18,7 @@ def _require_matplotlib() -> None:
 
 
 def test_artifact_writer_records_short_episode(tmp_path) -> None:
-    config = load_config("default")
+    config = load_config()
     config.experiment.max_steps = 3
     config.environment.goal.hold_steps = 999
     config.environment.simulation.pace_s = 0.0
@@ -28,7 +28,7 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
     writer = ArtifactWriter.create(
         config.artifacts.root_dir,
         alias=config.artifacts.alias,
-        config_package="default",
+        config_package="default-config",
         cli_args={"source": "test"},
     )
     writer.write_config(config)
@@ -99,7 +99,7 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
 
 
 def test_artifact_writer_records_rl_steps(tmp_path) -> None:
-    config = load_config("default")
+    config = load_config()
     writer = ArtifactWriter.create(
         tmp_path,
         alias="rl",

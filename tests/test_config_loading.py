@@ -10,8 +10,8 @@ from wsmpc.utils.config_schema import (
 )
 
 
-def test_standard_config_loads_as_atomic_package() -> None:
-    config = load_config("standard")
+def test_default_config_loads_as_atomic_file() -> None:
+    config = load_config()
 
     assert isinstance(config, RootConfig)
     assert config.environment.simulation.pace_s == config.environment.simulation.timestep_s
@@ -21,14 +21,6 @@ def test_standard_config_loads_as_atomic_package() -> None:
     assert not hasattr(config.mpc, "cost")
     assert not hasattr(config, "runtime")
     assert not hasattr(config.environment.simulation, "max_rollout_steps")
-
-
-def test_default_config_enables_event_trigger_without_runtime_surface() -> None:
-    config = load_config("default")
-
-    assert config.coordinator.event_trigger is True
-    assert not hasattr(config, "runtime")
-
 
 def test_data_generation_config_loads_with_event_trigger_disabled() -> None:
     config = load_data_generation_config()
@@ -46,50 +38,45 @@ def test_data_generation_config_loads_with_event_trigger_disabled() -> None:
 
 def test_missing_package_fails_loudly() -> None:
     with pytest.raises(FileNotFoundError):
-        load_config("missing_package")
+        load_config(config_schema.CONFIG_ROOT / "missing-config.yaml")
 
 
-def test_missing_parameter_fails_schema_validation(tmp_path, monkeypatch) -> None:
+def test_missing_parameter_fails_schema_validation(tmp_path) -> None:
     config_root = tmp_path / "configs"
-    partial_dir = config_root / "partial"
-    partial_dir.mkdir(parents=True)
-    (partial_dir / "config.yaml").write_text(
+    config_root.mkdir(parents=True)
+    partial_path = config_root / "partial-config.yaml"
+    partial_path.write_text(
         "artifacts:\n  root-dir: artifacts/experiments\n  alias: null\n  enabled: true\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(config_schema, "CONFIG_ROOT", config_root)
 
     with pytest.raises(ValidationError):
-        load_config("partial")
+        load_config(partial_path)
 
 
-def test_unknown_mpc_controller_fails_schema_validation(tmp_path, monkeypatch) -> None:
+def test_unknown_mpc_controller_fails_schema_validation(tmp_path) -> None:
     config_root = tmp_path / "configs"
-    invalid_dir = config_root / "invalid"
-    invalid_dir.mkdir(parents=True)
-    text = (config_schema.CONFIG_ROOT / "default" / "config.yaml").read_text(encoding="utf-8")
-    (invalid_dir / "config.yaml").write_text(
+    config_root.mkdir(parents=True)
+    invalid_path = config_root / "invalid-config.yaml"
+    text = config_schema.DEFAULT_CONFIG_PATH.read_text(encoding="utf-8")
+    invalid_path.write_text(
         text.replace("IP-dynamics-naturalPeriod", "missing-controller"),
         encoding="utf-8",
     )
-    monkeypatch.setattr(config_schema, "CONFIG_ROOT", config_root)
 
     with pytest.raises(ValidationError):
-        load_config("invalid")
+        load_config(invalid_path)
 
 
-def test_invalid_data_generation_bounds_fail_schema_validation(tmp_path, monkeypatch) -> None:
+def test_invalid_data_generation_bounds_fail_schema_validation(tmp_path) -> None:
     config_root = tmp_path / "configs"
-    invalid_dir = config_root / "invalid-data-generation"
-    invalid_dir.mkdir(parents=True)
-    text = (config_schema.CONFIG_ROOT / "data-generation" / "config.yaml").read_text(
-        encoding="utf-8"
-    )
-    (invalid_dir / "config.yaml").write_text(
+    config_root.mkdir(parents=True)
+    invalid_path = config_root / "invalid-data-generation-config.yaml"
+    text = config_schema.DATA_GENERATION_CONFIG_PATH.read_text(encoding="utf-8")
+    invalid_path.write_text(
         text.replace("bbar-min: 0.01", "bbar-min: 1.1"),
         encoding="utf-8",
     )
-    monkeypatch.setattr(config_schema, "CONFIG_ROOT", config_root)
 
     with pytest.raises(ValidationError):
-        load_data_generation_config("invalid-data-generation")
+        load_data_generation_config(invalid_path)

@@ -22,7 +22,7 @@ def _fast_coordinator(config) -> Coordinator:
 
 
 def test_coordinator_runs_short_mpc_episode() -> None:
-    coordinator = _fast_coordinator(load_config("standard"))
+    coordinator = _fast_coordinator(load_config())
 
     result = coordinator.run_episode()
 
@@ -32,7 +32,7 @@ def test_coordinator_runs_short_mpc_episode() -> None:
 
 
 def test_coordinator_invokes_third_person_observers() -> None:
-    config = load_config("standard")
+    config = load_config()
     config.experiment.max_steps = 4
     config.environment.goal.hold_steps = 999
     config.environment.simulation.pace_s = 0.0
@@ -65,7 +65,7 @@ def test_coordinator_invokes_third_person_observers() -> None:
 
 
 def test_coordinator_invokes_before_step_observer() -> None:
-    coordinator = _fast_coordinator(load_config("standard"))
+    coordinator = _fast_coordinator(load_config())
     before_steps: list[int] = []
     third_person_observers = ThirdPersonObservers(
         before_step=lambda observation: before_steps.append(observation.t_index),
@@ -78,7 +78,7 @@ def test_coordinator_invokes_before_step_observer() -> None:
 
 
 def test_event_trigger_forces_replanning_at_zero_and_pi_sections() -> None:
-    config = load_config("standard")
+    config = load_config()
     config.experiment.max_steps = 2
     config.experiment.stop_on_goal = False
     config.environment.goal.hold_steps = 999

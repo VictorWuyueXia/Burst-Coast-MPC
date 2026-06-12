@@ -9,7 +9,7 @@ from wsmpc.utils.messages import ActionCommand
 
 
 def test_environment_step_returns_finite_observation_and_record() -> None:
-    config = load_config("standard")
+    config = load_config()
     config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,
@@ -37,7 +37,7 @@ def test_environment_step_returns_finite_observation_and_record() -> None:
 
 
 def test_environment_goal_targets_zero_angle_upright() -> None:
-    config = load_config("standard")
+    config = load_config()
     config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,
