@@ -1,0 +1,10 @@
+data-roots:
+  - artifacts/MonteCarloData
+output-root: artifacts/model-snapshots
+run-name: structured-critic
+seed: 20260612
+train-fraction: 0.8
+batch-size: 4096
+max-epochs: 200
+learning-rate: 0.001
+action-grid-count: 41

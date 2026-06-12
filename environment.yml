@@ -10,6 +10,8 @@ dependencies:
   - omegaconf>=2.3     # Flexible hierarchical configuration system
   - typer>=0.12        # Build command line applications
   - rich>=13.7         # Pretty printing and formatting in terminal
+  - pytorch>=2.3       # Tensor backend for offline critic training
+  - pytorch-lightning>=2.3 # Training loop orchestration for critic fitting
   - psutil>=5.9        # System and process utilities
   - threadpoolctl>=3.5 # Thread pool control for libraries like numpy or scipy
   - matplotlib>=3.8    # Create static, animated, and interactive plots
