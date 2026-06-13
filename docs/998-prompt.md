@@ -55,7 +55,7 @@ I want to make changes with minimum touch on current logics.
 - we should add time counting and re-plann step logs, in parallel to the current detailed steps.csv log. The new logs are dedicated for RL training, which adhere to the RL expected information.
 - we should not be using parallel computing for this step, as each time we only carry out one set of B and H.
 
-
++ do not change root dir name or git related naming yet, or you will loose your work-dir mid-run. Give step-by-step instruction for me to do it manually.
 
 Our coding style rules:
 # Coding Style Descipline
@@ -71,5 +71,4 @@ Sweep the entire program repo and hunt for these vialation of coding style desci
 
 
 
-- do not change root dir name or git related naming yet, or you will loose your work-dir mid-run. Give step-by-step instruction for me to do it manually.
 - The current mpc/ stucture is wrapped under assumption that there would be more than one candidate mpc formulation. Now we have frozen the mpc formulation to the one in ip_dynamics_natural_peirod. Thin down the mpc module code into a simpler hard-coded mpc formulation and solver, get rid of all the wrappers and options for potential different mpc formulations, but keep the config value loadings.
