@@ -8,6 +8,7 @@ $RECYCLE.BIN/
 .env
 .env.*
 .direnv/
+.local/
 
 # --- Python bytecode and caches ----------------------------------------------
 __pycache__/
@@ -31,6 +32,8 @@ pip-delete-this-directory.txt
 venv/
 ENV/
 env/
+.micromamba-bin/
+.micromamba-root/
 
 # --- Test, type-check ----------------------------------
 .pytest_cache/
