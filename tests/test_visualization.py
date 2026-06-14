@@ -4,7 +4,7 @@ import math
 import pytest
 
 from inverted_pendulum.environment import Environment
-from inverted_pendulum.mpc.ip_dynamics_natural_period.features import phase_proxy_error
+from inverted_pendulum.mpc.features import phase_proxy_error
 from inverted_pendulum.utils.config_schema import load_config
 from inverted_pendulum.utils.messages import ActionCommand, RLStepRecord
 from inverted_pendulum.visualization.realtime import DIAGNOSTIC_PHASE_EPSILON

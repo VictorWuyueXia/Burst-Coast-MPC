@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import prediction_horizon_steps
+from inverted_pendulum.mpc.controller import prediction_horizon_steps
 from inverted_pendulum.utils.config_schema import DataGenerationConfig, load_data_generation_config
 from inverted_pendulum.utils.monte_carlo import (
     sample_uniform_initial_state,

@@ -4,17 +4,17 @@ import numpy as np
 import pytest
 
 from inverted_pendulum.environment.dynamics import pendulum_derivatives, pendulum_energy, rk4_step
+from inverted_pendulum.mpc.controller import (
+    prediction_horizon_steps,
+    split_candidates,
+)
 from inverted_pendulum.mpc.discrete_model import natural_frequency_rad_s, rollout_burst_coast
-from inverted_pendulum.mpc.ip_dynamics_natural_period.features import (
+from inverted_pendulum.mpc.features import (
     energy_gate,
     energy_phase_value,
     local_upright_error,
     normalized_energy_error,
     phase_proxy_error,
-)
-from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import (
-    prediction_horizon_steps,
-    split_candidates,
 )
 from inverted_pendulum.utils.config_schema import PendulumConfig, load_config
 

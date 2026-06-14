@@ -106,10 +106,12 @@ def load_artifact_rows(run_dirs: list[Path]) -> tuple[list[dict[str, str]], dict
     first_config_file = (run_dirs[0] / "config.json").open(encoding="utf-8")
     first_config = json.load(first_config_file)
     first_config_file.close()
-    constants = {
-        name: float(first_config[path[0]][path[1]][path[2]])
-        for name, path in constant_paths
-    }
+    constants = {}
+    for name, path in constant_paths:
+        value = first_config
+        for key in path:
+            value = value[key]
+        constants[name] = float(value)
 
     # Concatenate rows while requiring every run to match the same physical constants.
     rows: list[dict[str, str]] = []
@@ -117,10 +119,12 @@ def load_artifact_rows(run_dirs: list[Path]) -> tuple[list[dict[str, str]], dict
         config_file = (run_dir / "config.json").open(encoding="utf-8")
         run_config = json.load(config_file)
         config_file.close()
-        run_constants = {
-            name: float(run_config[path[0]][path[1]][path[2]])
-            for name, path in constant_paths
-        }
+        run_constants = {}
+        for name, path in constant_paths:
+            value = run_config
+            for key in path:
+                value = value[key]
+            run_constants[name] = float(value)
         if run_constants != constants:
             raise ValueError(f"Training run has different physical or cost constants: {run_dir}")
 

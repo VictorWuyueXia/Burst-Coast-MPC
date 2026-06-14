@@ -7,6 +7,7 @@ $RECYCLE.BIN/
 # --- Secrets and local environment -------------------------------------------
 .env
 .env.*
+.envrc
 .direnv/
 .local/
 
@@ -72,3 +73,6 @@ debug/
 # --- Tool-specific caches ----------------------------------------------------
 .matplotlib/
 .cache/
+
+# Codex: ignore agent rules
+AGENTS.md

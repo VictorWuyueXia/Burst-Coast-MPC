@@ -1,4 +1,4 @@
-"""Energy-phase features for the natural-period dynamics MPC."""
+"""Energy-phase features for the hard-coded natural-period MPC."""
 
 from __future__ import annotations
 
@@ -10,14 +10,20 @@ from numpy.typing import ArrayLike, NDArray
 
 from inverted_pendulum.environment.dynamics import pendulum_energy, upright_energy, wrap_angle
 from inverted_pendulum.mpc.discrete_model import natural_frequency_rad_s
-from inverted_pendulum.mpc.ip_dynamics_natural_period import weights
 from inverted_pendulum.utils.config_schema import PendulumConfig
+
+EPSILON_PHI = 1.0e-6
+SIGNAL_ENERGY = 0.25
+W_ENERGY = 1.0
+W_PHASE = 0.0
+W_LOCAL = 0.0
+Q_PHASE_DIAG = (1.0, 1.0)
+Q_LOCAL_DIAG = (1.0, 1.0)
 
 
 def normalized_energy_error(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[np.float64]:
     """Compute normalized energy error with the upright equilibrium as zero."""
 
-    # Normalize by upright energy so weights remain scale-stable across pendulum constants.
     state_array = np.asarray(state, dtype=np.float64)
     theta_rad = state_array[..., 0]
     omega_rad_s = state_array[..., 1]
@@ -28,7 +34,6 @@ def normalized_energy_error(state: ArrayLike, pendulum: PendulumConfig) -> NDArr
 def local_upright_error(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[np.float64]:
     """Return the local upright error vector [wrapped theta, normalized omega]."""
 
-    # Local coordinates are only strongly weighted when the energy gate is active.
     state_array = np.asarray(state, dtype=np.float64)
     theta_rad = state_array[..., 0]
     omega_rad_s = state_array[..., 1]
@@ -41,11 +46,10 @@ def local_upright_error(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[n
 def phase_proxy_error(
     state: ArrayLike,
     pendulum: PendulumConfig,
-    epsilon_phi: float = weights.EPSILON_PHI,
+    epsilon_phi: float = EPSILON_PHI,
 ) -> NDArray[np.float64]:
     """Return the phase proxy error [c_phi - 1, s_phi]."""
 
-    # The phase proxy maps swing-up progress onto a regularized unit circle.
     state_array = np.asarray(state, dtype=np.float64)
     theta_rad = state_array[..., 0]
     omega_rad_s = state_array[..., 1]
@@ -58,34 +62,25 @@ def phase_proxy_error(
 def energy_gate(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[np.float64]:
     """Return the energy-shell gate that activates phase and local terms."""
 
-    # Phase and local penalties activate near the upright energy shell.
     energy_error = normalized_energy_error(state, pendulum)
-    return np.exp(-(energy_error**2) / (weights.signal_energy**2))
+    return np.exp(-(energy_error**2) / (SIGNAL_ENERGY**2))
 
 
 def energy_phase_value(state: ArrayLike, pendulum: PendulumConfig) -> NDArray[np.float64]:
     """Evaluate the natural-period energy-phase value."""
 
-    # Compose energy, phase, and local upright errors into one scalar value.
     energy_error = normalized_energy_error(state, pendulum)
     phase_error = phase_proxy_error(state, pendulum)
     local_error = local_upright_error(state, pendulum)
     gate = energy_gate(state, pendulum)
-
-    # Diagonal quadratic forms keep phase and local penalties explicit.
-    phase_cost = np.sum(np.asarray(weights.Q_PHASE_DIAG) * phase_error**2, axis=-1)
-    local_cost = np.sum(np.asarray(weights.Q_LOCAL_DIAG) * local_error**2, axis=-1)
-    return (
-        weights.w_energy * energy_error**2
-        + weights.w_phase * gate * phase_cost
-        + weights.w_local * gate * local_cost
-    )
+    phase_cost = np.sum(np.asarray(Q_PHASE_DIAG) * phase_error**2, axis=-1)
+    local_cost = np.sum(np.asarray(Q_LOCAL_DIAG) * local_error**2, axis=-1)
+    return W_ENERGY * energy_error**2 + W_PHASE * gate * phase_cost + W_LOCAL * gate * local_cost
 
 
 def normalized_energy_error_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
     """Compute symbolic normalized energy error."""
 
-    # Mirror the numeric energy expression inside the NLP objective.
     theta_rad = x[0]
     omega_rad_s = x[1]
     inertia = pendulum.mass_kg * pendulum.length_m**2
@@ -103,7 +98,6 @@ def normalized_energy_error_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
 def local_upright_error_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
     """Return symbolic local upright error [wrapped theta, normalized omega]."""
 
-    # Symbolic local coordinates match the wrapped-angle numeric convention.
     theta_rad = x[0]
     omega_rad_s = x[1]
     wrapped_theta = ca.atan2(ca.sin(theta_rad), ca.cos(theta_rad))
@@ -114,41 +108,28 @@ def local_upright_error_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
 def phase_proxy_error_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
     """Return symbolic phase proxy error [c_phi - 1, s_phi]."""
 
-    # The symbolic proxy keeps the optimizer differentiable near zero radius.
     theta_rad = x[0]
     omega_rad_s = x[1]
     a_theta = ca.cos(0.5 * theta_rad)
     b_phi = omega_rad_s / natural_frequency_rad_s(pendulum)
-    radius = ca.sqrt(a_theta**2 + b_phi**2 + weights.EPSILON_PHI**2)
+    radius = ca.sqrt(a_theta**2 + b_phi**2 + EPSILON_PHI**2)
     return ca.vertcat((a_theta / radius) - 1.0, b_phi / radius)
 
 
 def energy_gate_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
     """Return symbolic energy-shell gate."""
 
-    # The exponential gate suppresses phase penalties away from the energy shell.
     energy_error = normalized_energy_error_symbolic(x, pendulum)
-    return ca.exp(-(energy_error**2) / (weights.signal_energy**2))
+    return ca.exp(-(energy_error**2) / (SIGNAL_ENERGY**2))
 
 
 def energy_phase_value_symbolic(x: Any, pendulum: PendulumConfig) -> Any:
     """Evaluate symbolic natural-period energy-phase value."""
 
-    # Build the same diagonal quadratic value used by numeric diagnostics.
     energy_error = normalized_energy_error_symbolic(x, pendulum)
     phase_error = phase_proxy_error_symbolic(x, pendulum)
     local_error = local_upright_error_symbolic(x, pendulum)
     gate = energy_gate_symbolic(x, pendulum)
-    phase_cost = (
-        weights.Q_PHASE_DIAG[0] * phase_error[0] ** 2
-        + weights.Q_PHASE_DIAG[1] * phase_error[1] ** 2
-    )
-    local_cost = (
-        weights.Q_LOCAL_DIAG[0] * local_error[0] ** 2
-        + weights.Q_LOCAL_DIAG[1] * local_error[1] ** 2
-    )
-    return (
-        weights.w_energy * energy_error**2
-        + weights.w_phase * gate * phase_cost
-        + weights.w_local * gate * local_cost
-    )
+    phase_cost = Q_PHASE_DIAG[0] * phase_error[0] ** 2 + Q_PHASE_DIAG[1] * phase_error[1] ** 2
+    local_cost = Q_LOCAL_DIAG[0] * local_error[0] ** 2 + Q_LOCAL_DIAG[1] * local_error[1] ** 2
+    return W_ENERGY * energy_error**2 + W_PHASE * gate * phase_cost + W_LOCAL * gate * local_cost

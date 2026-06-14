@@ -57,13 +57,17 @@ I want to make changes with minimum touch on current logics.
 
 + do not change root dir name or git related naming yet, or you will loose your work-dir mid-run. Give step-by-step instruction for me to do it manually.
 
++ The current mpc/ stucture is wrapped under assumption that there would be more than one candidate mpc formulation. Now we have frozen the mpc formulation to the one in ip_dynamics_natural_peirod. Thin down the mpc module code into a simpler hard-coded mpc formulation and solver, get rid of all the wrappers and options for potential different mpc formulations, but keep the config value loadings.
+
+
+
 Our coding style rules:
-# Coding Style Descipline
-- Adhere strictly to our coding style descipline, realizing goals with simplest possbile method, write your logic in compact streamlined line-of-logic files, avoid short wrapper/helper functions, avoid unescesary CLI/configs, avoid fallback values or behaviors, avoid try/with/except. Include this rule in your plan.
+# Coding Style Discipline
+- Adhere strictly to our coding style discipline, realizing goals with the simplest possible method, write your logic in compact streamlined line-of-logic files, avoid short wrapper/helper functions, avoid unnecessary CLI/configs, avoid fallback values or behaviors, avoid try/with/except. Include this rule in your plan.
 
-- Eplicitly write all your planned class/objects, functions/methods, independent variables, data classes, wrappers/helpers, and parameters in you plan. Each with their specific role and task. You should have a maximum of a handful of each, devided my task oriented workflow or task independent standard operations, and minimize the presence of wrappers/helpers, and parameters. You will not be allowed to exceed your planned structure budget.
+- Explicitly write all your planned class/objects, functions/methods, independent variables, data classes, wrappers/helpers, and parameters in your plan. Each with their specific role and task. You should have a maximum of a handful of each, divided by task oriented workflow or task independent standard operations, and minimize the presence of wrappers/helpers, and parameters. You will not be allowed to exceed your planned structure budget.
 
-- We want to strictly adhere to this rule. We hate thin wrapper functions with too less logic or mega functions with too much logic, files that are too long (>300lines) or too short (<40lines), over abstractions, stand alone parameters/variables/functions/methods that are only called once by others, or poorly organized code logics (in file or class that is not close enough to what the code chunk actually does).
+- We want to strictly adhere to this rule. We hate thin wrapper functions with too little logic or mega functions with too much logic, files that are too long (>300lines) or too short (<40lines), over abstractions, stand alone parameters/variables/functions/methods that are only called once by others, or poorly organized code logic (in file or class that is not close enough to what the code chunk actually does).
 
 
 Sweep the entire program repo and hunt for these vialation of coding style desciplines. And plan appropriate fixes.
@@ -71,4 +75,17 @@ Sweep the entire program repo and hunt for these vialation of coding style desci
 
 
 
-- The current mpc/ stucture is wrapped under assumption that there would be more than one candidate mpc formulation. Now we have frozen the mpc formulation to the one in ip_dynamics_natural_peirod. Thin down the mpc module code into a simpler hard-coded mpc formulation and solver, get rid of all the wrappers and options for potential different mpc formulations, but keep the config value loadings.
+
+
+Suggestions, in order:
+Run longer before changing the model
+Try max-epochs: 4000 or 5000. The curve is still descending smoothly, so 2000 epochs is undertrained, not overtrained.
+
+Keep this as a promising but not final critic
+It is good enough for offline ranking experiments/sanity checks, but I would not trust it as a final controller policy selector yet. There are still 38 / 204 validation rows with absolute error over 300.
+
+Add more data next
+Region issue: low_energy_fast has only 25 validation rows and the worst MSE: 125,120. I’d still target 300 total Monte Carlo runs next, with special attention to fast/low-energy and high-return cases.
+
+Watch the next training curve
+If 4000-5000 epochs flattens near current validation MSE, data is the bottleneck. If it keeps dropping, optimization was the bottleneck.
