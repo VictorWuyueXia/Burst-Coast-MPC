@@ -89,3 +89,6 @@ Region issue: low_energy_fast has only 25 validation rows and the worst MSE: 125
 
 Watch the next training curve
 If 4000-5000 epochs flattens near current validation MSE, data is the bottleneck. If it keeps dropping, optimization was the bottleneck.
+
+- how to run monte carlo in parallel?
+- how to run monte carlo with more data in fast/low-energy and high-return cases?
