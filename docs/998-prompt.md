@@ -148,3 +148,4 @@ Read the current [800-report.md](/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Bu
 - The program now will have four modes: 1. simulate->mpc-only which runs our current simulation path; 2. intelligent, which is the deployment mode for RL+MPC with out learning; 3. train, which is the online training mode for RL policy 4. montecarlo, as current. Change CLI file and coordinator file accordingly.
 - use pytorchlightning as specified in environment file
 - each mode is its own file for bring up the simulation, rename the coordinator file to epoch_coordinator that better reflect its row of coordinating progress within an epoch.
+- Keep the RL and model inference and online learning related file in src/inverted_pendulum/RL
