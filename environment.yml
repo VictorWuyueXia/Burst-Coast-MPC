@@ -15,6 +15,7 @@ dependencies:
   - psutil>=5.9        # System and process utilities
   - threadpoolctl>=3.5 # Thread pool control for libraries like numpy or scipy
   - matplotlib>=3.8    # Create static, animated, and interactive plots
+  - scikit-learn>=1.5  # Sparse regression and validation utilities
   - pytest>=8.0        # Unit testing framework
   - ruff>=0.5          # Fast Python linter
   - mypy>=1.10         # Static type checker for Python

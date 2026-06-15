@@ -57,8 +57,11 @@ I want to make changes with minimum touch on current logics.
 
 + do not change root dir name or git related naming yet, or you will loose your work-dir mid-run. Give step-by-step instruction for me to do it manually.
 
-Our coding style rules:
+
+
 # Coding Style Descipline
+
+Our coding style rules:
 - Adhere strictly to our coding style descipline, realizing goals with simplest possbile method, write your logic in compact streamlined line-of-logic files, avoid short wrapper/helper functions, avoid unescesary CLI/configs, avoid fallback values or behaviors, avoid try/with/except. Include this rule in your plan.
 
 - Eplicitly write all your planned class/objects, functions/methods, independent variables, data classes, wrappers/helpers, and parameters in you plan. Each with their specific role and task. You should have a maximum of a handful of each, devided my task oriented workflow or task independent standard operations, and minimize the presence of wrappers/helpers, and parameters. You will not be allowed to exceed your planned structure budget.

@@ -25,6 +25,7 @@ dependencies = [  # Core libraries needed to run the project
   "typer>=0.12",         # Command-line interface tools
   "rich>=13.7",          # Pretty terminal formatting
   "matplotlib>=3.8",     # Plotting and visualization
+  "scikit-learn>=1.5",   # Sparse regression and validation utilities
   "torch>=2.3",          # Tensor backend for offline critic training
   "pytorch-lightning>=2.3",  # Training loop orchestration for critic fitting
 ]
