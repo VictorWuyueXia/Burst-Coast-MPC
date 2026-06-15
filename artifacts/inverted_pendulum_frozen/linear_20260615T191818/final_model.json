@@ -1,0 +1,53 @@
+{
+  "all_terms": [
+    {
+      "coefficient_s": 0.4103297859099799,
+      "name": "hbar"
+    },
+    {
+      "coefficient_s": -0.7116799063632475,
+      "name": "bbar"
+    },
+    {
+      "coefficient_s": 3.155531682100223,
+      "name": "bbar_hbar"
+    }
+  ],
+  "alpha": 0.00018442627085855348,
+  "artifact_root": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/artifacts/experiments",
+  "candidate": "bilinear",
+  "intercept_s": 0.09081023773275654,
+  "row_count": 278,
+  "run_dirs": [
+    "monte-carlo-data-epoch-10_20260615T172733",
+    "monte-carlo-data-epoch-11_20260615T172749",
+    "monte-carlo-data-epoch-12_20260615T172800",
+    "monte-carlo-data-epoch-13_20260615T172810",
+    "monte-carlo-data-epoch-14_20260615T172814",
+    "monte-carlo-data-epoch-15_20260615T172832",
+    "monte-carlo-data-epoch-16_20260615T172838",
+    "monte-carlo-data-epoch-17_20260615T172902",
+    "monte-carlo-data-epoch-18_20260615T172936",
+    "monte-carlo-data-epoch-1_20260615T165014",
+    "monte-carlo-data-epoch-1_20260615T172545",
+    "monte-carlo-data-epoch-2_20260615T165054",
+    "monte-carlo-data-epoch-2_20260615T172610",
+    "monte-carlo-data-epoch-3_20260615T172619",
+    "monte-carlo-data-epoch-4_20260615T172629",
+    "monte-carlo-data-epoch-5_20260615T172651",
+    "monte-carlo-data-epoch-6_20260615T172704",
+    "monte-carlo-data-epoch-7_20260615T172714",
+    "monte-carlo-data-epoch-8_20260615T172718",
+    "monte-carlo-data-epoch-9_20260615T172722"
+  ],
+  "selected_ablation": {
+    "alpha": 0.0021967070907932353,
+    "candidate": "bilinear",
+    "mae_s": 0.20386936847854642,
+    "nonzero_terms": 3,
+    "r2": 0.7705460370383795,
+    "rmse_s": 0.29917949347253175,
+    "seed": 71,
+    "term_count": 3
+  }
+}

@@ -44,6 +44,7 @@ env/
 # --- Experiment outputs and research logs ------------------------------------
 artifacts/experiments/
 artifacts/MonteCarloData/
+artifacts/cmp-time-fitting/
 runs/
 outputs/
 results/

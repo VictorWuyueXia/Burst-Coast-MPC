@@ -1,4 +1,4 @@
-"""Fit a sparse compute-time model from Monte Carlo RL artifacts."""
+"""Fit a normalized burst-horizon compute-time model from Monte Carlo artifacts."""
 
 from __future__ import annotations
 
@@ -9,9 +9,12 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+os.environ["MPLBACKEND"] = "Agg"
+os.environ["MPLCONFIGDIR"] = "/private/tmp/burst-coast-mpc-matplotlib"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "8"
 os.environ["OMP_NUM_THREADS"] = "8"
 
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import LassoCV
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -23,59 +26,30 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 ARTIFACT_ROOT = REPO_ROOT / "artifacts" / "experiments"
 OUTPUT_ROOT = REPO_ROOT / "artifacts" / "cmp-time-fitting"
 SEEDS = (11, 23, 37, 53, 71)
+ALPHAS = np.logspace(-5, 0, 80)
 THREAD_COUNT = 8
 CV_FOLDS = 5
 TEST_FRACTION = 0.25
-ALPHAS = np.logspace(-4, 1, 90)
-BASE_NAMES = [
-    "bbar",
-    "hbar",
-    "burst_steps",
-    "horizon_steps",
-    "coast_steps",
-    "burst_fraction",
-    "horizon_duration_s",
-    "abs_sin_theta",
-    "one_minus_cos_theta",
-    "abs_omega_normalized",
-    "abs_energy_error",
-]
+MIN_ABSOLUTE_RMSE_IMPROVEMENT_S = 0.01
+MIN_RELATIVE_RMSE_IMPROVEMENT = 0.02
 CANDIDATES = (
-    {"name": "linear-action", "width": 7, "powers": (1,), "logs": False},
-    {"name": "cubic-action", "width": 7, "powers": (1, 2, 3), "logs": False},
-    {"name": "power-log-action", "width": 7, "powers": (1, 2, 3, 4), "logs": True},
-    {"name": "power-log-state-action", "width": 11, "powers": (1, 2, 3, 4), "logs": True},
+    {"name": "bilinear", "log_terms": ()},
+    {"name": "bilinear-hlog", "log_terms": ("hbar_log1p_hbar",)},
+    {"name": "bilinear-blog", "log_terms": ("bbar_log1p_bbar",)},
+    {"name": "bilinear-log", "log_terms": ("hbar_log1p_hbar", "bbar_log1p_bbar")},
 )
 
 
 def load_rows() -> list[dict[str, float | str]]:
     rows: list[dict[str, float | str]] = []
     for path in sorted(ARTIFACT_ROOT.glob("monte-carlo-data*/rl_steps.csv")):
-        config_file = (path.parent / "config.json").open(encoding="utf-8")
-        config = json.load(config_file)
-        config_file.close()
-        pendulum = config["environment"]["pendulum"]
-        constants = {
-            "run_dir": path.parent.name,
-            "timestep_s": float(config["environment"]["simulation"]["timestep-s"]),
-            "gravity_m_s2": float(pendulum["gravity-m-s2"]),
-            "length_m": float(pendulum["length-m"]),
-            "mass_kg": float(pendulum["mass-kg"]),
-        }
-
-        # Attach the minimal run constants needed for state-energy features.
         csv_file = path.open(encoding="utf-8", newline="")
         for row in csv.DictReader(csv_file):
             rows.append(
-                constants
-                | {
-                    "s_sin_theta": float(row["s-sin-theta"]),
-                    "s_cos_theta": float(row["s-cos-theta"]),
-                    "s_omega_rad_s": float(row["s-omega-rad-s"]),
-                    "bbar": float(row["bbar"]),
+                {
+                    "run_dir": path.parent.name,
                     "hbar": float(row["hbar"]),
-                    "burst_steps": float(row["burst-steps"]),
-                    "horizon_steps": float(row["horizon-steps"]),
+                    "bbar": float(row["bbar"]),
                     "solve_time_s": float(row["solve-time-s"]),
                 }
             )
@@ -83,117 +57,87 @@ def load_rows() -> list[dict[str, float | str]]:
     return rows
 
 
-def array(rows: list[dict[str, float | str]], name: str) -> np.ndarray:
+def column(rows: list[dict[str, float | str]], name: str) -> np.ndarray:
     return np.array([row[name] for row in rows], dtype=float)
 
 
 def build_base(rows: list[dict[str, float | str]]) -> tuple[np.ndarray, np.ndarray]:
-    timestep = array(rows, "timestep_s")
-    gravity = array(rows, "gravity_m_s2")
-    length = array(rows, "length_m")
-    mass = array(rows, "mass_kg")
-    sin_theta = array(rows, "s_sin_theta")
-    cos_theta = array(rows, "s_cos_theta")
-    omega = array(rows, "s_omega_rad_s")
-    bbar = array(rows, "bbar")
-    hbar = array(rows, "hbar")
-    burst = array(rows, "burst_steps")
-    horizon = array(rows, "horizon_steps")
-
-    # Express action scale and pendulum phase-energy state in vectorized coordinates.
-    inertia = mass * length**2
-    target_energy = 2.0 * mass * gravity * length
-    energy = 0.5 * inertia * omega**2 + mass * gravity * length * (1.0 + cos_theta)
-    omega_ref = 2.0 * np.sqrt(gravity / length)
-    base = np.column_stack(
-        [
-            bbar,
-            hbar,
-            burst,
-            horizon,
-            horizon - burst,
-            burst / horizon,
-            horizon * timestep,
-            np.abs(sin_theta),
-            1.0 - cos_theta,
-            np.abs(omega) / omega_ref,
-            np.abs((energy - target_energy) / target_energy),
-        ]
+    return np.column_stack([column(rows, "hbar"), column(rows, "bbar")]), column(
+        rows,
+        "solve_time_s",
     )
-    return base, array(rows, "solve_time_s")
 
 
 def expand_terms(
     candidate: dict[str, object],
     base: np.ndarray,
-) -> tuple[np.ndarray, list[str], np.ndarray]:
-    width = int(candidate["width"])
-    scoped_base = base[:, :width]
-    scoped_names = BASE_NAMES[:width]
-    matrices: list[np.ndarray] = []
-    names: list[str] = []
-    penalties: list[float] = []
+) -> tuple[np.ndarray, list[str]]:
+    hbar = base[:, 0]
+    bbar = base[:, 1]
+    matrices = [hbar, bbar, bbar * hbar]
+    names = ["hbar", "bbar", "bbar_hbar"]
 
-    # Penalize higher powers more heavily by shrinking their standardized columns.
-    for power in candidate["powers"]:
-        degree = int(power)
-        matrices.append(scoped_base**degree)
-        names.extend(f"{name}^{degree}" if degree > 1 else name for name in scoped_names)
-        penalties.extend([float(2 ** (degree - 1))] * len(scoped_names))
-    if bool(candidate["logs"]):
-        matrices.append(np.log1p(scoped_base))
-        names.extend(f"log1p_{name}" for name in scoped_names)
-        penalties.extend([6.0] * len(scoped_names))
-    return np.column_stack(matrices), names, np.array(penalties, dtype=float)
+    # Add requested log interactions one at a time so their contribution is measurable.
+    if "hbar_log1p_hbar" in candidate["log_terms"]:
+        matrices.append(hbar * np.log1p(hbar))
+        names.append("hbar_log1p_hbar")
+    if "bbar_log1p_bbar" in candidate["log_terms"]:
+        matrices.append(bbar * np.log1p(bbar))
+        names.append("bbar_log1p_bbar")
+
+    return np.column_stack(matrices), names
 
 
-def fit_model(x_train: np.ndarray, y_train: np.ndarray, penalty: np.ndarray, seed: int):
+def fit_model(x_train: np.ndarray, y_train: np.ndarray) -> tuple[LassoCV, StandardScaler]:
     scaler = StandardScaler()
-    scaled = scaler.fit_transform(x_train) / penalty
     model = LassoCV(
         alphas=ALPHAS,
         cv=CV_FOLDS,
         fit_intercept=True,
         max_iter=1_000_000,
-        n_jobs=THREAD_COUNT,
-        random_state=seed,
+        random_state=0,
         selection="cyclic",
     )
-    model.fit(scaled, y_train)
+    model.fit(scaler.fit_transform(x_train), y_train)
     return model, scaler
 
 
-def score(
-    model: LassoCV,
-    scaler: StandardScaler,
-    penalty: np.ndarray,
-    x: np.ndarray,
-    y: np.ndarray,
-):
-    pred = model.predict(scaler.transform(x) / penalty)
+def original_coefficients(model: LassoCV, scaler: StandardScaler) -> tuple[float, np.ndarray]:
+    coefficients = model.coef_ / scaler.scale_
+    intercept = float(model.intercept_ - np.dot(coefficients, scaler.mean_))
+    return intercept, coefficients
+
+
+def predict(model: LassoCV, scaler: StandardScaler, x: np.ndarray) -> np.ndarray:
+    return model.predict(scaler.transform(x))
+
+
+def score(model: LassoCV, scaler: StandardScaler, x: np.ndarray, y: np.ndarray):
+    prediction = predict(model, scaler, x)
     return {
-        "rmse_s": float(math.sqrt(mean_squared_error(y, pred))),
-        "mae_s": float(mean_absolute_error(y, pred)),
-        "r2": float(r2_score(y, pred)),
+        "rmse_s": float(math.sqrt(mean_squared_error(y, prediction))),
+        "mae_s": float(mean_absolute_error(y, prediction)),
+        "r2": float(r2_score(y, prediction)),
     }
 
 
 def run_ablation(base: np.ndarray, target: np.ndarray) -> list[dict[str, object]]:
     records: list[dict[str, object]] = []
     for candidate in CANDIDATES:
-        x, names, penalty = expand_terms(candidate, base)
+        x, names = expand_terms(candidate, base)
         for seed in SEEDS:
             split = train_test_split(x, target, test_size=TEST_FRACTION, random_state=seed)
             x_train, x_test, y_train, y_test = split
-            model, scaler = fit_model(x_train, y_train, penalty, seed)
+            model, scaler = fit_model(x_train, y_train)
+            _, coefficients = original_coefficients(model, scaler)
             records.append(
                 {
                     "candidate": candidate["name"],
                     "seed": seed,
                     "alpha": float(model.alpha_),
-                    "nonzero_terms": int(np.count_nonzero(model.coef_)),
+                    "nonzero_terms": int(np.count_nonzero(np.abs(coefficients) > 1.0e-12)),
                     "term_count": len(names),
-                    **score(model, scaler, penalty, x_test, y_test),
+                    **score(model, scaler, x_test, y_test),
                 }
             )
     return records
@@ -215,6 +159,48 @@ def summarize(records: list[dict[str, object]]) -> list[dict[str, object]]:
     return summary
 
 
+def improvement_rows(summary: list[dict[str, object]]) -> list[dict[str, object]]:
+    by_name = {str(row["candidate"]): row for row in summary}
+    base_rmse = float(by_name["bilinear"]["mean_rmse_s"])
+    rows: list[dict[str, object]] = []
+    for name in ["bilinear-hlog", "bilinear-blog", "bilinear-log"]:
+        rmse = float(by_name[name]["mean_rmse_s"])
+        improvement = base_rmse - rmse
+        relative = improvement / base_rmse
+        rows.append(
+            {
+                "candidate": name,
+                "mean_rmse_s": rmse,
+                "rmse_improvement_vs_bilinear_s": improvement,
+                "relative_improvement_vs_bilinear": relative,
+                "passes_absolute_threshold": improvement >= MIN_ABSOLUTE_RMSE_IMPROVEMENT_S,
+                "passes_relative_threshold": relative >= MIN_RELATIVE_RMSE_IMPROVEMENT,
+                "necessary": (improvement >= MIN_ABSOLUTE_RMSE_IMPROVEMENT_S)
+                and (relative >= MIN_RELATIVE_RMSE_IMPROVEMENT),
+            }
+        )
+    return rows
+
+
+def select_candidate(
+    ablation: list[dict[str, object]],
+    summary: list[dict[str, object]],
+) -> dict[str, object]:
+    improvements = improvement_rows(summary)
+    useful = {row["candidate"] for row in improvements if row["necessary"]}
+    if not useful:
+        selected_name = "bilinear"
+    else:
+        selected_name = min(
+            [row for row in summary if row["candidate"] in useful],
+            key=lambda row: (float(row["mean_rmse_s"]), float(row["mean_nonzero_terms"])),
+        )["candidate"]
+    return min(
+        [row for row in ablation if row["candidate"] == selected_name],
+        key=lambda row: (float(row["rmse_s"]), int(row["nonzero_terms"])),
+    )
+
+
 def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
     file = path.open("w", encoding="utf-8", newline="")
     writer = csv.DictWriter(file, fieldnames=list(rows[0].keys()))
@@ -223,46 +209,105 @@ def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
     file.close()
 
 
-def save_model(output_dir: Path, rows, base, target, selected: dict[str, object]) -> None:
+def model_package(base: np.ndarray, target: np.ndarray, selected: dict[str, object]):
     candidate = next(item for item in CANDIDATES if item["name"] == selected["candidate"])
-    x, names, penalty = expand_terms(candidate, base)
-    model, scaler = fit_model(x, target, penalty, int(selected["seed"]))
-    coefficients = model.coef_ / penalty
-    nonzero = np.flatnonzero(np.abs(coefficients) > 0.0)
-
-    # Store every standardized term so zeroed coefficients remain reproducible.
-    all_terms = [
+    x, names = expand_terms(candidate, base)
+    model, scaler = fit_model(x, target)
+    intercept, coefficients = original_coefficients(model, scaler)
+    terms = [
         {
             "name": names[index],
-            "mean": float(scaler.mean_[index]),
-            "scale": float(scaler.scale_[index]),
-            "penalty_weight": float(penalty[index]),
-            "standardized_coefficient_s": float(coefficients[index]),
+            "coefficient_s": float(coefficients[index]),
         }
         for index in range(len(names))
     ]
+    return candidate, model, scaler, intercept, terms
+
+
+def latex_name(name: str) -> str:
+    names = {
+        "hbar": "\\tilde H",
+        "bbar": "\\tilde B",
+        "bbar_hbar": "\\tilde B\\tilde H",
+        "hbar_log1p_hbar": "\\tilde H\\log(1+\\tilde H)",
+        "bbar_log1p_bbar": "\\tilde B\\log(1+\\tilde B)",
+    }
+    return names[name]
+
+
+def write_equation(path: Path, intercept: float, terms: list[dict[str, float | str]]) -> None:
+    file = path.open("w", encoding="utf-8")
+    file.write("$$\n")
+    file.write("\\hat t = ")
+    file.write(f"{intercept:.10g}\n")
+    for term in terms:
+        coefficient = float(term["coefficient_s"])
+        sign = "+" if coefficient >= 0.0 else "-"
+        file.write(f"  {sign} {abs(coefficient):.10g}\\,{latex_name(str(term['name']))}\n")
+    file.write("$$\n")
+    file.close()
+
+
+def grid_prediction(candidate, model: LassoCV, scaler: StandardScaler, base: np.ndarray):
+    hbar = np.linspace(base[:, 0].min(), base[:, 0].max(), 80)
+    bbar = np.linspace(base[:, 1].min(), base[:, 1].max(), 80)
+    hbar_grid, bbar_grid = np.meshgrid(hbar, bbar)
+    grid_base = np.column_stack([hbar_grid.ravel(), bbar_grid.ravel()])
+    x_grid, _ = expand_terms(candidate, grid_base)
+    pred_grid = predict(model, scaler, x_grid).reshape(hbar_grid.shape)
+    return hbar_grid, bbar_grid, pred_grid
+
+
+def write_plots(output_dir, candidate, model, scaler, base, target) -> None:
+    hbar_grid, bbar_grid, pred_grid = grid_prediction(candidate, model, scaler, base)
+
+    # Render the fitted solve-time surface over the normalized action plane.
+    figure, axis = plt.subplots(figsize=(7.0, 5.2))
+    contour = axis.contourf(hbar_grid, bbar_grid, pred_grid, levels=24, cmap="viridis")
+    axis.scatter(base[:, 0], base[:, 1], c="black", s=16, alpha=0.68)
+    axis.set_xlabel("hbar")
+    axis.set_ylabel("bbar")
+    axis.set_title("Compute-time fit, 2D")
+    figure.colorbar(contour, ax=axis, label="predicted solve time [s]")
+    figure.tight_layout()
+    figure.savefig(output_dir / "fit_surface_2d.png", dpi=160)
+    plt.close(figure)
+
+    # Render measured rows against the fitted surface in physical seconds.
+    figure = plt.figure(figsize=(7.0, 5.2))
+    axis = figure.add_subplot(111, projection="3d")
+    axis.plot_surface(hbar_grid, bbar_grid, pred_grid, cmap="viridis", alpha=0.72)
+    axis.scatter(base[:, 0], base[:, 1], target, c="black", s=18)
+    axis.set_xlabel("hbar")
+    axis.set_ylabel("bbar")
+    axis.set_zlabel("solve time [s]")
+    axis.set_title("Compute-time fit, 3D")
+    figure.tight_layout()
+    figure.savefig(output_dir / "fit_surface_3d.png", dpi=160)
+    plt.close(figure)
+
+
+def save_model(output_dir: Path, rows, base, target, selected: dict[str, object]) -> None:
+    candidate, model, scaler, intercept, terms = model_package(base, target, selected)
     payload = {
         "artifact_root": str(ARTIFACT_ROOT),
         "row_count": len(rows),
         "run_dirs": sorted({str(row["run_dir"]) for row in rows}),
         "selected_ablation": selected,
         "candidate": candidate["name"],
-        "seed": int(selected["seed"]),
         "alpha": float(model.alpha_),
-        "intercept_s": float(model.intercept_),
-        "all_terms": all_terms,
-        "terms": [all_terms[index] for index in nonzero],
+        "minimum_absolute_rmse_improvement_s": MIN_ABSOLUTE_RMSE_IMPROVEMENT_S,
+        "minimum_relative_rmse_improvement": MIN_RELATIVE_RMSE_IMPROVEMENT,
+        "intercept_s": intercept,
+        "all_terms": terms,
     }
 
     json_file = (output_dir / "final_model.json").open("w", encoding="utf-8")
     json.dump(payload, json_file, indent=2, sort_keys=True)
     json_file.write("\n")
     json_file.close()
-    text_file = (output_dir / "model_equation.txt").open("w", encoding="utf-8")
-    text_file.write(f"solve_time_s = {model.intercept_:.10g}\n")
-    for index in nonzero:
-        text_file.write(f"  + ({coefficients[index]:.10g}) * z({names[index]})\n")
-    text_file.close()
+    write_equation(output_dir / "model_equation.md", intercept, terms)
+    write_plots(output_dir, candidate, model, scaler, base, target)
 
 
 def main() -> None:
@@ -275,16 +320,11 @@ def main() -> None:
     with threadpool_limits(limits=THREAD_COUNT):
         ablation = run_ablation(base, target)
         summary = summarize(ablation)
-        best_summary = min(
-            summary,
-            key=lambda row: (float(row["mean_rmse_s"]), float(row["mean_nonzero_terms"])),
-        )
-        selected = min(
-            [row for row in ablation if row["candidate"] == best_summary["candidate"]],
-            key=lambda row: (float(row["rmse_s"]), int(row["nonzero_terms"])),
-        )
+        term_ablation = improvement_rows(summary)
+        selected = select_candidate(ablation, summary)
         write_csv(output_dir / "ablation.csv", ablation)
         write_csv(output_dir / "candidate_summary.csv", summary)
+        write_csv(output_dir / "term_ablation.csv", term_ablation)
         save_model(output_dir, rows, base, target, selected)
 
     print(
