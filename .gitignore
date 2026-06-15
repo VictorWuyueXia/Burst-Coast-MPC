@@ -7,6 +7,7 @@ $RECYCLE.BIN/
 # --- Secrets and local environment -------------------------------------------
 .env
 .env.*
+.envrc
 .direnv/
 .local/
 
@@ -41,7 +42,8 @@ env/
 .ruff_cache/
 
 # --- Experiment outputs and research logs ------------------------------------
-artifacts/
+artifacts/experiments/
+artifacts/MonteCarloData/
 runs/
 outputs/
 results/
@@ -72,3 +74,6 @@ debug/
 # --- Tool-specific caches ----------------------------------------------------
 .matplotlib/
 .cache/
+
+# Codex: ignore agent rules
+AGENTS.md

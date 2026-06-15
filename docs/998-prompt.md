@@ -64,14 +64,77 @@ I want to make changes with minimum touch on current logics.
 Our coding style rules:
 - Adhere strictly to our coding style descipline, realizing goals with simplest possbile method, write your logic in compact streamlined line-of-logic files, avoid short wrapper/helper functions, avoid unescesary CLI/configs, avoid fallback values or behaviors, avoid try/with/except. Include this rule in your plan.
 
-- Eplicitly write all your planned class/objects, functions/methods, independent variables, data classes, wrappers/helpers, and parameters in you plan. Each with their specific role and task. You should have a maximum of a handful of each, devided my task oriented workflow or task independent standard operations, and minimize the presence of wrappers/helpers, and parameters. You will not be allowed to exceed your planned structure budget.
+- Explicitly write all your planned class/objects, functions/methods, independent variables, data classes, wrappers/helpers, and parameters in your plan. Each with their specific role and task. You should have a maximum of a handful of each, divided by task oriented workflow or task independent standard operations, and minimize the presence of wrappers/helpers, and parameters. You will not be allowed to exceed your planned structure budget.
 
-- We want to strictly adhere to this rule. We hate thin wrapper functions with too less logic or mega functions with too much logic, files that are too long (>300lines) or too short (<40lines), over abstractions, stand alone parameters/variables/functions/methods that are only called once by others, or poorly organized code logics (in file or class that is not close enough to what the code chunk actually does).
+- We want to strictly adhere to this rule. We hate thin wrapper functions with too little logic or mega functions with too much logic, files that are too long (>300lines) or too short (<40lines), over abstractions, stand alone parameters/variables/functions/methods that are only called once by others, or poorly organized code logic (in file or class that is not close enough to what the code chunk actually does).
 
 
 Sweep the entire program repo and hunt for these vialation of coding style desciplines. And plan appropriate fixes.
 
 
+- how to run monte carlo with more data in fast/low-energy and high-return cases?
 
 
-- The current mpc/ stucture is wrapped under assumption that there would be more than one candidate mpc formulation. Now we have frozen the mpc formulation to the one in ip_dynamics_natural_peirod. Thin down the mpc module code into a simpler hard-coded mpc formulation and solver, get rid of all the wrappers and options for potential different mpc formulations, but keep the config value loadings.
+
+
+Suggestions, in order:
+Run longer before changing the model
+Try max-epochs: 4000 or 5000. The curve is still descending smoothly, so 2000 epochs is undertrained, not overtrained.
+
+Keep this as a promising but not final critic
+It is good enough for offline ranking experiments/sanity checks, but I would not trust it as a final controller policy selector yet. There are still 38 / 204 validation rows with absolute error over 300.
+
+Add more data next
+Region issue: low_energy_fast has only 25 validation rows and the worst MSE: 125,120. I’d still target 300 total Monte Carlo runs next, with special attention to fast/low-energy and high-return cases.
+
+Watch the next training curve
+If 4000-5000 epochs flattens near current validation MSE, data is the bottleneck. If it keeps dropping, optimization was the bottleneck.
+
+- how to run monte carlo in parallel?
+
+
+
+
+1. Monte Carlo data generation
+2. Q-network design
+3. offline critic training
+4. compute-time model fitting from solve logs
+5. online simulated training while preserving MPC as independent controller
+You are now past step 3: you have a good offline-trained critic candidate.
+Next steps:
+- Freeze the candidate snapshot
+Use artifacts/model-snapshots/structured-critic_20260614T215834 as the current candidate. Keep its config.json, normalization.json, lambda.json, checkpoint, and diagnostics together.
+
+- Update the report
+Change the last paragraph from “current active step is Monte Carlo data generation” to “current active step is validating and deploying the offline critic.”
+
+- Build critic loading/inference
+Add code that loads:
+-- critic_state_dict.pt or best checkpoint
+-- normalization.json
+-- lambda.json
+-- model structure assumptions
+Then expose a function that evaluates Q(s, bbar, hbar) over the action grid.
+
+- Add grid action selection
+For each decision state, evaluate the critic over the (bbar, hbar) grid and select:
+`argmin_a Q(s, a)`
+MPC still solves torque; the critic only chooses burst/horizon.
+
+- Fit or decide compute-time handling
+The report says compute-time model fitting is next. Your critic currently uses logged solve-time-s; deployment needs either:
+a fitted solve-time predictor, or
+a simple measured/constant compute-time assumption for first rollout tests.
+
+- Run closed-loop simulation A/B tests
+Compare:
+existing fixed/sampled burst-coast MPC
+critic-selected burst/horizon MPC
+maybe full-horizon or short-horizon baselines
+Track success rate, return cost, time to goal, actuation effort, solve time, and number of replans.
+
+- Inspect failures
+For bad episodes, log selected (bbar, hbar), predicted Q, realized return, and state region. This tells you whether the critic is choosing badly or MPC itself is failing.
+
+- Only then consider online training
+Do not jump to online RL yet. First prove the offline critic improves closed-loop simulation against baselines.

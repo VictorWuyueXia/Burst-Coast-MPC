@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import prediction_horizon_steps
+from inverted_pendulum.mpc.controller import prediction_horizon_steps
 from inverted_pendulum.utils.config_schema import (
     DataGenerationConfig,
     EnvironmentConfig,

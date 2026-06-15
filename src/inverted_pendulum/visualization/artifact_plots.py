@@ -7,7 +7,7 @@ from typing import Any
 import numpy as np
 
 from inverted_pendulum.environment.dynamics import upright_energy
-from inverted_pendulum.mpc.ip_dynamics_natural_period.features import phase_proxy_error
+from inverted_pendulum.mpc.features import phase_proxy_error
 from inverted_pendulum.utils.config_schema import EnvironmentConfig
 from inverted_pendulum.utils.messages import RLStepRecord, StepRecord
 

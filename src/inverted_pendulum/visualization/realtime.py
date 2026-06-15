@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
-from inverted_pendulum.mpc.ip_dynamics_natural_period.features import phase_proxy_error
+from inverted_pendulum.mpc.features import phase_proxy_error
 from inverted_pendulum.utils.config_schema import PendulumConfig
 from inverted_pendulum.utils.messages import StateObs, StepRecord
 from inverted_pendulum.visualization.animation import PendulumAnimation

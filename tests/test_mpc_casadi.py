@@ -5,10 +5,18 @@ import numpy as np
 import pytest
 
 from inverted_pendulum.environment.dynamics import pendulum_derivatives, rk4_step
-from inverted_pendulum.mpc.controller import CasadiMPCController
+from inverted_pendulum.mpc.controller import (
+    CasadiMPCController,
+    prediction_horizon_steps,
+)
+from inverted_pendulum.mpc.controller import (
+    solve_candidate as solve_natural_candidate,
+)
+from inverted_pendulum.mpc.controller import (
+    split_candidates as natural_split_candidates,
+)
 from inverted_pendulum.mpc.discrete_model import pendulum_derivatives_symbolic, rk4_step_symbolic
-from inverted_pendulum.mpc.ip_dynamics_natural_period.controller import NaturalPeriodMPCController
-from inverted_pendulum.mpc.ip_dynamics_natural_period.features import (
+from inverted_pendulum.mpc.features import (
     energy_gate,
     energy_gate_symbolic,
     energy_phase_value,
@@ -19,15 +27,6 @@ from inverted_pendulum.mpc.ip_dynamics_natural_period.features import (
     normalized_energy_error_symbolic,
     phase_proxy_error,
     phase_proxy_error_symbolic,
-)
-from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import (
-    prediction_horizon_steps,
-)
-from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import (
-    solve_candidate as solve_natural_candidate,
-)
-from inverted_pendulum.mpc.ip_dynamics_natural_period.problem import (
-    split_candidates as natural_split_candidates,
 )
 from inverted_pendulum.utils.config_schema import load_config
 from inverted_pendulum.utils.messages import StateObs
@@ -133,15 +132,16 @@ def test_natural_period_solver_returns_bounded_finite_candidate_solution() -> No
     )
 
 
-def test_controller_uses_natural_period_formulation() -> None:
+def test_controller_is_the_hard_coded_natural_period_formulation() -> None:
     config = _small_mpc_config()
-    natural_controller = CasadiMPCController(
+    controller = CasadiMPCController(
         config.environment,
         config.mpc,
         logger=logging.getLogger("test"),
     )
 
-    assert natural_controller.controller.__class__ is NaturalPeriodMPCController
+    assert controller.identity == "IP-dynamics-naturalPeriod"
+    assert not hasattr(controller, "controller")
 
 
 def test_controller_selects_plan_and_raises_when_solver_fails(monkeypatch) -> None:
@@ -163,11 +163,8 @@ def test_controller_selects_plan_and_raises_when_solver_fails(monkeypatch) -> No
     def fail_candidate(*args):
         raise RuntimeError("solver failed")
 
-    monkeypatch.setattr(
-        "inverted_pendulum.mpc.ip_dynamics_natural_period.controller.solve_candidate",
-        fail_candidate,
-    )
-    controller.controller._active_plan = None
+    monkeypatch.setattr("inverted_pendulum.mpc.controller.solve_candidate", fail_candidate)
+    controller._active_plan = None
     with pytest.raises(RuntimeError, match="solver failed"):
         controller.select_action(observation, force_replan=False)
 
@@ -240,10 +237,7 @@ def test_controller_starts_direct_monte_carlo_plan_without_candidate_enumeration
     def fail_split_candidates(*args):
         raise RuntimeError("split enumeration should not run")
 
-    monkeypatch.setattr(
-        "inverted_pendulum.mpc.ip_dynamics_natural_period.controller.split_candidates",
-        fail_split_candidates,
-    )
+    monkeypatch.setattr("inverted_pendulum.mpc.controller.split_candidates", fail_split_candidates)
 
     plan = controller.start_monte_carlo_plan(observation, monte_carlo_action)
     action = controller.select_action(observation, force_replan=False)

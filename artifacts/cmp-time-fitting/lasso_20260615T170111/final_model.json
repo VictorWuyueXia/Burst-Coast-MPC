@@ -1,0 +1,215 @@
+{
+  "all_terms": [
+    {
+      "mean": 0.5477932502780645,
+      "name": "bbar",
+      "penalty_weight": 1.0,
+      "scale": 0.320912680917927,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 0.5600836074707383,
+      "name": "hbar",
+      "penalty_weight": 1.0,
+      "scale": 0.2842724099850029,
+      "standardized_coefficient_s": 0.08722790435258881
+    },
+    {
+      "mean": 31.36111111111111,
+      "name": "burst_steps",
+      "penalty_weight": 1.0,
+      "scale": 26.99089638478724,
+      "standardized_coefficient_s": 0.3016980264671214
+    },
+    {
+      "mean": 112.5,
+      "name": "horizon_steps",
+      "penalty_weight": 1.0,
+      "scale": 57.207953992430106,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 81.13888888888889,
+      "name": "coast_steps",
+      "penalty_weight": 1.0,
+      "scale": 45.7500168656786,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 0.276335082473471,
+      "name": "burst_fraction",
+      "penalty_weight": 1.0,
+      "scale": 0.1564141910672295,
+      "standardized_coefficient_s": -0.0
+    },
+    {
+      "mean": 1.125,
+      "name": "horizon_duration_s",
+      "penalty_weight": 1.0,
+      "scale": 0.572079539924301,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 0.40306239382413733,
+      "name": "bbar^2",
+      "penalty_weight": 2.0,
+      "scale": 0.34744228973464725,
+      "standardized_coefficient_s": -0.0
+    },
+    {
+      "mean": 0.39450445043611765,
+      "name": "hbar^2",
+      "penalty_weight": 2.0,
+      "scale": 0.313638522212029,
+      "standardized_coefficient_s": 0.0302379132854792
+    },
+    {
+      "mean": 1712.0277777777778,
+      "name": "burst_steps^2",
+      "penalty_weight": 2.0,
+      "scale": 2438.3138127050825,
+      "standardized_coefficient_s": 0.4046855847730988
+    },
+    {
+      "mean": 15929.0,
+      "name": "horizon_steps^2",
+      "penalty_weight": 2.0,
+      "scale": 12670.808300972752,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 8676.583333333334,
+      "name": "coast_steps^2",
+      "penalty_weight": 2.0,
+      "scale": 8198.691434799553,
+      "standardized_coefficient_s": -0.0
+    },
+    {
+      "mean": 0.10082647697283581,
+      "name": "burst_fraction^2",
+      "penalty_weight": 2.0,
+      "scale": 0.086227124864768,
+      "standardized_coefficient_s": -0.1693340805706682
+    },
+    {
+      "mean": 1.5929000000000002,
+      "name": "horizon_duration_s^2",
+      "penalty_weight": 2.0,
+      "scale": 1.2670808300972751,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 0.3293748545631078,
+      "name": "bbar^3",
+      "penalty_weight": 4.0,
+      "scale": 0.3430042107394045,
+      "standardized_coefficient_s": -0.0
+    },
+    {
+      "mean": 0.3080505731734176,
+      "name": "hbar^3",
+      "penalty_weight": 4.0,
+      "scale": 0.30561299506465167,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 116693.69444444444,
+      "name": "burst_steps^3",
+      "penalty_weight": 4.0,
+      "scale": 218053.57957529862,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 2500121.6666666665,
+      "name": "horizon_steps^3",
+      "penalty_weight": 4.0,
+      "scale": 2479050.3986219987,
+      "standardized_coefficient_s": 0.0
+    },
+    {
+      "mean": 1068023.638888889,
+      "name": "coast_steps^3",
+      "penalty_weight": 4.0,
+      "scale": 1330488.1603216617,
+      "standardized_coefficient_s": -0.003790380528014282
+    },
+    {
+      "mean": 0.04102992382849981,
+      "name": "burst_fraction^3",
+      "penalty_weight": 4.0,
+      "scale": 0.04263537931332379,
+      "standardized_coefficient_s": -0.0
+    },
+    {
+      "mean": 2.500121666666667,
+      "name": "horizon_duration_s^3",
+      "penalty_weight": 4.0,
+      "scale": 2.4790503986219985,
+      "standardized_coefficient_s": 0.0
+    }
+  ],
+  "alpha": 0.002538016154301076,
+  "artifact_root": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/artifacts/experiments",
+  "candidate": "cubic-action",
+  "intercept_s": 0.7932138402635851,
+  "row_count": 36,
+  "run_dirs": [
+    "monte-carlo-data-epoch-1_20260615T165014",
+    "monte-carlo-data-epoch-2_20260615T165054"
+  ],
+  "seed": 11,
+  "selected_ablation": {
+    "alpha": 0.0007922758252752512,
+    "candidate": "cubic-action",
+    "mae_s": 0.0779857722246813,
+    "nonzero_terms": 8,
+    "r2": 0.9788370722011251,
+    "rmse_s": 0.1038629895206828,
+    "seed": 11,
+    "term_count": 21
+  },
+  "terms": [
+    {
+      "mean": 0.5600836074707383,
+      "name": "hbar",
+      "penalty_weight": 1.0,
+      "scale": 0.2842724099850029,
+      "standardized_coefficient_s": 0.08722790435258881
+    },
+    {
+      "mean": 31.36111111111111,
+      "name": "burst_steps",
+      "penalty_weight": 1.0,
+      "scale": 26.99089638478724,
+      "standardized_coefficient_s": 0.3016980264671214
+    },
+    {
+      "mean": 0.39450445043611765,
+      "name": "hbar^2",
+      "penalty_weight": 2.0,
+      "scale": 0.313638522212029,
+      "standardized_coefficient_s": 0.0302379132854792
+    },
+    {
+      "mean": 1712.0277777777778,
+      "name": "burst_steps^2",
+      "penalty_weight": 2.0,
+      "scale": 2438.3138127050825,
+      "standardized_coefficient_s": 0.4046855847730988
+    },
+    {
+      "mean": 0.10082647697283581,
+      "name": "burst_fraction^2",
+      "penalty_weight": 2.0,
+      "scale": 0.086227124864768,
+      "standardized_coefficient_s": -0.1693340805706682
+    },
+    {
+      "mean": 1068023.638888889,
+      "name": "coast_steps^3",
+      "penalty_weight": 4.0,
+      "scale": 1330488.1603216617,
+      "standardized_coefficient_s": -0.003790380528014282
+    }
+  ]
+}

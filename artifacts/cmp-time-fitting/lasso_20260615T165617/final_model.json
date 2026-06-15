@@ -1,0 +1,105 @@
+{
+  "alpha": 0.002538016154301076,
+  "artifact_root": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/artifacts/experiments",
+  "candidate": "cubic-action",
+  "feature_mean": [
+    0.5477932502780645,
+    0.5600836074707383,
+    31.36111111111111,
+    112.5,
+    81.13888888888889,
+    0.276335082473471,
+    1.125,
+    0.40306239382413733,
+    0.39450445043611765,
+    1712.0277777777778,
+    15929.0,
+    8676.583333333334,
+    0.10082647697283581,
+    1.5929000000000002,
+    0.3293748545631078,
+    0.3080505731734176,
+    116693.69444444444,
+    2500121.6666666665,
+    1068023.638888889,
+    0.04102992382849981,
+    2.500121666666667
+  ],
+  "feature_scale": [
+    0.320912680917927,
+    0.2842724099850029,
+    26.99089638478724,
+    57.207953992430106,
+    45.7500168656786,
+    0.1564141910672295,
+    0.572079539924301,
+    0.34744228973464725,
+    0.313638522212029,
+    2438.3138127050825,
+    12670.808300972752,
+    8198.691434799553,
+    0.086227124864768,
+    1.2670808300972751,
+    0.3430042107394045,
+    0.30561299506465167,
+    218053.57957529862,
+    2479050.3986219987,
+    1330488.1603216617,
+    0.04263537931332379,
+    2.4790503986219985
+  ],
+  "intercept_s": 0.7932138402635851,
+  "row_count": 36,
+  "run_dirs": [
+    "monte-carlo-data-epoch-1_20260615T165014",
+    "monte-carlo-data-epoch-2_20260615T165054"
+  ],
+  "seed": 11,
+  "selected_ablation": {
+    "alpha": 0.0007922758252752512,
+    "candidate": "cubic-action",
+    "mae_s": 0.07786380201115278,
+    "nonzero_terms": 12,
+    "r2": 0.9787733459465313,
+    "rmse_s": 0.1040192491884556,
+    "seed": 11,
+    "term_count": 21
+  },
+  "terms": [
+    {
+      "name": "hbar",
+      "penalty_weight": 1.0,
+      "standardized_coefficient_s": 0.08364892698412302
+    },
+    {
+      "name": "burst_steps",
+      "penalty_weight": 1.0,
+      "standardized_coefficient_s": 0.3024368059472628
+    },
+    {
+      "name": "horizon_duration_s",
+      "penalty_weight": 1.0,
+      "standardized_coefficient_s": 0.0016953459751108803
+    },
+    {
+      "name": "hbar^2",
+      "penalty_weight": 2.0,
+      "standardized_coefficient_s": 0.03224842584533946
+    },
+    {
+      "name": "burst_steps^2",
+      "penalty_weight": 2.0,
+      "standardized_coefficient_s": 0.40387958697562243
+    },
+    {
+      "name": "burst_fraction^2",
+      "penalty_weight": 2.0,
+      "standardized_coefficient_s": -0.16940914885193056
+    },
+    {
+      "name": "coast_steps^3",
+      "penalty_weight": 4.0,
+      "standardized_coefficient_s": -0.0038977896993514388
+    }
+  ]
+}

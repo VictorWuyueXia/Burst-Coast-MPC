@@ -7,17 +7,18 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from torch.utils.data import DataLoader
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = SCRIPT_DIR / "config.yaml"
 SNAPSHOT_SCHEMA_VERSION = 1
-TRAINER_NUM_WORKERS = 0
+TRAINER_NUM_WORKERS = 8
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -31,6 +32,75 @@ from dataset import (
     split_tensor_table,
 )
 from diagnostics import evaluate_snapshot
+
+
+class EpochMSELogger(Callback):
+    def __init__(self, snapshot_dir: Path) -> None:
+        self.snapshot_dir = snapshot_dir
+        self.train_error_sum = 0.0
+        self.train_row_count = 0
+        self.validation_error_sum = 0.0
+        self.validation_row_count = 0
+
+    def on_fit_start(self, trainer: Any, pl_module: Any) -> None:
+        curve_file = (self.snapshot_dir / "training_curve.csv").open("w", encoding="utf-8")
+        curve_file.write("epoch,train_mse,val_mse\n")
+        curve_file.close()
+
+    def on_train_epoch_start(self, trainer: Any, pl_module: Any) -> None:
+        self.train_error_sum = 0.0
+        self.train_row_count = 0
+
+    def on_train_batch_end(
+        self,
+        trainer: Any,
+        pl_module: Any,
+        outputs: Any,
+        batch: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        batch_idx: int,
+    ) -> None:
+        features, physical, target = batch
+        torch.set_grad_enabled(False)
+        prediction = pl_module(features, physical)
+        torch.set_grad_enabled(True)
+        self.train_error_sum += float(torch.sum((prediction - target) ** 2).detach().cpu())
+        self.train_row_count += int(target.numel())
+
+    def on_validation_epoch_start(self, trainer: Any, pl_module: Any) -> None:
+        self.validation_error_sum = 0.0
+        self.validation_row_count = 0
+
+    def on_validation_batch_end(
+        self,
+        trainer: Any,
+        pl_module: Any,
+        outputs: Any,
+        batch: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        batch_idx: int,
+        dataloader_idx: int = 0,
+    ) -> None:
+        if trainer.sanity_checking:
+            return
+        features, physical, target = batch
+        torch.set_grad_enabled(False)
+        prediction = pl_module(features, physical)
+        torch.set_grad_enabled(True)
+        self.validation_error_sum += float(torch.sum((prediction - target) ** 2).detach().cpu())
+        self.validation_row_count += int(target.numel())
+
+    def on_validation_epoch_end(self, trainer: Any, pl_module: Any) -> None:
+        if trainer.sanity_checking:
+            return
+        train_mse = self.train_error_sum / self.train_row_count
+        val_mse = self.validation_error_sum / self.validation_row_count
+        line = f"{trainer.current_epoch},{train_mse:.9f},{val_mse:.9f}\n"
+        curve_file = (self.snapshot_dir / "training_curve.csv").open("a", encoding="utf-8")
+        curve_file.write(line)
+        curve_file.close()
+        print(
+            "offline-training epoch "
+            f"epoch={trainer.current_epoch} train_mse={train_mse:.9f} val_mse={val_mse:.9f}"
+        )
 
 
 def create_snapshot_dir(config) -> Path:
@@ -142,7 +212,7 @@ def main() -> None:
         devices=1,
         precision="32-true",
         max_epochs=config.max_epochs,
-        callbacks=[checkpoint],
+        callbacks=[checkpoint, EpochMSELogger(snapshot_dir)],
         logger=False,
         enable_progress_bar=False,
         enable_model_summary=False,

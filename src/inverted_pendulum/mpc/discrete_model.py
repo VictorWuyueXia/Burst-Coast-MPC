@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import Any
 
 import casadi as ca
@@ -10,8 +11,17 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from inverted_pendulum.environment.dynamics import rk4_step
-from inverted_pendulum.mpc.types import SplitCandidate
 from inverted_pendulum.utils.config_schema import EnvironmentConfig, PendulumConfig
+
+
+@dataclass(frozen=True)
+class SplitCandidate:
+    """One fixed burst-coast partition generated from a configured split ratio."""
+
+    lambda_value: float
+    total_steps: int
+    burst_steps: int
+    coast_steps: int
 
 
 def pendulum_derivatives_symbolic(x: Any, u_nm: Any, pendulum: PendulumConfig) -> Any:

@@ -1,0 +1,8 @@
+solve_time_s = 0.7932138403
+  + (0.08364892698) * z(hbar)
+  + (0.3024368059) * z(burst_steps)
+  + (0.001695345975) * z(horizon_duration_s)
+  + (0.03224842585) * z(hbar^2)
+  + (0.403879587) * z(burst_steps^2)
+  + (-0.1694091489) * z(burst_fraction^2)
+  + (-0.003897789699) * z(coast_steps^3)
