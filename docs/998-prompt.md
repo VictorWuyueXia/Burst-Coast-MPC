@@ -73,6 +73,7 @@ Our coding style rules:
 Sweep the entire program repo and hunt for these vialation of coding style desciplines. And plan appropriate fixes.
 
 
+- how to run monte carlo with more data in fast/low-energy and high-return cases?
 
 
 
@@ -91,4 +92,50 @@ Watch the next training curve
 If 4000-5000 epochs flattens near current validation MSE, data is the bottleneck. If it keeps dropping, optimization was the bottleneck.
 
 - how to run monte carlo in parallel?
-- how to run monte carlo with more data in fast/low-energy and high-return cases?
+
+
+
+
+1. Monte Carlo data generation
+2. Q-network design
+3. offline critic training
+4. compute-time model fitting from solve logs
+5. online simulated training while preserving MPC as independent controller
+You are now past step 3: you have a good offline-trained critic candidate.
+Next steps:
+- Freeze the candidate snapshot
+Use artifacts/model-snapshots/structured-critic_20260614T215834 as the current candidate. Keep its config.json, normalization.json, lambda.json, checkpoint, and diagnostics together.
+
+- Update the report
+Change the last paragraph from “current active step is Monte Carlo data generation” to “current active step is validating and deploying the offline critic.”
+
+- Build critic loading/inference
+Add code that loads:
+-- critic_state_dict.pt or best checkpoint
+-- normalization.json
+-- lambda.json
+-- model structure assumptions
+Then expose a function that evaluates Q(s, bbar, hbar) over the action grid.
+
+- Add grid action selection
+For each decision state, evaluate the critic over the (bbar, hbar) grid and select:
+`argmin_a Q(s, a)`
+MPC still solves torque; the critic only chooses burst/horizon.
+
+- Fit or decide compute-time handling
+The report says compute-time model fitting is next. Your critic currently uses logged solve-time-s; deployment needs either:
+a fitted solve-time predictor, or
+a simple measured/constant compute-time assumption for first rollout tests.
+
+- Run closed-loop simulation A/B tests
+Compare:
+existing fixed/sampled burst-coast MPC
+critic-selected burst/horizon MPC
+maybe full-horizon or short-horizon baselines
+Track success rate, return cost, time to goal, actuation effort, solve time, and number of replans.
+
+- Inspect failures
+For bad episodes, log selected (bbar, hbar), predicted Q, realized return, and state region. This tells you whether the critic is choosing badly or MPC itself is failing.
+
+- Only then consider online training
+Do not jump to online RL yet. First prove the offline critic improves closed-loop simulation against baselines.
