@@ -42,7 +42,8 @@ env/
 .ruff_cache/
 
 # --- Experiment outputs and research logs ------------------------------------
-artifacts/
+artifacts/experiments/
+artifacts/MonteCarloData/
 runs/
 outputs/
 results/
