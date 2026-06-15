@@ -144,6 +144,7 @@ Do not jump to online RL yet. First prove the offline critic improves closed-loo
 
 Read the current [800-report.md](/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/docs/800-report.md) report and [5.6-NN-design.md](/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/docs/5.6-NN-design.md) [5.61-offline-training-dev-plan.md](/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/docs/5.61-offline-training-dev-plan.md) for this stage of dev plan. Right now we have a time fitting model and an offline trained model. We need to dev a handle in [coordinator.py](/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/src/burst_coast_mpc/coordinator.py) for the online RL training.
 
-- run a model training with small batch and 1 epoch so you get what the model artifact looks like.
-- The program now will have four modes: 1. simulate->mpc-only which runs our current simulation path; 2. intelligent, which is the deployment mode for RL+MPC with out learning; 3. train, which is the online training mode for RL policy 4. montecarlo, as current
+- See and get what the model artifact looks like.
+- The program now will have four modes: 1. simulate->mpc-only which runs our current simulation path; 2. intelligent, which is the deployment mode for RL+MPC with out learning; 3. train, which is the online training mode for RL policy 4. montecarlo, as current. Change CLI file and coordinator file accordingly.
 - use pytorchlightning as specified in environment file
+- each mode is its own file for bring up the simulation, rename the coordinator file to epoch_coordinator that better reflect its row of coordinating progress within an epoch.
