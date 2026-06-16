@@ -102,19 +102,21 @@ class CasadiMPCController:
             plan_id=active_plan.plan.plan_id,
         )
 
-    def start_monte_carlo_plan(
+    def start_burst_coast_plan(
         self,
         observation: StateObs,
-        monte_carlo_action: MonteCarloAction,
+        grid_action: MonteCarloAction,
+        *,
+        plan_source: str,
     ) -> SelectedPlan:
-        """Solve one sampled burst-coast candidate and make it the active plan."""
+        """Solve one selected burst-coast candidate and make it the active plan."""
 
         state = np.asarray([observation.theta_rad, observation.omega_rad_s], dtype=np.float64)
         candidate = SplitCandidate(
-            lambda_value=monte_carlo_action.bbar,
-            total_steps=monte_carlo_action.horizon_steps,
-            burst_steps=monte_carlo_action.burst_steps,
-            coast_steps=monte_carlo_action.coast_steps,
+            lambda_value=grid_action.bbar,
+            total_steps=grid_action.horizon_steps,
+            burst_steps=grid_action.burst_steps,
+            coast_steps=grid_action.coast_steps,
         )
         selected = solve_candidate(state, self._previous_input_nm, candidate, self.environment)
         plan = self._selected_plan(observation, selected, [selected])
@@ -124,15 +126,15 @@ class CasadiMPCController:
             logging.INFO,
             identity=self.identity,
             status="ready",
-            action="solve_monte_carlo_candidate",
+            action=f"solve_{plan_source}_candidate",
             action_result="plan_selected",
             t_index=observation.t_index,
             t_sec=observation.t_sec,
             plan_id=plan.plan_id,
-            bbar=f"{monte_carlo_action.bbar:.6f}",
-            hbar=f"{monte_carlo_action.hbar:.6f}",
-            burst_steps=monte_carlo_action.burst_steps,
-            horizon_steps=monte_carlo_action.horizon_steps,
+            bbar=f"{grid_action.bbar:.6f}",
+            hbar=f"{grid_action.hbar:.6f}",
+            burst_steps=grid_action.burst_steps,
+            horizon_steps=grid_action.horizon_steps,
             solve_time_s=f"{plan.solve_time_s:.6f}",
             objective_value=f"{plan.objective_value:.9f}",
         )

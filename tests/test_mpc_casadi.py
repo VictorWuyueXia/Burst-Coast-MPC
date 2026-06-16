@@ -239,7 +239,11 @@ def test_controller_starts_direct_monte_carlo_plan_without_candidate_enumeration
 
     monkeypatch.setattr("inverted_pendulum.mpc.controller.split_candidates", fail_split_candidates)
 
-    plan = controller.start_monte_carlo_plan(observation, monte_carlo_action)
+    plan = controller.start_burst_coast_plan(
+        observation,
+        monte_carlo_action,
+        plan_source="monte_carlo",
+    )
     action = controller.select_action(observation, force_replan=False)
 
     assert plan.candidate.total_steps == horizon_steps

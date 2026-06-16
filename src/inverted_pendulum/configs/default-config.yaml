@@ -11,7 +11,7 @@ experiment:
     theta-rad: 1.57 # pi/2
     omega-rad-s: 0.0
 coordinator:
-  node-id: Coordinator
+  node-id: EpochCoordinator
   mode: synchronous
   event-trigger: true
   decision-interval-steps: 1
@@ -36,3 +36,18 @@ environment:
 mpc:
   controller: IP-dynamics-naturalPeriod
   split-ratios: [0.1, 0.2, 0.3]
+rl:
+  critic-artifact-dir: artifacts/inverted_pendulum_frozen/structured-critic_20260614T215834
+  time-model-artifact-dir: artifacts/inverted_pendulum_frozen/linear_20260615T191818
+  gamma: 1.0
+  time-weight: 1.0
+  action-weight: 1.0
+  compute-weight: 1.0
+  fail-penalty: 100.0
+  exploration-epsilon: 0.05
+  exploration-temperature: 1.0
+  training-learning-rate: 0.0005
+  training-batch-size: 64
+  training-max-epochs: 1
+  training-seed: 20260616
+  training-output-root: artifacts/model-snapshots

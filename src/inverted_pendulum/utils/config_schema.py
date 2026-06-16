@@ -159,6 +159,25 @@ class MPCConfig(ConfigBase):
         return value
 
 
+class RLConfig(ConfigBase):
+    """Frozen critic paths and online RL controls for intelligent and train modes."""
+
+    critic_artifact_dir: str = Field(alias="critic-artifact-dir")
+    time_model_artifact_dir: str = Field(alias="time-model-artifact-dir")
+    gamma: float = Field(ge=0.0, le=1.0)
+    time_weight: float = Field(alias="time-weight", ge=0.0)
+    action_weight: float = Field(alias="action-weight", ge=0.0)
+    compute_weight: float = Field(alias="compute-weight", ge=0.0)
+    fail_penalty: float = Field(alias="fail-penalty", ge=0.0)
+    exploration_epsilon: float = Field(alias="exploration-epsilon", ge=0.0, le=1.0)
+    exploration_temperature: float = Field(alias="exploration-temperature", gt=0.0)
+    training_learning_rate: float = Field(alias="training-learning-rate", gt=0.0)
+    training_batch_size: int = Field(alias="training-batch-size", gt=0)
+    training_max_epochs: int = Field(alias="training-max-epochs", gt=0)
+    training_seed: int = Field(alias="training-seed")
+    training_output_root: str = Field(alias="training-output-root")
+
+
 class RootConfig(ConfigBase):
     """Fully composed normal episode configuration."""
 
@@ -166,6 +185,7 @@ class RootConfig(ConfigBase):
     coordinator: CoordinatorConfig
     environment: EnvironmentConfig
     mpc: MPCConfig
+    rl: RLConfig
     artifacts: ArtifactConfig
 
 

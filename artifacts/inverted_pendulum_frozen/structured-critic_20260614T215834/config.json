@@ -1,0 +1,24 @@
+{
+  "action-grid-count": 41,
+  "batch-size": 512,
+  "constants": {
+    "action-weight": 1.0,
+    "compute-weight": 1.0,
+    "full-horizon-steps": 201.0,
+    "gravity-m-s2": 9.80665,
+    "length-m": 1.0,
+    "mass-kg": 1.0,
+    "time-weight": 1.0,
+    "timestep-s": 0.01
+  },
+  "data-roots": [
+    "/home/victor-xia/repos/Burst-Coast-MPC/artifacts/MonteCarloData"
+  ],
+  "learning-rate": 0.002,
+  "max-epochs": 300,
+  "output-root": "/home/victor-xia/repos/Burst-Coast-MPC/artifacts/model-snapshots",
+  "run-name": "structured-critic",
+  "seed": 20260612,
+  "snapshot-schema-version": 1,
+  "train-fraction": 0.8
+}

@@ -22,11 +22,11 @@ def test_cli_run_episode(monkeypatch) -> None:
     def load_config_stub():
         return config
 
-    monkeypatch.setattr("burst_coast_mpc.cli.load_config", load_config_stub)
+    monkeypatch.setattr("burst_coast_mpc.mpc_only_mode.load_config", load_config_stub)
 
     result = runner.invoke(
         app,
-        ["--inverted-pendulum", "run-episode", "--no-visual"],
+        ["--inverted-pendulum", "mpc-only", "--no-visual"],
     )
 
     assert result.exit_code == 0, result.output
@@ -45,13 +45,13 @@ def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> N
     def load_config_stub():
         return config
 
-    monkeypatch.setattr("burst_coast_mpc.cli.load_config", load_config_stub)
+    monkeypatch.setattr("burst_coast_mpc.mpc_only_mode.load_config", load_config_stub)
 
     result = runner.invoke(
         app,
         [
             "--inverted-pendulum",
-            "run-episode",
+            "mpc-only",
             "--alias",
             "smoke",
             "--no-visual",
@@ -87,11 +87,11 @@ def test_cli_generate_mc_data_writes_step_and_rl_artifacts(tmp_path, monkeypatch
         return config
 
     monkeypatch.setattr(
-        "burst_coast_mpc.cli.load_data_generation_config",
+        "burst_coast_mpc.monte_carlo_mode.load_data_generation_config",
         load_data_generation_config_stub,
     )
 
-    result = runner.invoke(app, ["--inverted-pendulum", "generate-montecarlo-data"])
+    result = runner.invoke(app, ["--inverted-pendulum", "montecarlo"])
 
     assert result.exit_code == 0, result.output
     run_dirs = list(tmp_path.iterdir())
@@ -124,13 +124,13 @@ def test_cli_generate_mc_data_epochs_create_separate_artifacts(tmp_path, monkeyp
         return config
 
     monkeypatch.setattr(
-        "burst_coast_mpc.cli.load_data_generation_config",
+        "burst_coast_mpc.monte_carlo_mode.load_data_generation_config",
         load_data_generation_config_stub,
     )
 
     result = runner.invoke(
         app,
-        ["--inverted-pendulum", "generate-montecarlo-data", "--epochs", "2"],
+        ["--inverted-pendulum", "montecarlo", "--epochs", "2"],
     )
 
     assert result.exit_code == 0, result.output

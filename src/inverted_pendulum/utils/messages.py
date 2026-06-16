@@ -114,3 +114,4 @@ class EpisodeResult:
 
     summary: ExperimentSummary
     records: list[StepRecord]
+    rl_records: list[RLStepRecord]

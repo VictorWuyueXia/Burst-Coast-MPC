@@ -1,18 +1,20 @@
 import logging
 import math
 
-from burst_coast_mpc.coordinator import Coordinator
+from burst_coast_mpc.epoch_coordinator import EpochCoordinator
+from inverted_pendulum.RL.policy import RLActionSelection
 from inverted_pendulum.utils.config_schema import load_config
 from inverted_pendulum.utils.logging import ThirdPersonObservers
 from inverted_pendulum.utils.messages import ActionCommand
+from inverted_pendulum.utils.monte_carlo import MonteCarloAction
 
 
-def _fast_coordinator(config) -> Coordinator:
+def _fast_coordinator(config) -> EpochCoordinator:
     config.experiment.max_steps = 3
     config.environment.goal.hold_steps = 999
     config.environment.simulation.pace_s = 0.0
     config.environment.simulation.timestep_s = 0.25
-    return Coordinator(
+    return EpochCoordinator(
         config.coordinator,
         config.environment,
         config.experiment,
@@ -37,7 +39,7 @@ def test_coordinator_invokes_third_person_observers() -> None:
     config.environment.goal.hold_steps = 999
     config.environment.simulation.pace_s = 0.0
     config.environment.simulation.timestep_s = 0.25
-    coordinator = Coordinator(
+    coordinator = EpochCoordinator(
         config.coordinator,
         config.environment,
         config.experiment,
@@ -84,7 +86,7 @@ def test_event_trigger_forces_replanning_at_zero_and_pi_sections() -> None:
     config.environment.goal.hold_steps = 999
     config.environment.simulation.pace_s = 0.0
     config.environment.simulation.timestep_s = 0.25
-    coordinator = Coordinator(
+    coordinator = EpochCoordinator(
         config.coordinator,
         config.environment,
         config.experiment,
@@ -126,3 +128,47 @@ def test_event_trigger_forces_replanning_at_zero_and_pi_sections() -> None:
     coordinator.run_episode()
 
     assert force_replans == [False, False]
+
+
+def test_epoch_coordinator_records_rl_transitions_from_policy() -> None:
+    config = load_config()
+    config.experiment.max_steps = 2
+    config.experiment.stop_on_goal = False
+    config.coordinator.event_trigger = False
+    config.environment.goal.hold_steps = 999
+    config.environment.simulation.pace_s = 0.0
+    config.environment.simulation.timestep_s = 0.25
+
+    class FixedPolicy:
+        def select_action(self, observation, *, explore: bool) -> RLActionSelection:
+            return RLActionSelection(
+                action=MonteCarloAction(
+                    bbar=0.5,
+                    hbar=0.5,
+                    horizon_steps=2,
+                    burst_steps=1,
+                    coast_steps=1,
+                ),
+                q_value=1.0,
+                probability=1.0,
+                mode="rl_test",
+            )
+
+    coordinator = EpochCoordinator(
+        config.coordinator,
+        config.environment,
+        config.experiment,
+        config.mpc,
+        logger=logging.getLogger("test"),
+        rl_policy=FixedPolicy(),
+        rl_config=config.rl,
+    )
+
+    result = coordinator.run_episode()
+
+    assert result.summary.records_emitted == 2
+    assert len(result.rl_records) == 1
+    assert result.rl_records[0].burst_steps == 1
+    assert result.rl_records[0].horizon_steps == 2
+    assert result.rl_records[0].done is True
+    assert result.rl_records[0].return_cost == result.rl_records[0].step_cost

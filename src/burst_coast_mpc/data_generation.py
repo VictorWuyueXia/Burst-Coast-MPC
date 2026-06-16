@@ -92,9 +92,10 @@ class MonteCarloDataGenerator:
                     self.config.data_generation,
                     self.config.environment,
                 )
-                selected_plan = controller.start_monte_carlo_plan(
+                selected_plan = controller.start_burst_coast_plan(
                     start_observation,
                     monte_carlo_action,
+                    plan_source="monte_carlo",
                 )
                 segment_records: list[StepRecord] = []
 

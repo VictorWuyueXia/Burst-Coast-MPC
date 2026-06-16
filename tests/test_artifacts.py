@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-from burst_coast_mpc.coordinator import Coordinator
+from burst_coast_mpc.epoch_coordinator import EpochCoordinator
 from inverted_pendulum.utils.artifacts import RL_STEP_CSV_HEADERS, STEP_CSV_HEADERS, ArtifactWriter
 from inverted_pendulum.utils.config_schema import load_config
 from inverted_pendulum.utils.logging import ThirdPersonObservers
@@ -33,7 +33,7 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
     )
     writer.write_config(config)
     writer.open_step_writer()
-    coordinator = Coordinator(
+    coordinator = EpochCoordinator(
         config.coordinator,
         config.environment,
         config.experiment,
