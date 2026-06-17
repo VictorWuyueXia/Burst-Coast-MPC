@@ -27,11 +27,12 @@ def run_intelligent_mode(
     *,
     alias: str | None,
     no_visual: bool,
+    with_exploration: bool,
     console: Console,
 ) -> None:
-    """Run one deterministic RL-grid-selected MPC deployment episode."""
+    """Run one RL-grid-selected MPC deployment episode."""
 
-    # 1. Load runtime config, frozen critic policy, and command logger.
+    # Load runtime config, frozen critic policy, and command logger.
     if task != "inverted_pendulum":
         msg = "Only the inverted pendulum task has a runtime implementation"
         raise NotImplementedError(msg)
@@ -42,7 +43,7 @@ def run_intelligent_mode(
         config.artifacts.alias = alias
     policy = StructuredCriticPolicy(config.rl, config.environment)
 
-    # 2. Open artifact streams before dense and RL records are emitted.
+    # Open artifact streams before dense and RL records are emitted.
     artifact_writer: ArtifactWriter | None = None
     run_log_handler: logging.Handler | None = None
     if config.artifacts.enabled:
@@ -54,6 +55,7 @@ def run_intelligent_mode(
                 "mode": "intelligent",
                 "alias": alias,
                 "no_visual": no_visual,
+                "with_exploration": with_exploration,
             },
         )
         artifact_writer.write_config(config)
@@ -65,7 +67,7 @@ def run_intelligent_mode(
             artifact_writer.run_dir,
         )
 
-    # 3. Create realtime diagnostics only when the operator has not disabled visuals.
+    # Create realtime diagnostics only when the operator has not disabled visuals.
     realtime_plot = None
     if not no_visual:
         from inverted_pendulum.visualization.realtime import RealtimeEpisodePlot
@@ -76,7 +78,7 @@ def run_intelligent_mode(
             include_animation=True,
         )
 
-    # 4. Bridge coordinator events into the active visualization and artifact sinks.
+    # Bridge coordinator events into the active visualization and artifact sinks.
     def observe_episode_start(observation) -> None:
         if realtime_plot is not None:
             realtime_plot.start_animation(observation)
@@ -87,7 +89,7 @@ def run_intelligent_mode(
         if realtime_plot is not None:
             realtime_plot.add_step(observation, record)
 
-    # 5. Run deterministic critic-selected burst-horizon replanning with MPC torque solves.
+    # Run critic-selected burst-horizon replanning with MPC torque solves.
     coordinator = EpochCoordinator(
         config.coordinator,
         config.environment,
@@ -96,7 +98,7 @@ def run_intelligent_mode(
         logger=logger,
         rl_policy=policy,
         rl_config=config.rl,
-        rl_explore=False,
+        rl_explore=with_exploration,
     )
     result = coordinator.run_episode(
         ThirdPersonObservers(
@@ -105,7 +107,7 @@ def run_intelligent_mode(
         )
     )
 
-    # 6. Write dense episode artifacts, RL transitions, and figures.
+    # Write dense episode artifacts, RL transitions, and figures.
     if artifact_writer is not None:
         from matplotlib import pyplot as plt
 
@@ -122,11 +124,12 @@ def run_intelligent_mode(
     if realtime_plot is not None:
         realtime_plot.finish()
 
-    # 7. Emit one concise terminal summary for scripts and human inspection.
+    # Emit one concise terminal summary for scripts and human inspection.
     artifact_dir = None
     if artifact_writer is not None:
         artifact_dir = str(artifact_writer.run_dir)
     output = episode_output(result.summary, artifact_dir=artifact_dir)
     output["mode"] = "intelligent"
+    output["with_exploration"] = with_exploration
     output["rl_steps"] = len(result.rl_records)
     console.print(output)

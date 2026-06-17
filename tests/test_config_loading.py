@@ -18,6 +18,7 @@ def test_default_config_loads_as_atomic_file() -> None:
     assert config.experiment.run_id == "pendulum_baseline"
     assert config.coordinator.event_trigger is True
     assert config.mpc.controller == "IP-dynamics-naturalPeriod"
+    assert config.rl.training_updates_per_transition == 8
     assert not hasattr(config.mpc, "cost")
     assert not hasattr(config, "runtime")
     assert not hasattr(config.environment.simulation, "max_rollout_steps")

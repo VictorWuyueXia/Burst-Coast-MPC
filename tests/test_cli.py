@@ -67,6 +67,29 @@ def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> N
         assert (run_dirs[0] / "figures" / f"{name}.png").exists()
 
 
+def test_cli_intelligent_routes_weighted_exploration(monkeypatch) -> None:
+    runner = CliRunner()
+    calls = []
+
+    def run_intelligent_stub(task, *, alias, no_visual, with_exploration, console):
+        calls.append((task, alias, no_visual, with_exploration, console))
+
+    monkeypatch.setattr("burst_coast_mpc.cli.run_intelligent_mode", run_intelligent_stub)
+
+    result = runner.invoke(
+        app,
+        ["--inverted-pendulum", "intelligent", "--with-exploration", "--no-visual"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert len(calls) == 1
+    task, alias, no_visual, with_exploration, _ = calls[0]
+    assert task == "inverted_pendulum"
+    assert alias is None
+    assert no_visual is True
+    assert with_exploration is True
+
+
 def test_cli_generate_mc_data_writes_step_and_rl_artifacts(tmp_path, monkeypatch) -> None:
     _require_matplotlib()
     runner = CliRunner()

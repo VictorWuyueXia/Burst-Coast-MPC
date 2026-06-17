@@ -95,10 +95,23 @@ def intelligent_command(
             help="Run without realtime plots or pendulum animation.",
         ),
     ] = False,
+    with_exploration: Annotated[
+        bool,
+        typer.Option(
+            "--with-exploration",
+            help="Sample the critic action grid with inverse-cost probabilities.",
+        ),
+    ] = False,
 ) -> None:
     """Run RL critic deployment mode without online learning."""
 
-    run_intelligent_mode(ctx.obj, alias=alias, no_visual=no_visual, console=console)
+    run_intelligent_mode(
+        ctx.obj,
+        alias=alias,
+        no_visual=no_visual,
+        with_exploration=with_exploration,
+        console=console,
+    )
 
 
 @app.command("train")
