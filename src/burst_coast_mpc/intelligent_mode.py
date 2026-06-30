@@ -13,7 +13,7 @@ from inverted_pendulum.utils.artifacts import (
     attach_run_log_handler,
     detach_run_log_handler,
 )
-from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.config_schema import load_intelligent_config
 from inverted_pendulum.utils.logging import (
     ThirdPersonObservers,
     configure_logging,
@@ -37,7 +37,7 @@ def run_intelligent_mode(
         msg = "Only the inverted pendulum task has a runtime implementation"
         raise NotImplementedError(msg)
     configure_logging()
-    config = load_config()
+    config = load_intelligent_config()
     logger = logging.getLogger("burst_coast_mpc")
     if alias is not None:
         config.artifacts.alias = alias
@@ -50,7 +50,7 @@ def run_intelligent_mode(
         artifact_writer = ArtifactWriter.create(
             config.artifacts.root_dir,
             alias=config.artifacts.alias,
-            config_package="default-config",
+            config_package="intelligent-config",
             cli_args={
                 "mode": "intelligent",
                 "alias": alias,

@@ -1,13 +1,22 @@
+import json
+from pathlib import Path
+
+import numpy as np
 import pytest
 from pydantic import ValidationError
 
 import inverted_pendulum.utils.config_schema as config_schema
+from inverted_pendulum.mpc.controller import prediction_horizon_steps
 from inverted_pendulum.utils.config_schema import (
     DataGenerationRootConfig,
     RootConfig,
     load_config,
     load_data_generation_config,
+    load_intelligent_config,
+    load_online_training_config,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_default_config_loads_as_atomic_file() -> None:
@@ -22,6 +31,60 @@ def test_default_config_loads_as_atomic_file() -> None:
     assert not hasattr(config.mpc, "cost")
     assert not hasattr(config, "runtime")
     assert not hasattr(config.environment.simulation, "max_rollout_steps")
+
+
+def test_intelligent_config_uses_frozen_critic_for_deployment() -> None:
+    config = load_intelligent_config()
+
+    assert isinstance(config, RootConfig)
+    assert config.artifacts.alias == "intelligent"
+    assert config.experiment.run_id == "pendulum_intelligent"
+    assert config.environment.simulation.pace_s == config.environment.simulation.timestep_s
+    assert config.rl.critic_artifact_dir.endswith("structured-critic_20260614T215834")
+    assert config.rl.time_model_artifact_dir.endswith("linear_20260615T191818")
+    assert config.rl.exploration_epsilon == 0.02
+    assert config.rl.exploration_temperature == 0.5
+
+
+def test_frozen_time_model_is_positive_on_deployment_grid() -> None:
+    config = load_intelligent_config()
+    critic_dir = REPO_ROOT / config.rl.critic_artifact_dir
+    time_model_dir = REPO_ROOT / config.rl.time_model_artifact_dir
+    critic_config = json.loads((critic_dir / "config.json").read_text(encoding="utf-8"))
+    time_model = json.loads((time_model_dir / "final_model.json").read_text(encoding="utf-8"))
+    axis = np.linspace(0.0, 1.0, int(critic_config["action-grid-count"]))
+    bbar_grid, hbar_grid = np.meshgrid(axis, axis, indexing="xy")
+    full_horizon_steps = prediction_horizon_steps(config.environment)
+    horizon_steps = np.maximum(1, np.rint(hbar_grid * full_horizon_steps)).astype(np.int64)
+    burst_steps = np.maximum(1, np.rint(bbar_grid * 0.5 * horizon_steps)).astype(np.int64)
+    compute_time_s = np.full(bbar_grid.shape, float(time_model["intercept_s"]))
+
+    for term in time_model["all_terms"]:
+        if term["name"] == "horizon_steps":
+            compute_time_s += float(term["coefficient_s"]) * horizon_steps
+        elif term["name"] == "burst_steps":
+            compute_time_s += float(term["coefficient_s"]) * burst_steps
+        elif term["name"] == "burst_horizon_steps":
+            compute_time_s += float(term["coefficient_s"]) * burst_steps * horizon_steps
+        else:
+            raise ValueError(f"Unsupported frozen time-model term: {term['name']}")
+
+    assert float(compute_time_s.min()) > 0.0
+
+
+def test_online_training_config_uses_frozen_critic_for_exploration() -> None:
+    config = load_online_training_config()
+
+    assert isinstance(config, RootConfig)
+    assert config.artifacts.alias == "online-training"
+    assert config.experiment.run_id == "pendulum_online_training"
+    assert config.environment.simulation.pace_s == 0.0
+    assert config.rl.critic_artifact_dir.endswith("structured-critic_20260614T215834")
+    assert config.rl.time_model_artifact_dir.endswith("linear_20260615T191818")
+    assert config.rl.exploration_epsilon == 0.10
+    assert config.rl.exploration_temperature == 2.0
+    assert config.rl.training_updates_per_transition == 8
+
 
 def test_data_generation_config_loads_with_event_trigger_disabled() -> None:
     config = load_data_generation_config()

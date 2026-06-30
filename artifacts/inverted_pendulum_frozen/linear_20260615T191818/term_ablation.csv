@@ -1,4 +1,2 @@
-candidate,mean_rmse_s,rmse_improvement_vs_bilinear_s,relative_improvement_vs_bilinear,passes_absolute_threshold,passes_relative_threshold,necessary
-bilinear-hlog,0.32054474363880425,0.009606330067378654,0.029096770637577218,False,True,False
-bilinear-blog,0.33255155832749295,-0.0024004846213100395,-0.007270867225609402,False,False,False
-bilinear-log,0.3217233183777418,0.008427755328441089,0.025526966287988957,False,True,False
+candidate,mean_rmse_s,rmse_improvement_vs_linear_steps_s,relative_improvement_vs_linear_steps,passes_absolute_threshold,passes_relative_threshold,necessary
+bilinear-steps,0.31517829309699497,0.05177701773685439,0.14109897365758,True,True,True

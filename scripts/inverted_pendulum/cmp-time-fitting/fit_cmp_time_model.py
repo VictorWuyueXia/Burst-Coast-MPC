@@ -1,4 +1,4 @@
-"""Fit a normalized burst-horizon compute-time model from Monte Carlo artifacts."""
+"""Fit a nonnegative burst-horizon compute-time model from Monte Carlo artifacts."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-os.environ["MPLBACKEND"] = "Agg"
 os.environ["MPLCONFIGDIR"] = "/private/tmp/burst-coast-mpc-matplotlib"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "8"
 os.environ["OMP_NUM_THREADS"] = "8"
@@ -23,7 +22,7 @@ from sklearn.preprocessing import StandardScaler
 from threadpoolctl import threadpool_limits
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-ARTIFACT_ROOT = REPO_ROOT / "artifacts" / "experiments"
+ARTIFACT_ROOT = REPO_ROOT / "artifacts" / "MonteCarloData"
 OUTPUT_ROOT = REPO_ROOT / "artifacts" / "cmp-time-fitting"
 SEEDS = (11, 23, 37, 53, 71)
 ALPHAS = np.logspace(-5, 0, 80)
@@ -33,10 +32,8 @@ TEST_FRACTION = 0.25
 MIN_ABSOLUTE_RMSE_IMPROVEMENT_S = 0.01
 MIN_RELATIVE_RMSE_IMPROVEMENT = 0.02
 CANDIDATES = (
-    {"name": "bilinear", "log_terms": ()},
-    {"name": "bilinear-hlog", "log_terms": ("hbar_log1p_hbar",)},
-    {"name": "bilinear-blog", "log_terms": ("bbar_log1p_bbar",)},
-    {"name": "bilinear-log", "log_terms": ("hbar_log1p_hbar", "bbar_log1p_bbar")},
+    {"name": "linear-steps", "interaction": False},
+    {"name": "bilinear-steps", "interaction": True},
 )
 
 
@@ -50,6 +47,8 @@ def load_rows() -> list[dict[str, float | str]]:
                     "run_dir": path.parent.name,
                     "hbar": float(row["hbar"]),
                     "bbar": float(row["bbar"]),
+                    "horizon_steps": float(row["horizon-steps"]),
+                    "burst_steps": float(row["burst-steps"]),
                     "solve_time_s": float(row["solve-time-s"]),
                 }
             )
@@ -62,7 +61,7 @@ def column(rows: list[dict[str, float | str]], name: str) -> np.ndarray:
 
 
 def build_base(rows: list[dict[str, float | str]]) -> tuple[np.ndarray, np.ndarray]:
-    return np.column_stack([column(rows, "hbar"), column(rows, "bbar")]), column(
+    return np.column_stack([column(rows, "horizon_steps"), column(rows, "burst_steps")]), column(
         rows,
         "solve_time_s",
     )
@@ -72,29 +71,27 @@ def expand_terms(
     candidate: dict[str, object],
     base: np.ndarray,
 ) -> tuple[np.ndarray, list[str]]:
-    hbar = base[:, 0]
-    bbar = base[:, 1]
-    matrices = [hbar, bbar, bbar * hbar]
-    names = ["hbar", "bbar", "bbar_hbar"]
+    horizon_steps = base[:, 0]
+    burst_steps = base[:, 1]
+    matrices = [horizon_steps, burst_steps]
+    names = ["horizon_steps", "burst_steps"]
 
-    # Add requested log interactions one at a time so their contribution is measurable.
-    if "hbar_log1p_hbar" in candidate["log_terms"]:
-        matrices.append(hbar * np.log1p(hbar))
-        names.append("hbar_log1p_hbar")
-    if "bbar_log1p_bbar" in candidate["log_terms"]:
-        matrices.append(bbar * np.log1p(bbar))
-        names.append("bbar_log1p_bbar")
+    # Add the physical interaction only when it improves held-out solve-time fit enough.
+    if candidate["interaction"]:
+        matrices.append(burst_steps * horizon_steps)
+        names.append("burst_horizon_steps")
 
     return np.column_stack(matrices), names
 
 
 def fit_model(x_train: np.ndarray, y_train: np.ndarray) -> tuple[LassoCV, StandardScaler]:
-    scaler = StandardScaler()
+    scaler = StandardScaler(with_mean=False)
     model = LassoCV(
         alphas=ALPHAS,
         cv=CV_FOLDS,
-        fit_intercept=True,
+        fit_intercept=False,
         max_iter=1_000_000,
+        positive=True,
         random_state=0,
         selection="cyclic",
     )
@@ -104,7 +101,9 @@ def fit_model(x_train: np.ndarray, y_train: np.ndarray) -> tuple[LassoCV, Standa
 
 def original_coefficients(model: LassoCV, scaler: StandardScaler) -> tuple[float, np.ndarray]:
     coefficients = model.coef_ / scaler.scale_
-    intercept = float(model.intercept_ - np.dot(coefficients, scaler.mean_))
+    intercept = float(model.intercept_)
+    if scaler.with_mean:
+        intercept -= float(np.dot(coefficients, scaler.mean_))
     return intercept, coefficients
 
 
@@ -161,9 +160,9 @@ def summarize(records: list[dict[str, object]]) -> list[dict[str, object]]:
 
 def improvement_rows(summary: list[dict[str, object]]) -> list[dict[str, object]]:
     by_name = {str(row["candidate"]): row for row in summary}
-    base_rmse = float(by_name["bilinear"]["mean_rmse_s"])
+    base_rmse = float(by_name["linear-steps"]["mean_rmse_s"])
     rows: list[dict[str, object]] = []
-    for name in ["bilinear-hlog", "bilinear-blog", "bilinear-log"]:
+    for name in ["bilinear-steps"]:
         rmse = float(by_name[name]["mean_rmse_s"])
         improvement = base_rmse - rmse
         relative = improvement / base_rmse
@@ -171,8 +170,8 @@ def improvement_rows(summary: list[dict[str, object]]) -> list[dict[str, object]
             {
                 "candidate": name,
                 "mean_rmse_s": rmse,
-                "rmse_improvement_vs_bilinear_s": improvement,
-                "relative_improvement_vs_bilinear": relative,
+                "rmse_improvement_vs_linear_steps_s": improvement,
+                "relative_improvement_vs_linear_steps": relative,
                 "passes_absolute_threshold": improvement >= MIN_ABSOLUTE_RMSE_IMPROVEMENT_S,
                 "passes_relative_threshold": relative >= MIN_RELATIVE_RMSE_IMPROVEMENT,
                 "necessary": (improvement >= MIN_ABSOLUTE_RMSE_IMPROVEMENT_S)
@@ -189,7 +188,7 @@ def select_candidate(
     improvements = improvement_rows(summary)
     useful = {row["candidate"] for row in improvements if row["necessary"]}
     if not useful:
-        selected_name = "bilinear"
+        selected_name = "linear-steps"
     else:
         selected_name = min(
             [row for row in summary if row["candidate"] in useful],
@@ -226,11 +225,9 @@ def model_package(base: np.ndarray, target: np.ndarray, selected: dict[str, obje
 
 def latex_name(name: str) -> str:
     names = {
-        "hbar": "\\tilde H",
-        "bbar": "\\tilde B",
-        "bbar_hbar": "\\tilde B\\tilde H",
-        "hbar_log1p_hbar": "\\tilde H\\log(1+\\tilde H)",
-        "bbar_log1p_bbar": "\\tilde B\\log(1+\\tilde B)",
+        "horizon_steps": "H",
+        "burst_steps": "B",
+        "burst_horizon_steps": "BH",
     }
     return names[name]
 
@@ -249,42 +246,78 @@ def write_equation(path: Path, intercept: float, terms: list[dict[str, float | s
 
 
 def grid_prediction(candidate, model: LassoCV, scaler: StandardScaler, base: np.ndarray):
-    hbar = np.linspace(base[:, 0].min(), base[:, 0].max(), 80)
-    bbar = np.linspace(base[:, 1].min(), base[:, 1].max(), 80)
-    hbar_grid, bbar_grid = np.meshgrid(hbar, bbar)
-    grid_base = np.column_stack([hbar_grid.ravel(), bbar_grid.ravel()])
+    horizon_steps = np.linspace(base[:, 0].min(), base[:, 0].max(), 80)
+    burst_steps = np.linspace(base[:, 1].min(), base[:, 1].max(), 80)
+    horizon_grid, burst_grid = np.meshgrid(horizon_steps, burst_steps)
+    grid_base = np.column_stack([horizon_grid.ravel(), burst_grid.ravel()])
     x_grid, _ = expand_terms(candidate, grid_base)
-    pred_grid = predict(model, scaler, x_grid).reshape(hbar_grid.shape)
-    return hbar_grid, bbar_grid, pred_grid
+    pred_grid = predict(model, scaler, x_grid).reshape(horizon_grid.shape)
+    return horizon_grid, burst_grid, pred_grid
 
 
 def write_plots(output_dir, candidate, model, scaler, base, target) -> None:
-    hbar_grid, bbar_grid, pred_grid = grid_prediction(candidate, model, scaler, base)
+    horizon_grid, burst_grid, pred_grid = grid_prediction(candidate, model, scaler, base)
+    color_min = min(float(target.min()), float(pred_grid.min()))
+    color_max = max(float(target.max()), float(pred_grid.max()))
 
-    # Render the fitted solve-time surface over the normalized action plane.
+    # Render the fitted solve-time surface over the realized MPC dimension plane.
     figure, axis = plt.subplots(figsize=(7.0, 5.2))
-    contour = axis.contourf(hbar_grid, bbar_grid, pred_grid, levels=24, cmap="viridis")
-    axis.scatter(base[:, 0], base[:, 1], c="black", s=16, alpha=0.68)
-    axis.set_xlabel("hbar")
-    axis.set_ylabel("bbar")
+    contour = axis.contourf(
+        horizon_grid,
+        burst_grid,
+        pred_grid,
+        levels=24,
+        cmap="viridis",
+        vmin=color_min,
+        vmax=color_max,
+    )
+    axis.scatter(
+        base[:, 0],
+        base[:, 1],
+        c=target,
+        s=16,
+        alpha=0.75,
+        cmap="viridis",
+        vmin=color_min,
+        vmax=color_max,
+    )
+    axis.set_xlabel("horizon steps")
+    axis.set_ylabel("burst steps")
     axis.set_title("Compute-time fit, 2D")
     figure.colorbar(contour, ax=axis, label="predicted solve time [s]")
     figure.tight_layout()
     figure.savefig(output_dir / "fit_surface_2d.png", dpi=160)
-    plt.close(figure)
 
     # Render measured rows against the fitted surface in physical seconds.
     figure = plt.figure(figsize=(7.0, 5.2))
     axis = figure.add_subplot(111, projection="3d")
-    axis.plot_surface(hbar_grid, bbar_grid, pred_grid, cmap="viridis", alpha=0.72)
-    axis.scatter(base[:, 0], base[:, 1], target, c="black", s=18)
-    axis.set_xlabel("hbar")
-    axis.set_ylabel("bbar")
+    surface = axis.plot_surface(
+        horizon_grid,
+        burst_grid,
+        pred_grid,
+        cmap="viridis",
+        alpha=0.50,
+        vmin=color_min,
+        vmax=color_max,
+    )
+    axis.scatter(
+        base[:, 0],
+        base[:, 1],
+        target,
+        c=target,
+        s=18,
+        alpha=0.75,
+        cmap="viridis",
+        vmin=color_min,
+        vmax=color_max,
+    )
+    axis.set_xlabel("horizon steps")
+    axis.set_ylabel("burst steps")
     axis.set_zlabel("solve time [s]")
     axis.set_title("Compute-time fit, 3D")
+    figure.colorbar(surface, ax=axis, label="solve time [s]", shrink=0.72)
     figure.tight_layout()
     figure.savefig(output_dir / "fit_surface_3d.png", dpi=160)
-    plt.close(figure)
 
 
 def save_model(output_dir: Path, rows, base, target, selected: dict[str, object]) -> None:
@@ -336,6 +369,7 @@ def main() -> None:
             "output_dir": str(output_dir),
         }
     )
+    plt.show(block=True)
 
 
 if __name__ == "__main__":

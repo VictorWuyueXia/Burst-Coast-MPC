@@ -48,7 +48,7 @@ where = ["src", "."]         # Look in the src folder and root
 include = ["burst_coast_mpc*", "inverted_pendulum*", "CR3BP*"]  # Include runtime and task packages
 
 [tool.setuptools.package-data]
-inverted_pendulum = ["configs/*.yaml", "offline_training/config.yaml"]  # Ship task configs
+inverted_pendulum = ["configs/*.yaml"]  # Ship task configs
 
 # Pytest configuration for where to find code and tests
 [tool.pytest.ini_options]

@@ -101,15 +101,18 @@ class StructuredCriticPolicy:
         ).astype(np.int64)
         compute_time_s = np.full(self.grid_bbar.shape, self.time_intercept_s, dtype=np.float64)
         for name, coefficient_s in self.time_terms:
-            if name == "bbar":
-                compute_time_s += coefficient_s * self.grid_bbar
-            elif name == "hbar":
-                compute_time_s += coefficient_s * self.grid_hbar
-            elif name == "bbar_hbar":
-                compute_time_s += coefficient_s * self.grid_bbar * self.grid_hbar
+            if name == "horizon_steps":
+                compute_time_s += coefficient_s * self.grid_horizon_steps
+            elif name == "burst_steps":
+                compute_time_s += coefficient_s * self.grid_burst_steps
+            elif name == "burst_horizon_steps":
+                compute_time_s += coefficient_s * self.grid_burst_steps * self.grid_horizon_steps
             else:
                 msg = f"Unsupported time-fit term in frozen artifact: {name}"
                 raise ValueError(msg)
+        if np.any(compute_time_s < 0.0):
+            msg = "Frozen compute-time artifact predicts negative solve time on the action grid"
+            raise ValueError(msg)
         self.grid_physical = np.column_stack(
             (
                 self.grid_horizon_steps * self.environment.simulation.timestep_s,

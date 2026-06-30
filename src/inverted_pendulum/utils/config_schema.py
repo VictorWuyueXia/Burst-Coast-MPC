@@ -13,6 +13,8 @@ from inverted_pendulum.utils.time import realtime
 
 CONFIG_ROOT = Path(__file__).resolve().parents[1] / "configs"
 DEFAULT_CONFIG_PATH = CONFIG_ROOT / "default-config.yaml"
+INTELLIGENT_CONFIG_PATH = CONFIG_ROOT / "intelligent-config.yaml"
+ONLINE_TRAINING_CONFIG_PATH = CONFIG_ROOT / "online-training-config.yaml"
 DATA_GENERATION_CONFIG_PATH = CONFIG_ROOT / "data-generation-config.yaml"
 
 
@@ -21,6 +23,18 @@ def load_config(config_path: Path = DEFAULT_CONFIG_PATH) -> RootConfig:
 
     resolved = _load_resolved_config(config_path)
     return RootConfig.model_validate(resolved)
+
+
+def load_intelligent_config() -> RootConfig:
+    """Load the deterministic critic-deployment episode config."""
+
+    return load_config(INTELLIGENT_CONFIG_PATH)
+
+
+def load_online_training_config() -> RootConfig:
+    """Load the exploratory online fitted-Q training episode config."""
+
+    return load_config(ONLINE_TRAINING_CONFIG_PATH)
 
 
 def load_data_generation_config(

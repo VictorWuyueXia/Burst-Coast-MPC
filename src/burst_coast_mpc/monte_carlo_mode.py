@@ -20,7 +20,13 @@ from inverted_pendulum.visualization.artifact_plots import (
 )
 
 
-def run_monte_carlo_mode(task: str, *, epochs: int, console: Console) -> None:
+def run_monte_carlo_mode(
+    task: str,
+    *,
+    epochs: int,
+    console: Console,
+    epoch_index_offset: int = 0,
+) -> None:
     """Generate sequential Monte Carlo datasets for offline RL."""
 
     # 1. Load the dedicated Monte Carlo config and validate the one CLI sweep parameter.
@@ -37,15 +43,16 @@ def run_monte_carlo_mode(task: str, *, epochs: int, console: Console) -> None:
     artifact_dirs: list[str] = []
     total_rl_steps = 0
     base_alias = config.artifacts.alias
-    for epoch_index in range(epochs):
+    for local_epoch_index in range(epochs):
         # 2. Derive the epoch-local config so seeds, IDs, and aliases remain disjoint.
+        epoch_index = epoch_index_offset + local_epoch_index
         epoch_config = config.model_copy(deep=True)
         if config.data_generation.seed is not None:
             epoch_config.data_generation.seed = config.data_generation.seed + epoch_index
         epoch_config.experiment.episode_id = (
             config.experiment.episode_id + epoch_index * config.data_generation.episodes
         )
-        if epochs > 1:
+        if epochs > 1 or epoch_index_offset > 0:
             if base_alias is None:
                 epoch_config.artifacts.alias = f"data-generation-epoch-{epoch_index + 1}"
             else:

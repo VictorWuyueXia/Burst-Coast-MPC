@@ -1,4 +1,4 @@
-"""Sequential Monte Carlo data generation for offline RL training."""
+"""Sequential Monte Carlo dataset preparation for offline RL training."""
 
 from __future__ import annotations
 

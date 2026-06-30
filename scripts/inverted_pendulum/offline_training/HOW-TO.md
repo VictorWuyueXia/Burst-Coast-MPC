@@ -32,7 +32,7 @@ The loader uses the logged `return-cost` target and the real logged
 
 ## 2. Edit The Minimum Config
 
-Training config lives at `src/inverted_pendulum/offline_training/config.yaml`.
+Training config lives at `scripts/inverted_pendulum/offline_training/config.yaml`.
 
 Keep the file small: `data-roots`, `output-root`, run name, seed, split, batch,
 learning-rate, epoch count, and plotting-grid count only.

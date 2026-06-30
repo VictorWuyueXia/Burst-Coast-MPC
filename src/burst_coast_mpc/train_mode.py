@@ -15,7 +15,7 @@ from inverted_pendulum.utils.artifacts import (
     attach_run_log_handler,
     detach_run_log_handler,
 )
-from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.config_schema import load_online_training_config
 from inverted_pendulum.utils.logging import (
     ThirdPersonObservers,
     configure_logging,
@@ -33,25 +33,25 @@ def run_train_mode(
 ) -> None:
     """Run one exploratory RL+MPC episode and fine-tune the critic afterward."""
 
-    # 1. Load runtime config, frozen critic policy, and command logger.
+    # Load runtime config, frozen critic policy, and command logger.
     if task != "inverted_pendulum":
         msg = "Only the inverted pendulum task has a runtime implementation"
         raise NotImplementedError(msg)
     configure_logging()
-    config = load_config()
+    config = load_online_training_config()
     logger = logging.getLogger("burst_coast_mpc")
     if alias is not None:
         config.artifacts.alias = alias
     policy = StructuredCriticPolicy(config.rl, config.environment)
 
-    # 2. Open artifact streams before dense and RL records are emitted.
+    # Open artifact streams before dense and RL records are emitted.
     artifact_writer: ArtifactWriter | None = None
     run_log_handler: logging.Handler | None = None
     if config.artifacts.enabled:
         artifact_writer = ArtifactWriter.create(
             config.artifacts.root_dir,
             alias=config.artifacts.alias,
-            config_package="default-config",
+            config_package="online-training-config",
             cli_args={
                 "mode": "train",
                 "alias": alias,
@@ -67,7 +67,7 @@ def run_train_mode(
             artifact_writer.run_dir,
         )
 
-    # 3. Create realtime diagnostics only when the operator has not disabled visuals.
+    # Create realtime diagnostics only when the operator has not disabled visuals.
     realtime_plot = None
     if not no_visual:
         from inverted_pendulum.visualization.realtime import RealtimeEpisodePlot
@@ -78,7 +78,7 @@ def run_train_mode(
             include_animation=True,
         )
 
-    # 4. Bridge coordinator events into the active visualization and artifact sinks.
+    # Bridge coordinator events into the active visualization and artifact sinks.
     def observe_episode_start(observation) -> None:
         if realtime_plot is not None:
             realtime_plot.start_animation(observation)
@@ -89,7 +89,7 @@ def run_train_mode(
         if realtime_plot is not None:
             realtime_plot.add_step(observation, record)
 
-    # 5. Run exploratory cost-softmax replanning and collect return-labeled transitions.
+    # Run exploratory cost-softmax replanning and collect return-labeled transitions.
     coordinator = EpochCoordinator(
         config.coordinator,
         config.environment,
@@ -107,7 +107,7 @@ def run_train_mode(
         )
     )
 
-    # 6. Write episode artifacts before fitting the online update snapshot.
+    # Write episode artifacts before fitting the online update snapshot.
     if artifact_writer is not None:
         from matplotlib import pyplot as plt
 
@@ -124,7 +124,7 @@ def run_train_mode(
     if realtime_plot is not None:
         realtime_plot.finish()
 
-    # 7. Fine-tune the loaded critic in place and save a model snapshot.
+    # Fine-tune the loaded critic in place and save a model snapshot.
     snapshot_dir: Path = OnlinePolicyTrainer(policy, config.rl).fit(result.rl_records)
     artifact_dir = None
     if artifact_writer is not None:

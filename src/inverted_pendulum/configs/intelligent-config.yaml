@@ -1,0 +1,53 @@
+artifacts:
+  root-dir: artifacts/experiments
+  alias: intelligent
+  enabled: true
+experiment:
+  run-id: pendulum_intelligent
+  episode-id: 0
+  max-steps: 3000
+  stop-on-goal: true
+  initial-state:
+    theta-rad: 1.57
+    omega-rad-s: 0.0
+coordinator:
+  node-id: EpochCoordinator
+  mode: synchronous
+  event-trigger: true
+  decision-interval-steps: 1
+  debug-log-every-n-steps: 25
+environment:
+  node-id: Environment
+  simulation:
+    timestep-s: 0.01
+    pace-s: ${realtime:${environment.simulation.timestep-s}}
+  pendulum:
+    mass-kg: 1.0
+    gravity-m-s2: 9.80665
+    length-m: 1.0
+    damping-nms: 0
+    torque-limit-nm: 1.0
+    theta-limit-abs-rad: 6.283
+    omega-limit-abs-rad-s: 3.142
+  goal:
+    angle-tolerance-rad: 0.05
+    omega-tolerance-rad-s: 0.05
+    hold-steps: 5
+mpc:
+  controller: IP-dynamics-naturalPeriod
+  split-ratios: [0.1, 0.2, 0.3]
+rl:
+  critic-artifact-dir: artifacts/inverted_pendulum_frozen/structured-critic_20260614T215834
+  time-model-artifact-dir: artifacts/inverted_pendulum_frozen/linear_20260615T191818
+  gamma: 1.0
+  time-weight: 1.0
+  action-weight: 1.0
+  compute-weight: 1.0
+  fail-penalty: 100.0
+  exploration-epsilon: 0.02
+  exploration-temperature: 0.5
+  training-learning-rate: 0.00025
+  training-batch-size: 16
+  training-updates-per-transition: 4
+  training-seed: 20260616
+  training-output-root: artifacts/model-snapshots
