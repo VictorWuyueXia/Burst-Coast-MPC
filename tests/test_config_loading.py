@@ -28,6 +28,7 @@ def test_default_config_loads_as_atomic_file() -> None:
     assert config.coordinator.event_trigger is True
     assert config.mpc.controller == "IP-dynamics-naturalPeriod"
     assert config.rl.training_updates_per_transition == 8
+    assert config.rl.training_epochs == 1
     assert not hasattr(config.mpc, "cost")
     assert not hasattr(config, "runtime")
     assert not hasattr(config.environment.simulation, "max_rollout_steps")
@@ -40,10 +41,15 @@ def test_intelligent_config_uses_frozen_critic_for_deployment() -> None:
     assert config.artifacts.alias == "intelligent"
     assert config.experiment.run_id == "pendulum_intelligent"
     assert config.environment.simulation.pace_s == config.environment.simulation.timestep_s
-    assert config.rl.critic_artifact_dir.endswith("structured-critic_20260614T215834")
-    assert config.rl.time_model_artifact_dir.endswith("linear_20260615T191818")
+    assert config.rl.critic_artifact_dir.endswith(
+        "offline-results-structured-critic_20260614T215834"
+    )
+    assert config.rl.time_model_artifact_dir.endswith(
+        "current-surface-lasso-20260630T184805"
+    )
     assert config.rl.exploration_epsilon == 0.02
     assert config.rl.exploration_temperature == 0.5
+    assert config.rl.training_epochs == 1
 
 
 def test_frozen_time_model_is_positive_on_deployment_grid() -> None:
@@ -78,12 +84,17 @@ def test_online_training_config_uses_frozen_critic_for_exploration() -> None:
     assert isinstance(config, RootConfig)
     assert config.artifacts.alias == "online-training"
     assert config.experiment.run_id == "pendulum_online_training"
-    assert config.environment.simulation.pace_s == 0.0
-    assert config.rl.critic_artifact_dir.endswith("structured-critic_20260614T215834")
-    assert config.rl.time_model_artifact_dir.endswith("linear_20260615T191818")
+    assert config.environment.simulation.pace_s == 0.01
+    assert config.rl.critic_artifact_dir.endswith(
+        "offline-results-structured-critic_20260614T215834"
+    )
+    assert config.rl.time_model_artifact_dir.endswith(
+        "current-surface-lasso-20260630T184805"
+    )
     assert config.rl.exploration_epsilon == 0.10
     assert config.rl.exploration_temperature == 2.0
     assert config.rl.training_updates_per_transition == 8
+    assert config.rl.training_epochs == 3
 
 
 def test_data_generation_config_loads_with_event_trigger_disabled() -> None:

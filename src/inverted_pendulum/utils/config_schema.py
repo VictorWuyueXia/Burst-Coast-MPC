@@ -188,6 +188,7 @@ class RLConfig(ConfigBase):
     training_learning_rate: float = Field(alias="training-learning-rate", gt=0.0)
     training_batch_size: int = Field(alias="training-batch-size", gt=0)
     training_updates_per_transition: int = Field(alias="training-updates-per-transition", gt=0)
+    training_epochs: int = Field(alias="training-epochs", gt=0)
     training_seed: int = Field(alias="training-seed")
     training_output_root: str = Field(alias="training-output-root")
 

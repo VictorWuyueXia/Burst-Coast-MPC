@@ -1,7 +1,12 @@
 from typer.testing import CliRunner
 
 from burst_coast_mpc.cli import app
-from inverted_pendulum.utils.config_schema import load_config, load_data_generation_config
+from inverted_pendulum.utils.config_schema import (
+    load_config,
+    load_data_generation_config,
+    load_online_training_config,
+)
+from inverted_pendulum.utils.messages import EpisodeResult, ExperimentSummary, RLStepRecord
 
 
 def _require_matplotlib() -> None:
@@ -88,6 +93,113 @@ def test_cli_intelligent_routes_weighted_exploration(monkeypatch) -> None:
     assert alias is None
     assert no_visual is True
     assert with_exploration is True
+
+
+def test_cli_train_config_epochs_create_separate_artifacts(tmp_path, monkeypatch) -> None:
+    runner = CliRunner()
+    config = load_online_training_config()
+    config.artifacts.root_dir = str(tmp_path / "runs")
+    config.artifacts.alias = "online"
+    config.rl.training_epochs = 2
+    config.experiment.max_steps = 1
+    config.environment.simulation.pace_s = 0.0
+    policy = object()
+    coordinator_policy_ids = []
+    episode_ids = []
+    fit_policy_ids = []
+
+    def load_online_training_config_stub():
+        return config
+
+    class EpochCoordinatorStub:
+        def __init__(
+            self,
+            coordinator_config,
+            environment_config,
+            experiment_config,
+            mpc_config,
+            *,
+            logger,
+            rl_policy,
+            rl_config,
+            rl_explore,
+        ) -> None:
+            coordinator_policy_ids.append(id(rl_policy))
+            episode_ids.append(experiment_config.episode_id)
+
+        def run_episode(self, third_person_observers):
+            episode_id = episode_ids[-1]
+            summary = ExperimentSummary(
+                run_id=config.experiment.run_id,
+                episode_id=episode_id,
+                status="max_steps_reached",
+                total_steps=1,
+                final_t_index=1,
+                final_t_sec=config.environment.simulation.timestep_s,
+                goal_reached=False,
+                records_emitted=0,
+                total_wall_time_s=0.0,
+                final_observation=None,
+            )
+            record = RLStepRecord(
+                run_id=config.experiment.run_id,
+                episode_id=episode_id,
+                replan_index=0,
+                start_t_index=0,
+                start_t_sec=0.0,
+                end_t_index=1,
+                end_t_sec=config.environment.simulation.timestep_s,
+                s_sin_theta=1.0,
+                s_cos_theta=0.0,
+                s_omega_rad_s=0.0,
+                bbar=0.5,
+                hbar=0.5,
+                burst_steps=1,
+                horizon_steps=2,
+                next_s_sin_theta=1.0,
+                next_s_cos_theta=0.0,
+                next_s_omega_rad_s=0.0,
+                done=True,
+                step_cost=1.0,
+                return_cost=1.0,
+                u_nm_json="[]",
+                solve_time_s=0.01,
+                plan_id=f"plan-{episode_id}",
+            )
+            return EpisodeResult(summary=summary, records=[], rl_records=[record])
+
+    class OnlinePolicyTrainerStub:
+        def __init__(self, rl_policy, rl_config) -> None:
+            fit_policy_ids.append(id(rl_policy))
+            self.snapshot_index = len(fit_policy_ids)
+
+        def fit(self, records):
+            assert records
+            snapshot_dir = tmp_path / "snapshots" / f"epoch-{self.snapshot_index}"
+            snapshot_dir.mkdir(parents=True)
+            return snapshot_dir
+
+    monkeypatch.setattr(
+        "burst_coast_mpc.train_mode.load_online_training_config",
+        load_online_training_config_stub,
+    )
+    monkeypatch.setattr("burst_coast_mpc.train_mode.StructuredCriticPolicy", lambda *_: policy)
+    monkeypatch.setattr("burst_coast_mpc.train_mode.EpochCoordinator", EpochCoordinatorStub)
+    monkeypatch.setattr("burst_coast_mpc.train_mode.OnlinePolicyTrainer", OnlinePolicyTrainerStub)
+    monkeypatch.setattr("burst_coast_mpc.train_mode.create_artifact_figures", lambda *_: {})
+
+    result = runner.invoke(app, ["--inverted-pendulum", "train", "--no-visual"])
+
+    assert result.exit_code == 0, result.output
+    run_dirs = sorted((tmp_path / "runs").iterdir())
+    assert len(run_dirs) == 2
+    assert run_dirs[0].name.startswith("online-epoch-1_")
+    assert run_dirs[1].name.startswith("online-epoch-2_")
+    assert episode_ids == [0, 1]
+    assert coordinator_policy_ids == [id(policy), id(policy)]
+    assert fit_policy_ids == [id(policy), id(policy)]
+    assert "training_epochs" in result.output
+    assert "epoch_artifact_dirs" in result.output
 
 
 def test_cli_generate_mc_data_writes_step_and_rl_artifacts(tmp_path, monkeypatch) -> None:

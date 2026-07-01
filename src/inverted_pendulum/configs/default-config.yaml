@@ -37,8 +37,8 @@ mpc:
   controller: IP-dynamics-naturalPeriod
   split-ratios: [0.1, 0.2, 0.3]
 rl:
-  critic-artifact-dir: artifacts/inverted_pendulum_frozen/structured-critic_20260614T215834
-  time-model-artifact-dir: artifacts/inverted_pendulum_frozen/linear_20260615T191818
+  critic-artifact-dir: artifacts/inverted_pendulum_frozen/offline-results-structured-critic_20260614T215834
+  time-model-artifact-dir: artifacts/inverted_pendulum_frozen/current-surface-lasso-20260630T184805
   gamma: 1.0
   time-weight: 1.0
   action-weight: 1.0
@@ -49,5 +49,6 @@ rl:
   training-learning-rate: 0.0005
   training-batch-size: 16
   training-updates-per-transition: 8
+  training-epochs: 1
   training-seed: 20260616
   training-output-root: artifacts/model-snapshots

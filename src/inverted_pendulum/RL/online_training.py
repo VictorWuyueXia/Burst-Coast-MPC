@@ -91,7 +91,7 @@ class OnlinePolicyTrainer:
         output_root = Path(self.config.training_output_root)
         if not output_root.is_absolute():
             output_root = REPO_ROOT / output_root
-        timestamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
+        timestamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%f")
         snapshot_dir = output_root / f"online-critic_{timestamp}"
         output_root.mkdir(parents=True, exist_ok=True)
         snapshot_dir.mkdir(exist_ok=False)

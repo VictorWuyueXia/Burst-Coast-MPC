@@ -1,2 +1,2 @@
 candidate,mean_rmse_s,rmse_improvement_vs_linear_steps_s,relative_improvement_vs_linear_steps,passes_absolute_threshold,passes_relative_threshold,necessary
-bilinear-steps,0.31517829309699497,0.05177701773685439,0.14109897365758,True,True,True
+bilinear-steps,0.6159436735993881,0.07853590416551626,0.11308598075450144,True,True,True
