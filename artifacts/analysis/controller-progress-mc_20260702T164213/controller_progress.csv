@@ -1,0 +1,11 @@
+controller_family,controller_name,epoch_index,critic_artifact_dir,cases,success_rate,mean_completion_time_s,mean_solver_compute_time_s,mean_torque_abs_integral_nm_s,mean_total_steps,mean_rl_segments,mean_wall_time_s
+mpc,event-triggered-mpc,,,1,1.0,6.93,252.58714300000003,3.9776094578589487,693.0,0.0,304.85904045798816
+offline,offline-critic,0,artifacts/inverted_pendulum_frozen/offline-results-structured-critic_20260614T215834,1,1.0,11.05,11.552263999999997,3.5847783218520477,1105.0,129.0,12.344815290998667
+online,online-critic-epoch-001,1,artifacts/model-snapshots/online-critic_20260630T200713138931,1,1.0,9.24,8.938376,3.4437748062393543,924.0,90.0,9.588285750010982
+online,online-critic-epoch-017,17,artifacts/model-snapshots/online-critic_20260630T201443601452,1,0.0,60.0,64.53540000000007,0.0,6000.0,6000.0,69.72776095900917
+online,online-critic-epoch-033,33,artifacts/model-snapshots/online-critic_20260630T202426140540,1,0.0,60.0,69.31325799999996,0.0,6000.0,6000.0,74.47636904200772
+online,online-critic-epoch-049,49,artifacts/model-snapshots/online-critic_20260630T203329892195,1,0.0,60.0,70.39221500000001,0.0,6000.0,6000.0,75.7512714159966
+online,online-critic-epoch-065,65,artifacts/model-snapshots/online-critic_20260630T204209704685,1,0.0,60.0,70.0210619999998,0.0,6000.0,6000.0,75.2248357910139
+online,online-critic-epoch-081,81,artifacts/model-snapshots/online-critic_20260630T205133508282,1,0.0,60.0,72.052514,2.5699840048491676,6000.0,4473.0,77.44641025000601
+online,online-critic-epoch-097,97,artifacts/model-snapshots/online-critic_20260630T210038387220,1,0.0,60.0,63.90139300000008,0.0,6000.0,6000.0,69.17381499998737
+online,online-critic-epoch-113,113,artifacts/model-snapshots/online-critic_20260630T211042305147,1,1.0,35.050000000000004,73.50790699999995,4.262252905948558,3505.0,933.0,77.54019745800178

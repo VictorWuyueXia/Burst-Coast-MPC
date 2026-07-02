@@ -6,7 +6,7 @@
 # - Tools like `pytest` and `ruff` will also pick up their configuration directly from this file.
 # This file is for Python packaging, dependency management, and tool configuration in a unified, standardized way.
 [build-system]
-requires = ["setuptools>=69", "wheel"]  # Build tools required for packaging
+requires = ["setuptools==81.0.0", "wheel==0.47.0"]  # Build tools required for packaging
 build-backend = "setuptools.build_meta"  # Backend used for building
 
 # Main project metadata and dependencies
@@ -15,27 +15,27 @@ name = "burst-coast-mpc"  # Project name
 version = "0.1.0"  # Project version
 description = "Burst-coast model predictive control experiments."  # Short description
 readme = "README.md"  # Project readme file
-requires-python = ">=3.12"  # Minimum Python version
+requires-python = "==3.12.13"  # Python version pinned to the shared conda environment
 dependencies = [  # Core libraries needed to run the project
-  "numpy>=1.26",         # Numerical computing
-  "scipy>=1.11",         # Scientific computing
-  "casadi>=3.6",         # Automatic differentiation, numeric optimization
-  "pydantic>=2.6",       # Data validation/config schemas
-  "omegaconf>=2.3",      # Configuration management
-  "typer>=0.12",         # Command-line interface tools
-  "rich>=13.7",          # Pretty terminal formatting
-  "matplotlib>=3.8",     # Plotting and visualization
-  "scikit-learn>=1.5",   # Sparse regression and validation utilities
-  "torch>=2.3",          # Tensor backend for offline critic training
-  "pytorch-lightning>=2.3",  # Training loop orchestration for critic fitting
+  "numpy==2.4.6",         # Numerical computing
+  "scipy==1.17.1",        # Scientific computing
+  "casadi==3.7.2",        # Automatic differentiation, numeric optimization
+  "pydantic==2.13.4",     # Data validation/config schemas
+  "omegaconf==2.3.0",     # Configuration management
+  "typer==0.26.7",        # Command-line interface tools
+  "rich==15.0.0",         # Pretty terminal formatting
+  "matplotlib==3.10.9",   # Plotting and visualization
+  "scikit-learn==1.9.0",  # Sparse regression and validation utilities
+  "torch==2.11.0",        # Tensor backend for offline critic training
+  "pytorch-lightning==2.6.5",  # Training loop orchestration for critic fitting
 ]
 
 # Development-only dependencies (not needed by end users)
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0",   # Testing framework
-  "ruff>=0.5",     # Linter for code quality
-  "mypy>=1.10",    # Static type checking
+  "pytest==9.0.3",   # Testing framework
+  "ruff==0.15.17",   # Linter for code quality
+  "mypy==2.1.0",     # Static type checking
 ]
 
 # Define command-line script entry point for easy CLI usage

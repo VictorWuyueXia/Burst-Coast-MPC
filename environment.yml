@@ -2,21 +2,21 @@ name: burst-coast-mpc  # Project environment name for conda
 channels:
   - conda-forge  # Use conda-forge channel for package installations
 dependencies:
-  - python=3.12        # Python version for this environment
-  - numpy>=1.26        # Core numerical operations library
-  - scipy>=1.11        # Scientific computing tools
-  - casadi>=3.6        # Symbolic computation and automatic differentiation
-  - pydantic>=2.6      # Data validation and settings management
-  - omegaconf>=2.3     # Flexible hierarchical configuration system
-  - typer>=0.12        # Build command line applications
-  - rich>=13.7         # Pretty printing and formatting in terminal
-  - pytorch>=2.3       # Tensor backend for offline critic training
-  - pytorch-lightning>=2.3 # Training loop orchestration for critic fitting
-  - psutil>=5.9        # System and process utilities
-  - threadpoolctl>=3.5 # Thread pool control for libraries like numpy or scipy
-  - matplotlib>=3.8    # Create static, animated, and interactive plots
-  - scikit-learn>=1.5  # Sparse regression and validation utilities
-  - pytest>=8.0        # Unit testing framework
-  - ruff>=0.5          # Fast Python linter
-  - mypy>=1.10         # Static type checker for Python
-  - pip                # Python package manager
+  - python=3.12.13        # Python version for this environment
+  - numpy=2.4.6           # Core numerical operations library
+  - scipy=1.17.1          # Scientific computing tools
+  - casadi=3.7.2          # Symbolic computation and automatic differentiation
+  - pydantic=2.13.4       # Data validation and settings management
+  - omegaconf=2.3.0       # Flexible hierarchical configuration system
+  - typer=0.26.7          # Build command line applications
+  - rich=15.0.0           # Pretty printing and formatting in terminal
+  - pytorch=2.11.0        # Tensor backend for offline critic training
+  - pytorch-lightning=2.6.5 # Training loop orchestration for critic fitting
+  - psutil=7.2.2          # System and process utilities
+  - threadpoolctl=3.6.0   # Thread pool control for libraries like numpy or scipy
+  - matplotlib=3.10.9     # Create static, animated, and interactive plots
+  - scikit-learn=1.9.0    # Sparse regression and validation utilities
+  - pytest=9.0.3          # Unit testing framework
+  - ruff=0.15.17          # Fast Python linter
+  - mypy=2.1.0            # Static type checker for Python
+  - pip=26.1.2            # Python package manager
