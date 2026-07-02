@@ -199,6 +199,6 @@ class CasadiMPCController:
             burst_steps=selected.candidate.burst_steps,
             coast_steps=selected.candidate.coast_steps,
             worker_count=MPC_WORKER_COUNT,
+            solve_time_s=f"{selected.solve_time_s:.6f}",
             objective_value=f"{selected.objective_value:.9f}",
         )
-

@@ -20,7 +20,7 @@ environment:
   node-id: Environment
   simulation:
     timestep-s: 0.01
-    pace-s: 0.01
+    pace-s: 0.0
   pendulum:
     mass-kg: 1.0
     gravity-m-s2: 9.80665
@@ -49,6 +49,6 @@ rl:
   training-learning-rate: 0.00025
   training-batch-size: 16
   training-updates-per-transition: 8
-  training-epochs: 3
+  training-epochs: 128
   training-seed: 20260616
   training-output-root: artifacts/model-snapshots
