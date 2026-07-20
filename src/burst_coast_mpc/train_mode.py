@@ -42,7 +42,7 @@ def run_train_mode(
     logger = logging.getLogger("burst_coast_mpc")
     if alias is not None:
         config.artifacts.alias = alias
-    policy = StructuredCriticPolicy(config.rl, config.environment)
+    policy = StructuredCriticPolicy(config.rl, config.environment, config.mpc)
     base_alias = config.artifacts.alias
     if config.artifacts.enabled and config.rl.training_epochs > 1 and base_alias is None:
         msg = "Multi-epoch online training requires a configured artifact alias"

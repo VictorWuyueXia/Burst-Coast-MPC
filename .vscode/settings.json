@@ -1,0 +1,15 @@
+{
+  "python.defaultInterpreterPath": "${env:USERPROFILE}\\.conda\\envs\\burst-coast-mpc\\python.exe",
+  "python.terminal.activateEnvironment": true,
+  "terminal.integrated.profiles.windows": {
+    "PowerShell (burst-coast-mpc)": {
+      "source": "PowerShell",
+      "args": [
+        "-NoExit",
+        "-Command",
+        "if (Get-Command conda -ErrorAction SilentlyContinue) { conda activate burst-coast-mpc }; Set-Location -Path '${workspaceFolder}'"
+      ]
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell (burst-coast-mpc)"
+}

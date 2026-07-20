@@ -1,22 +1,24 @@
-name: burst-coast-mpc  # Project environment name for conda 
+name: burst-coast-mpc  # Shared project environment name.
 channels:
-  - conda-forge  # Use conda-forge channel for package installations
+  - conda-forge  # Single solver channel for deterministic package selection.
 dependencies:
-  - python=3.12.13        # Python version for this environment
-  - numpy=2.4.6           # Core numerical operations library
-  - scipy=1.17.1          # Scientific computing tools
-  - casadi=3.7.2          # Symbolic computation and automatic differentiation
-  - pydantic=2.13.4       # Data validation and settings management
-  - omegaconf=2.3.0       # Flexible hierarchical configuration system
-  - typer=0.26.7          # Build command line applications
-  - rich=15.0.0           # Pretty printing and formatting in terminal
-  - pytorch=2.11.0        # Tensor backend for offline critic training
-  - pytorch-lightning=2.6.5 # Training loop orchestration for critic fitting
-  - psutil=7.2.2          # System and process utilities
-  - threadpoolctl=3.6.0   # Thread pool control for libraries like numpy or scipy
-  - matplotlib=3.10.9     # Create static, animated, and interactive plots
-  - scikit-learn=1.9.0    # Sparse regression and validation utilities
-  - pytest=9.0.3          # Unit testing framework
-  - ruff=0.15.17          # Fast Python linter
-  - mypy=2.1.0            # Static type checker for Python
-  - pip=26.1.2            # Python package manager
+  - python=3.12.13        # Runtime interpreter pinned for numerical reproducibility.
+  - numpy=2.4.6           # Dense array algebra and vectorized numerics.
+  - scipy=1.17.1          # Scientific routines for optimization and simulation.
+  - casadi=3.7.2          # Symbolic modeling and nonlinear program construction.
+  - pydantic=2.13.4       # Runtime data validation for structured model inputs.
+  - omegaconf=2.3.0       # Hierarchical experiment configuration.
+  - typer=0.26.7          # Command entrypoints for experiment scripts.
+  - rich=15.0.0           # Structured terminal rendering.
+  - pytorch=2.11.0        # Tensor backend for offline critic training.
+  - pytorch-lightning=2.6.5 # Training loop control for critic fitting.
+  - psutil=7.2.2          # Process and hardware resource inspection.
+  - threadpoolctl=3.6.0   # Numerical thread-pool control.
+  - matplotlib=3.10.9     # Static and interactive experiment visualization.
+  - scikit-learn=1.9.0    # Sparse regression and validation utilities.
+  - pytest=9.0.3          # Regression test execution.
+  - ruff=0.15.17          # Fast linting for code hygiene.
+  - mypy=2.1.0            # Static type checking.
+  - setuptools=81.0.0     # Project build backend support.
+  - wheel=0.47.0          # Wheel build support.
+  - pip=26.1.2            # Python package installer.

@@ -140,7 +140,10 @@ def _burst_stage_cost(x: Any, u: Any, previous_u: Any, environment: EnvironmentC
 def split_candidates(environment: EnvironmentConfig, mpc: MPCConfig) -> list[SplitCandidate]:
     """Create fixed-dimension candidates from configured split ratios."""
 
-    total_steps = prediction_horizon_steps(environment)
+    total_steps = prediction_horizon_steps(
+        environment,
+        mpc.prediction_horizon_natural_periods,
+    )
     return [
         SplitCandidate(
             lambda_value=lambda_value,
@@ -152,8 +155,12 @@ def split_candidates(environment: EnvironmentConfig, mpc: MPCConfig) -> list[Spl
     ]
 
 
-def prediction_horizon_steps(environment: EnvironmentConfig) -> int:
-    """Return the fixed full-natural-period horizon in simulator steps."""
+def prediction_horizon_steps(
+    environment: EnvironmentConfig,
+    natural_periods: float,
+) -> int:
+    """Return the configured natural-period horizon in simulator steps."""
 
+    # Convert direct natural-period units into the integer simulator horizon.
     omega_n = natural_frequency_rad_s(environment.pendulum)
-    return round((math.tau / omega_n) / environment.simulation.timestep_s)
+    return math.ceil(natural_periods * math.tau / omega_n / environment.simulation.timestep_s)

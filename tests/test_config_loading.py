@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 import inverted_pendulum.utils.config_schema as config_schema
-from inverted_pendulum.mpc.controller import prediction_horizon_steps
+from inverted_pendulum.mpc.discrete_model import natural_frequency_rad_s
 from inverted_pendulum.utils.config_schema import (
     DataGenerationRootConfig,
     RootConfig,
@@ -27,6 +27,7 @@ def test_default_config_loads_as_atomic_file() -> None:
     assert config.experiment.run_id == "pendulum_baseline"
     assert config.coordinator.event_trigger is True
     assert config.mpc.controller == "IP-dynamics-naturalPeriod"
+    assert config.mpc.prediction_horizon_natural_periods == 5.0
     assert config.rl.training_updates_per_transition == 8
     assert config.rl.training_epochs == 1
     assert not hasattr(config.mpc, "cost")
@@ -58,11 +59,25 @@ def test_frozen_time_model_is_positive_on_deployment_grid() -> None:
     time_model_dir = REPO_ROOT / config.rl.time_model_artifact_dir
     critic_config = json.loads((critic_dir / "config.json").read_text(encoding="utf-8"))
     time_model = json.loads((time_model_dir / "final_model.json").read_text(encoding="utf-8"))
-    axis = np.linspace(0.0, 1.0, int(critic_config["action-grid-count"]))
-    bbar_grid, hbar_grid = np.meshgrid(axis, axis, indexing="xy")
-    full_horizon_steps = prediction_horizon_steps(config.environment)
-    horizon_steps = np.maximum(1, np.rint(hbar_grid * full_horizon_steps)).astype(np.int64)
-    burst_steps = np.maximum(1, np.rint(bbar_grid * 0.5 * horizon_steps)).astype(np.int64)
+    bbar_axis = np.linspace(0.0, 1.0, int(critic_config["action-grid-count"]))
+    hbar_axis = np.linspace(
+        0.0,
+        config.mpc.prediction_horizon_natural_periods,
+        int(critic_config["action-grid-count"]),
+    )
+    bbar_grid, hbar_grid = np.meshgrid(bbar_axis, hbar_axis, indexing="xy")
+    omega_n = natural_frequency_rad_s(config.environment.pendulum)
+    horizon_steps = np.maximum(
+        1,
+        np.ceil(
+            hbar_grid
+            * np.pi
+            * 2.0
+            / omega_n
+            / config.environment.simulation.timestep_s
+        ),
+    ).astype(np.int64)
+    burst_steps = np.maximum(1, np.rint(bbar_grid * horizon_steps)).astype(np.int64)
     compute_time_s = np.full(bbar_grid.shape, float(time_model["intercept_s"]))
 
     for term in time_model["all_terms"]:
@@ -84,7 +99,7 @@ def test_online_training_config_uses_frozen_critic_for_exploration() -> None:
     assert isinstance(config, RootConfig)
     assert config.artifacts.alias == "online-training"
     assert config.experiment.run_id == "pendulum_online_training"
-    assert config.environment.simulation.pace_s == 0.01
+    assert config.environment.simulation.pace_s == 0.0
     assert config.rl.critic_artifact_dir.endswith(
         "offline-results-structured-critic_20260614T215834"
     )
@@ -94,7 +109,7 @@ def test_online_training_config_uses_frozen_critic_for_exploration() -> None:
     assert config.rl.exploration_epsilon == 0.10
     assert config.rl.exploration_temperature == 2.0
     assert config.rl.training_updates_per_transition == 8
-    assert config.rl.training_epochs == 3
+    assert config.rl.training_epochs == 128
 
 
 def test_data_generation_config_loads_with_event_trigger_disabled() -> None:
@@ -108,7 +123,8 @@ def test_data_generation_config_loads_with_event_trigger_disabled() -> None:
     assert config.data_generation.seed is None
     assert config.data_generation.visual_artifacts is True
     assert 0.0 <= config.data_generation.bbar_min <= config.data_generation.bbar_max <= 1.0
-    assert 0.0 <= config.data_generation.hbar_min <= config.data_generation.hbar_max <= 1.0
+    assert 0.0 <= config.data_generation.hbar_min <= config.data_generation.hbar_max
+    assert config.data_generation.hbar_max == config.mpc.prediction_horizon_natural_periods
 
 
 def test_missing_package_fails_loudly() -> None:

@@ -179,13 +179,14 @@ def write_q_surfaces(
         ("terminal", terminal_indices[0]),
     ]
 
-    # Evaluate a normalized action grid while using each row's real measured compute scale.
-    axis = np.linspace(0.0, 1.0, action_grid_count, dtype=np.float64)
-    bbar_grid, hbar_grid = np.meshgrid(axis, axis, indexing="xy")
+    # Evaluate the direct B/H and natural-period action grid against measured compute scale.
+    bbar_axis = np.linspace(0.0, 1.0, action_grid_count, dtype=np.float64)
+    hbar_axis = np.linspace(0.0, constants["hbar-max"], action_grid_count, dtype=np.float64)
+    bbar_grid, hbar_grid = np.meshgrid(bbar_axis, hbar_axis, indexing="xy")
     full_horizon_steps = constants["full-horizon-steps"]
     timestep_s = constants["timestep-s"]
-    horizon_steps = np.maximum(1.0, np.rint(hbar_grid * full_horizon_steps))
-    burst_steps = np.maximum(1.0, np.rint(bbar_grid * 0.5 * horizon_steps))
+    horizon_steps = np.maximum(1.0, np.ceil(hbar_grid * full_horizon_steps))
+    burst_steps = np.maximum(1.0, np.rint(bbar_grid * horizon_steps))
     device = model.device
 
     for label, row_index in selected:

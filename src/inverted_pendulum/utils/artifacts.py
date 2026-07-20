@@ -18,6 +18,7 @@ from inverted_pendulum.utils.config_schema import DataGenerationRootConfig, Root
 from inverted_pendulum.utils.messages import ExperimentSummary, RLStepRecord, StepRecord
 
 ARTIFACT_FORMAT_VERSION = 1
+REPO_ROOT = Path(__file__).resolve().parents[3]
 STEP_CSV_HEADERS = tuple(
     field.alias or name for name, field in StepRecord.model_fields.items()
 )
@@ -255,14 +256,16 @@ class ArtifactWriter:
 def _read_git_state() -> tuple[str, bool]:
     """Read Git commit and dirty state for reproducible artifacts."""
 
+    # Run Git from the repository root with explicit ownership allowance for Windows checkouts.
+    git_command = ["git", "-c", f"safe.directory={REPO_ROOT.as_posix()}", "-C", str(REPO_ROOT)]
     commit_result = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
+        [*git_command, "rev-parse", "HEAD"],
         check=True,
         capture_output=True,
         text=True,
     )
     dirty_result = subprocess.run(
-        ["git", "status", "--porcelain"],
+        [*git_command, "status", "--porcelain"],
         check=True,
         capture_output=True,
         text=True,

@@ -36,11 +36,11 @@ def test_uniform_monte_carlo_action_maps_to_positive_candidate_dimensions() -> N
         config.environment,
     )
 
-    horizon_steps = prediction_horizon_steps(config.environment)
+    horizon_steps = prediction_horizon_steps(config.environment, 1.0)
     assert action.bbar == pytest.approx(1.0)
     assert action.hbar == pytest.approx(1.0)
     assert action.horizon_steps == horizon_steps
-    assert action.burst_steps == round(0.5 * horizon_steps)
+    assert action.burst_steps == horizon_steps
     assert action.coast_steps == action.horizon_steps - action.burst_steps
 
 

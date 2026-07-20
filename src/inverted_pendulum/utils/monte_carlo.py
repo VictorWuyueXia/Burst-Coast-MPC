@@ -17,7 +17,7 @@ from inverted_pendulum.utils.config_schema import (
 
 @dataclass(frozen=True)
 class MonteCarloAction:
-    """One normalized RL action mapped to integer MPC burst-coast dimensions."""
+    """One RL horizon-burst action mapped to integer MPC burst-coast dimensions."""
 
     bbar: float
     hbar: float
@@ -31,13 +31,13 @@ def sample_uniform_monte_carlo_action(
     config: DataGenerationConfig,
     environment: EnvironmentConfig,
 ) -> MonteCarloAction:
-    """Sample one normalized action and map it to a fixed-dimension MPC candidate."""
+    """Sample one direct burst/horizon action and map it to an MPC candidate."""
 
     bbar = float(rng.uniform(config.bbar_min, config.bbar_max))
     hbar = float(rng.uniform(config.hbar_min, config.hbar_max))
-    # The normalized action is realized as the smallest valid split candidate when it rounds down.
-    horizon_steps = max(1, round(hbar * prediction_horizon_steps(environment)))
-    burst_steps = max(1, round(bbar * 0.5 * horizon_steps))
+    # Map direct natural-period and burst-ratio coordinates into MPC dimensions.
+    horizon_steps = max(1, prediction_horizon_steps(environment, hbar))
+    burst_steps = max(1, round(bbar * horizon_steps))
     if horizon_steps <= 0 or burst_steps <= 0 or burst_steps > horizon_steps:
         msg = (
             "Monte Carlo action produced invalid MPC dimensions: "

@@ -159,6 +159,10 @@ class MPCConfig(ConfigBase):
     """Configuration for the CasADi split-ratio MPC controller."""
 
     controller: Literal["IP-dynamics-naturalPeriod"]
+    prediction_horizon_natural_periods: float = Field(
+        alias="prediction-horizon-natural-periods",
+        gt=0.0,
+    )
     split_ratios: list[float] = Field(alias="split-ratios")
 
     @field_validator("split_ratios")
@@ -215,8 +219,8 @@ class DataGenerationConfig(ConfigBase):
     gamma: float = Field(ge=0.0, le=1.0)
     bbar_min: float = Field(alias="bbar-min", ge=0.0, le=1.0)
     bbar_max: float = Field(alias="bbar-max", ge=0.0, le=1.0)
-    hbar_min: float = Field(alias="hbar-min", ge=0.0, le=1.0)
-    hbar_max: float = Field(alias="hbar-max", ge=0.0, le=1.0)
+    hbar_min: float = Field(alias="hbar-min", ge=0.0)
+    hbar_max: float = Field(alias="hbar-max", ge=0.0)
     time_weight: float = Field(alias="time-weight", ge=0.0)
     action_weight: float = Field(alias="action-weight", ge=0.0)
     compute_weight: float = Field(alias="compute-weight", ge=0.0)

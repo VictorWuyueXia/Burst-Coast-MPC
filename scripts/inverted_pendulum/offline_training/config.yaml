@@ -1,5 +1,5 @@
 data-roots:
-  - artifacts/MonteCarloData
+  - artifacts/montecarlo-data
 output-root: artifacts/model-snapshots
 run-name: structured-critic
 seed: 20260615

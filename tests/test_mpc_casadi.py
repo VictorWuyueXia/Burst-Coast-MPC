@@ -38,6 +38,7 @@ def _small_mpc_config():
     config.environment.simulation.pace_s = 0.0
     config.environment.goal.hold_steps = 999
     config.environment.simulation.timestep_s = 0.25
+    config.mpc.prediction_horizon_natural_periods = 1.0
     config.mpc.split_ratios = [0.5, 1.0]
     return config
 
@@ -225,13 +226,16 @@ def test_controller_starts_direct_monte_carlo_plan_without_candidate_enumeration
         config.mpc,
         logger=logging.getLogger("test"),
     )
-    horizon_steps = prediction_horizon_steps(config.environment)
+    horizon_steps = prediction_horizon_steps(
+        config.environment,
+        config.mpc.prediction_horizon_natural_periods,
+    )
     monte_carlo_action = MonteCarloAction(
         bbar=1.0,
         hbar=1.0,
         horizon_steps=horizon_steps,
-        burst_steps=round(0.5 * horizon_steps),
-        coast_steps=horizon_steps - round(0.5 * horizon_steps),
+        burst_steps=horizon_steps,
+        coast_steps=0,
     )
 
     def fail_split_candidates(*args):

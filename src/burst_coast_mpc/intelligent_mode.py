@@ -41,7 +41,7 @@ def run_intelligent_mode(
     logger = logging.getLogger("burst_coast_mpc")
     if alias is not None:
         config.artifacts.alias = alias
-    policy = StructuredCriticPolicy(config.rl, config.environment)
+    policy = StructuredCriticPolicy(config.rl, config.environment, config.mpc)
 
     # Open artifact streams before dense and RL records are emitted.
     artifact_writer: ArtifactWriter | None = None

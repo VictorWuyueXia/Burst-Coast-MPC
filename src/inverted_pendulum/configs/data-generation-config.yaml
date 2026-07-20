@@ -25,6 +25,7 @@ environment:
     hold-steps: 5
 mpc:
   controller: IP-dynamics-naturalPeriod
+  prediction-horizon-natural-periods: 5.0
   split-ratios: [0.1]
 data-generation:
   episodes: 1
@@ -36,7 +37,7 @@ data-generation:
   bbar-min: 0.01
   bbar-max: 1.0
   hbar-min: 0.01
-  hbar-max: 1.0
+  hbar-max: 5.0
   time-weight: 1.0
   action-weight: 1.0
   compute-weight: 1.0

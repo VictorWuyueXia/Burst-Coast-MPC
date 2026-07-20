@@ -35,6 +35,7 @@ environment:
     hold-steps: 5
 mpc:
   controller: IP-dynamics-naturalPeriod
+  prediction-horizon-natural-periods: 5.0
   split-ratios: [0.1, 0.2, 0.3]
 rl:
   critic-artifact-dir: artifacts/inverted_pendulum_frozen/offline-results-structured-critic_20260614T215834

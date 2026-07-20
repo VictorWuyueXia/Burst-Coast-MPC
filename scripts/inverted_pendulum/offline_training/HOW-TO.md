@@ -24,8 +24,10 @@ Generate Monte Carlo data with the existing command:
 burst-coast-mpc --inverted-pendulum montecarlo --epochs 40
 ```
 
-The trainer reads artifact folders under `artifacts/MonteCarloData` by default,
-and each selected run must contain `rl_steps.csv` plus `config.json`.
+The trainer reads complete run folders recursively under
+`artifacts/montecarlo-data` by default. The physical `train`, `val`, and `test`
+directories are the split boundary; each selected run must contain
+`rl_steps.csv` plus `config.json`.
 
 The loader uses the logged `return-cost` target and the real logged
 `solve-time-s`. There is no fitted solve-time model in this training pass.

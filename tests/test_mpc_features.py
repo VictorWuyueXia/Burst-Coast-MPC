@@ -72,10 +72,14 @@ def test_unforced_undamped_rk4_approximately_conserves_energy() -> None:
 def test_prediction_horizon_split_dimensions_and_zero_coast_rollout() -> None:
     config = load_config()
     config.mpc.split_ratios = [0.2, 0.5, 1.0]
+    config.mpc.prediction_horizon_natural_periods = 1.0
     half_period_s = math.pi / natural_frequency_rad_s(config.environment.pendulum)
     config.environment.simulation.timestep_s = half_period_s / 6.0
 
-    total_steps = prediction_horizon_steps(config.environment)
+    total_steps = prediction_horizon_steps(
+        config.environment,
+        config.mpc.prediction_horizon_natural_periods,
+    )
     candidates = split_candidates(config.environment, config.mpc)
 
     assert total_steps == 12

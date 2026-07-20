@@ -1,4 +1,4 @@
-"""Run Monte Carlo data generation in four low-priority local workers."""
+"""Run Monte Carlo data generation in bounded low-priority local workers."""
 
 from __future__ import annotations
 
@@ -7,8 +7,11 @@ import os
 import sys
 from pathlib import Path
 
-WORKER_COUNT = 4
+import psutil
+
+WORKER_COUNT = 16
 NICE_INCREMENT = 10
+WINDOWS_PRIORITY_CLASS = psutil.BELOW_NORMAL_PRIORITY_CLASS
 THREAD_ENV = {
     "OMP_NUM_THREADS": "1",
     "OPENBLAS_NUM_THREADS": "1",
@@ -23,7 +26,7 @@ sys.path.insert(0, str(SRC_ROOT))
 
 
 def split_epochs(total_epochs: int) -> list[int]:
-    """Divide Monte Carlo epochs into at most four nonempty worker batches."""
+    """Divide Monte Carlo epochs into nonempty worker batches."""
 
     if total_epochs <= 0:
         msg = "total_epochs must be positive"
@@ -64,10 +67,13 @@ def main() -> None:
 
     # Anchor artifact paths in the repository and lower local compute pressure.
     os.chdir(REPO_ROOT)
-    os.nice(NICE_INCREMENT)
+    if os.name == "nt":
+        psutil.Process().nice(WINDOWS_PRIORITY_CLASS)
+    else:
+        os.nice(NICE_INCREMENT)
     os.environ.update(THREAD_ENV)
 
-    # Launch all worker processes before waiting so the four runs overlap on macOS.
+    # Launch all worker processes before waiting so the local runs overlap.
     workers: list[tuple[int, mp.Process]] = []
     epoch_index_offset = 0
     for worker_index, epochs in enumerate(epoch_batches, start=1):

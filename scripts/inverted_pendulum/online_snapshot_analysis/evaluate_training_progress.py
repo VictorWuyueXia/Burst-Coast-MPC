@@ -166,7 +166,7 @@ def evaluate_controller(
         rl_config = None
         if spec.critic_artifact_dir is not None:
             config.rl.critic_artifact_dir = spec.critic_artifact_dir
-            policy = StructuredCriticPolicy(config.rl, config.environment)
+            policy = StructuredCriticPolicy(config.rl, config.environment, config.mpc)
             rl_config = config.rl
         coordinator = EpochCoordinator(
             config.coordinator,

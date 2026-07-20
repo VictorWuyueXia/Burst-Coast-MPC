@@ -4,3 +4,21 @@ Wake-sleep model predictive control experiments.
 
 This repository provides a typed configuration system, a CLI entry point, a
 synchronous `EpochCoordinator`, and a deterministic pendulum `Environment`.
+
+## Environment
+
+Use the explicit Windows package spec for the fastest clone-to-run setup:
+
+```powershell
+conda create -n burst-coast-mpc --file conda-win-64.lock
+conda activate burst-coast-mpc
+python -m pip install -e .
+```
+
+Use the human-maintained environment file only when changing dependencies:
+
+```powershell
+conda env update -n burst-coast-mpc -f environment.yml --prune
+conda activate burst-coast-mpc
+python -m pip install -e .
+```

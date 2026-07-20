@@ -10,8 +10,8 @@ from typing import Any
 
 import numpy as np
 
-from inverted_pendulum.mpc.controller import prediction_horizon_steps
-from inverted_pendulum.utils.config_schema import EnvironmentConfig, RLConfig
+from inverted_pendulum.mpc.discrete_model import natural_frequency_rad_s
+from inverted_pendulum.utils.config_schema import EnvironmentConfig, MPCConfig, RLConfig
 from inverted_pendulum.utils.messages import RLStepRecord, StateObs
 from inverted_pendulum.utils.monte_carlo import MonteCarloAction
 
@@ -39,7 +39,7 @@ class RLActionSelection:
 class StructuredCriticPolicy:
     """Load frozen critic artifacts and select burst-horizon actions from a grid."""
 
-    def __init__(self, config: RLConfig, environment: EnvironmentConfig) -> None:
+    def __init__(self, config: RLConfig, environment: EnvironmentConfig, mpc: MPCConfig) -> None:
         # Resolve artifact paths relative to the repository root used by the runtime package.
         critic_artifact_dir = Path(config.critic_artifact_dir)
         if not critic_artifact_dir.is_absolute():
@@ -87,17 +87,29 @@ class StructuredCriticPolicy:
             for term in time_model["all_terms"]
         )
 
-        # Freeze the flattened action lattice once so inference and fitted-Q targets match.
-        axis = np.linspace(0.0, 1.0, self.action_grid_count, dtype=np.float64)
-        bbar_grid, hbar_grid = np.meshgrid(axis, axis, indexing="xy")
+        # Freeze the action lattice with bbar as B/H and hbar in natural-period units.
+        bbar_axis = np.linspace(0.0, 1.0, self.action_grid_count, dtype=np.float64)
+        hbar_axis = np.linspace(
+            0.0,
+            mpc.prediction_horizon_natural_periods,
+            self.action_grid_count,
+            dtype=np.float64,
+        )
+        bbar_grid, hbar_grid = np.meshgrid(bbar_axis, hbar_axis, indexing="xy")
         self.grid_bbar = bbar_grid.reshape(-1)
         self.grid_hbar = hbar_grid.reshape(-1)
-        full_horizon_steps = prediction_horizon_steps(self.environment)
+        omega_n = natural_frequency_rad_s(self.environment.pendulum)
         self.grid_horizon_steps = np.maximum(
-            1, np.rint(self.grid_hbar * full_horizon_steps)
+            1,
+            np.ceil(
+                self.grid_hbar
+                * math.tau
+                / omega_n
+                / self.environment.simulation.timestep_s
+            ),
         ).astype(np.int64)
         self.grid_burst_steps = np.maximum(
-            1, np.rint(self.grid_bbar * 0.5 * self.grid_horizon_steps)
+            1, np.rint(self.grid_bbar * self.grid_horizon_steps)
         ).astype(np.int64)
         compute_time_s = np.full(self.grid_bbar.shape, self.time_intercept_s, dtype=np.float64)
         for name, coefficient_s in self.time_terms:
@@ -137,7 +149,7 @@ class StructuredCriticPolicy:
         self,
         observation: StateObs,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Score the full normalized action grid for one replanning observation."""
+        """Score the full burst/horizon action grid for one replanning observation."""
 
         # Evaluate the live observation against the same flat grid used for training targets.
         q_values = self.score_flat_grid(

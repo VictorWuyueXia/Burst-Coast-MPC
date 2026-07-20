@@ -102,6 +102,7 @@ def load_artifact_rows(run_dirs: list[Path]) -> tuple[list[dict[str, str]], dict
         ("time-weight", ("data-generation", "time-weight")),
         ("action-weight", ("data-generation", "action-weight")),
         ("compute-weight", ("data-generation", "compute-weight")),
+        ("hbar-max", ("data-generation", "hbar-max")),
     ]
     first_config_file = (run_dirs[0] / "config.json").open(encoding="utf-8")
     first_config = json.load(first_config_file)
@@ -182,7 +183,7 @@ def build_tensor_table(rows: list[dict[str, str]], constants: dict[str, float]) 
     physical = np.column_stack(
         (horizon_steps * timestep_s, solve_time_s / timestep_s, burst_steps)
     )
-    full_horizon_steps = round((math.tau / math.sqrt(gravity / length)) / timestep_s)
+    full_horizon_steps = math.ceil((math.tau / math.sqrt(gravity / length)) / timestep_s)
 
     return {
         "features_raw": torch.as_tensor(features_raw, dtype=torch.float32),
