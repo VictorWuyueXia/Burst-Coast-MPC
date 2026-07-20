@@ -1,0 +1,10 @@
+{
+  "bellman_mse": 367621.6875,
+  "gradient_updates": 1464,
+  "lambda_c": 0.20813168585300446,
+  "lambda_t": 0.0680822879076004,
+  "lambda_u": 0.27311229705810547,
+  "last_train_mse": 14155.8974609375,
+  "replay_rows": 183,
+  "rows": 183
+}

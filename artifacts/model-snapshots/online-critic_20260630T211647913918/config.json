@@ -1,0 +1,26 @@
+{
+  "action-grid-count": 41,
+  "learning-rate": 0.00025,
+  "replay-capacity": 4096,
+  "rl-config": {
+    "action-weight": 1.0,
+    "compute-weight": 1.0,
+    "critic-artifact-dir": "artifacts/inverted_pendulum_frozen/offline-results-structured-critic_20260614T215834",
+    "exploration-epsilon": 0.1,
+    "exploration-temperature": 2.0,
+    "fail-penalty": 100.0,
+    "gamma": 1.0,
+    "time-model-artifact-dir": "artifacts/inverted_pendulum_frozen/current-surface-lasso-20260630T184805",
+    "time-weight": 1.0,
+    "training-batch-size": 16,
+    "training-epochs": 128,
+    "training-learning-rate": 0.00025,
+    "training-output-root": "artifacts/model-snapshots",
+    "training-seed": 20260616,
+    "training-updates-per-transition": 8
+  },
+  "snapshot-schema-version": 2,
+  "source-critic-artifact-dir": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/artifacts/inverted_pendulum_frozen/offline-results-structured-critic_20260614T215834",
+  "source-time-model-artifact-dir": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/artifacts/inverted_pendulum_frozen/current-surface-lasso-20260630T184805",
+  "target-update-interval": 32
+}

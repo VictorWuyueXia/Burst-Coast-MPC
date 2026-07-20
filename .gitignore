@@ -45,7 +45,7 @@ env/
 artifacts/experiments/
 artifacts/MonteCarloData/
 artifacts/cmp-time-fitting/
-artifacts/model-snapshots/online-critic*
+# artifacts/model-snapshots/online-critic*
 runs/
 outputs/
 results/
