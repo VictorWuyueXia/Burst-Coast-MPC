@@ -7,7 +7,7 @@ from pathlib import Path
 
 from rich.console import Console
 
-from burst_coast_mpc.epoch_coordinator import EpochCoordinator
+from bringup.epoch_coordinator import EpochCoordinator
 from inverted_pendulum.RL.online_training import OnlinePolicyTrainer
 from inverted_pendulum.RL.policy import StructuredCriticPolicy
 from inverted_pendulum.utils.artifacts import (
@@ -39,7 +39,7 @@ def run_train_mode(
         raise NotImplementedError(msg)
     configure_logging()
     config = load_online_training_config()
-    logger = logging.getLogger("burst_coast_mpc")
+    logger = logging.getLogger("bcmpc")
     if alias is not None:
         config.artifacts.alias = alias
     policy = StructuredCriticPolicy(config.rl, config.environment, config.mpc)

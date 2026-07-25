@@ -40,12 +40,15 @@ dev = [
 
 # Define command-line script entry point for easy CLI usage
 [project.scripts]
-burst-coast-mpc = "burst_coast_mpc.cli:main"  # Run CLI with `burst-coast-mpc` command
+bcmpc = "bcmpc:main"  # Run the root command interface with `bcmpc`
 
 # Configure how setuptools finds the packages
+[tool.setuptools]
+py-modules = ["bcmpc"]
+
 [tool.setuptools.packages.find]
 where = ["src", "."]         # Look in the src folder and root
-include = ["burst_coast_mpc*", "inverted_pendulum*", "CR3BP*"]  # Include runtime and task packages
+include = ["bringup*", "inverted_pendulum*", "CR3BP*"]  # Include runtime and task packages
 
 [tool.setuptools.package-data]
 inverted_pendulum = ["configs/*.yaml"]  # Ship task configs

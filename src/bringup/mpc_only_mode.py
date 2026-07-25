@@ -6,7 +6,7 @@ import logging
 
 from rich.console import Console
 
-from burst_coast_mpc.epoch_coordinator import EpochCoordinator
+from bringup.epoch_coordinator import EpochCoordinator
 from inverted_pendulum.utils.artifacts import (
     ArtifactWriter,
     attach_run_log_handler,
@@ -36,7 +36,7 @@ def run_mpc_only_mode(
         raise NotImplementedError(msg)
     configure_logging()
     config = load_config()
-    logger = logging.getLogger("burst_coast_mpc")
+    logger = logging.getLogger("bcmpc")
     if alias is not None:
         config.artifacts.alias = alias
 

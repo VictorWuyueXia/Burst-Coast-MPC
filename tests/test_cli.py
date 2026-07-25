@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from burst_coast_mpc.cli import app
+from bcmpc import app
 from inverted_pendulum.utils.config_schema import (
     load_config,
     load_data_generation_config,
@@ -27,7 +27,7 @@ def test_cli_run_episode(monkeypatch) -> None:
     def load_config_stub():
         return config
 
-    monkeypatch.setattr("burst_coast_mpc.mpc_only_mode.load_config", load_config_stub)
+    monkeypatch.setattr("bringup.mpc_only_mode.load_config", load_config_stub)
 
     result = runner.invoke(
         app,
@@ -50,7 +50,7 @@ def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> N
     def load_config_stub():
         return config
 
-    monkeypatch.setattr("burst_coast_mpc.mpc_only_mode.load_config", load_config_stub)
+    monkeypatch.setattr("bringup.mpc_only_mode.load_config", load_config_stub)
 
     result = runner.invoke(
         app,
@@ -79,7 +79,7 @@ def test_cli_intelligent_routes_weighted_exploration(monkeypatch) -> None:
     def run_intelligent_stub(task, *, alias, no_visual, with_exploration, console):
         calls.append((task, alias, no_visual, with_exploration, console))
 
-    monkeypatch.setattr("burst_coast_mpc.cli.run_intelligent_mode", run_intelligent_stub)
+    monkeypatch.setattr("bcmpc.run_intelligent_mode", run_intelligent_stub)
 
     result = runner.invoke(
         app,
@@ -180,13 +180,13 @@ def test_cli_train_config_epochs_create_separate_artifacts(tmp_path, monkeypatch
             return snapshot_dir
 
     monkeypatch.setattr(
-        "burst_coast_mpc.train_mode.load_online_training_config",
+        "bringup.train_mode.load_online_training_config",
         load_online_training_config_stub,
     )
-    monkeypatch.setattr("burst_coast_mpc.train_mode.StructuredCriticPolicy", lambda *_: policy)
-    monkeypatch.setattr("burst_coast_mpc.train_mode.EpochCoordinator", EpochCoordinatorStub)
-    monkeypatch.setattr("burst_coast_mpc.train_mode.OnlinePolicyTrainer", OnlinePolicyTrainerStub)
-    monkeypatch.setattr("burst_coast_mpc.train_mode.create_artifact_figures", lambda *_: {})
+    monkeypatch.setattr("bringup.train_mode.StructuredCriticPolicy", lambda *_: policy)
+    monkeypatch.setattr("bringup.train_mode.EpochCoordinator", EpochCoordinatorStub)
+    monkeypatch.setattr("bringup.train_mode.OnlinePolicyTrainer", OnlinePolicyTrainerStub)
+    monkeypatch.setattr("bringup.train_mode.create_artifact_figures", lambda *_: {})
 
     result = runner.invoke(app, ["--inverted-pendulum", "train", "--no-visual"])
 
@@ -222,7 +222,7 @@ def test_cli_generate_mc_data_writes_step_and_rl_artifacts(tmp_path, monkeypatch
         return config
 
     monkeypatch.setattr(
-        "burst_coast_mpc.monte_carlo_mode.load_data_generation_config",
+        "bringup.monte_carlo_mode.load_data_generation_config",
         load_data_generation_config_stub,
     )
 
@@ -259,7 +259,7 @@ def test_cli_generate_mc_data_epochs_create_separate_artifacts(tmp_path, monkeyp
         return config
 
     monkeypatch.setattr(
-        "burst_coast_mpc.monte_carlo_mode.load_data_generation_config",
+        "bringup.monte_carlo_mode.load_data_generation_config",
         load_data_generation_config_stub,
     )
 

@@ -19,7 +19,7 @@ THREAD_ENV = {
     "VECLIB_MAXIMUM_THREADS": "1",
     "NUMEXPR_NUM_THREADS": "1",
 }
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 SRC_ROOT = REPO_ROOT / "src"
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(SRC_ROOT))
@@ -45,7 +45,7 @@ def run_worker(worker_index: int, epochs: int, epoch_index_offset: int) -> None:
 
     from rich.console import Console
 
-    from burst_coast_mpc.monte_carlo_mode import run_monte_carlo_mode
+    from bringup.monte_carlo_mode import run_monte_carlo_mode
 
     print(f"worker={worker_index} epochs={epochs} status=started")
     run_monte_carlo_mode(
@@ -60,7 +60,10 @@ def main() -> None:
     """Launch the bounded local Monte Carlo batch and fail on any worker error."""
 
     if len(sys.argv) != 2:
-        msg = "usage: python scripts/inverted_pendulum/run_monte_carlo_parallel.py TOTAL_EPOCHS"
+        msg = (
+            "usage: python src/inverted_pendulum/training_scripts/"
+            "run_monte_carlo_parallel.py TOTAL_EPOCHS"
+        )
         raise SystemExit(msg)
     total_epochs = int(sys.argv[1])
     epoch_batches = split_epochs(total_epochs)

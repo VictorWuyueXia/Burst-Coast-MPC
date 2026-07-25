@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-from burst_coast_mpc.epoch_coordinator import EpochCoordinator
+from bringup.epoch_coordinator import EpochCoordinator
 from inverted_pendulum.RL.policy import StructuredCriticPolicy
 from inverted_pendulum.utils.config_schema import (
     InitialStateConfig,
@@ -20,9 +20,9 @@ from inverted_pendulum.utils.config_schema import (
 )
 from inverted_pendulum.utils.monte_carlo import sample_uniform_initial_state
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-SNAPSHOT_ROOT = REPO_ROOT / "artifacts" / "model-snapshots"
-ANALYSIS_ROOT = REPO_ROOT / "artifacts" / "analysis"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+SNAPSHOT_ROOT = REPO_ROOT / "artifacts" / "inverted_pendulum" / "model-snapshots"
+ANALYSIS_ROOT = REPO_ROOT / "artifacts" / "inverted_pendulum" / "analysis"
 SNAPSHOT_STRIDE = 16
 MAX_STEP_MULTIPLIER = 2
 SWEEP_SEED_MODULUS = 2**32 - 1

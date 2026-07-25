@@ -1,7 +1,7 @@
 import logging
 import math
 
-from burst_coast_mpc.epoch_coordinator import EpochCoordinator
+from bringup.epoch_coordinator import EpochCoordinator
 from inverted_pendulum.RL.policy import RLActionSelection
 from inverted_pendulum.utils.config_schema import load_config
 from inverted_pendulum.utils.logging import ThirdPersonObservers

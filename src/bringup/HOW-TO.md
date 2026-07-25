@@ -19,17 +19,17 @@ to the intended tracked and ignored directories.
 ## MPC Baseline
 
 ```bash
-burst-coast-mpc --inverted-pendulum mpc-only --no-visual
+bcmpc --inverted-pendulum mpc-only --no-visual
 ```
 
 This loads `src/inverted_pendulum/configs/default-config.yaml`, runs the fixed
 natural-period MPC controller, and writes dense step artifacts under
-`artifacts/experiments` when artifact recording is enabled.
+`artifacts/inverted_pendulum/experiments` when artifact recording is enabled.
 
 ## Monte Carlo Data
 
 ```bash
-burst-coast-mpc --inverted-pendulum montecarlo --epochs 40
+bcmpc --inverted-pendulum montecarlo --epochs 40
 ```
 
 This loads `data-generation-config.yaml`, samples initial states and normalized
@@ -45,18 +45,18 @@ C = H - B
 ## Offline Critic Snapshot
 
 ```bash
-python scripts/inverted_pendulum/offline_training/train.py
+python src/inverted_pendulum/training_scripts/offline_training/train.py
 ```
 
 This script trains the structured residual critic from Monte Carlo
 `rl_steps.csv` files. It is intentionally outside the runtime package and is
 hard-coded for one CUDA GPU. Snapshots are written under
-`artifacts/model-snapshots`.
+`artifacts/inverted_pendulum/model-snapshots`.
 
 ## Compute-Time Fit
 
 ```bash
-python scripts/inverted_pendulum/cmp-time-fitting/fit_cmp_time_model.py
+python src/inverted_pendulum/training_scripts/cmp-time-fitting/fit_cmp_time_model.py
 ```
 
 The deployed critic uses a fitted nonnegative solve-time model over realized
@@ -66,7 +66,7 @@ the configured frozen time-model directory before running intelligent mode.
 ## Intelligent Deployment
 
 ```bash
-burst-coast-mpc --inverted-pendulum intelligent --no-visual
+bcmpc --inverted-pendulum intelligent --no-visual
 ```
 
 This loads `intelligent-config.yaml`, evaluates the frozen critic over the full
@@ -77,7 +77,7 @@ candidate once, and executes the resulting burst-coast torque plan. Use
 ## Online Training Mode
 
 ```bash
-burst-coast-mpc --inverted-pendulum train --no-visual
+bcmpc --inverted-pendulum train --no-visual
 ```
 
 This loads `online-training-config.yaml`, samples grid actions with critic

@@ -6,10 +6,10 @@ import logging
 import math
 from typing import Protocol
 
-from inverted_pendulum.RL.policy import RLActionSelection
-from inverted_pendulum.RL.transitions import RLSegmentState
 from inverted_pendulum.environment import Environment
 from inverted_pendulum.mpc.controller import CasadiMPCController
+from inverted_pendulum.RL.policy import RLActionSelection
+from inverted_pendulum.RL.transitions import RLSegmentState
 from inverted_pendulum.utils.config_schema import (
     CoordinatorConfig,
     EnvironmentConfig,

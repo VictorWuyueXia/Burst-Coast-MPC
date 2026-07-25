@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-from burst_coast_mpc.epoch_coordinator import EpochCoordinator
+from bringup.epoch_coordinator import EpochCoordinator
 from inverted_pendulum.utils.artifacts import RL_STEP_CSV_HEADERS, STEP_CSV_HEADERS, ArtifactWriter
 from inverted_pendulum.utils.config_schema import load_config
 from inverted_pendulum.utils.logging import ThirdPersonObservers

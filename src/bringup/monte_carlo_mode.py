@@ -6,7 +6,7 @@ import logging
 
 from rich.console import Console
 
-from burst_coast_mpc.data_generation import MonteCarloDataGenerator
+from bringup.data_generation import MonteCarloDataGenerator
 from inverted_pendulum.utils.artifacts import (
     ArtifactWriter,
     attach_run_log_handler,
@@ -38,7 +38,7 @@ def run_monte_carlo_mode(
     if epochs <= 0:
         msg = "--epochs must be positive"
         raise ValueError(msg)
-    logger = logging.getLogger("burst_coast_mpc")
+    logger = logging.getLogger("bcmpc")
 
     artifact_dirs: list[str] = []
     total_rl_steps = 0
