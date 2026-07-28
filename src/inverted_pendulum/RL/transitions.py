@@ -6,8 +6,8 @@ import json
 import math
 from dataclasses import dataclass
 
-from inverted_pendulum.RL.policy import RLActionSelection
 from inverted_pendulum.mpc.controller import SelectedPlan
+from inverted_pendulum.RL.policy import RLActionSelection
 from inverted_pendulum.utils.config_schema import EnvironmentConfig, RLConfig
 from inverted_pendulum.utils.messages import RLStepRecord, StateObs, StepRecord
 

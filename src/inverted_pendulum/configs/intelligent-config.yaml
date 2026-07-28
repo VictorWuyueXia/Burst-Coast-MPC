@@ -1,5 +1,5 @@
 artifacts:
-  root-dir: artifacts/experiments
+  root-dir: artifacts/inverted_pendulum/experiments
   alias: intelligent
   enabled: true
 experiment:
@@ -38,8 +38,8 @@ mpc:
   prediction-horizon-natural-periods: 5.0
   split-ratios: [0.1, 0.2, 0.3]
 rl:
-  critic-artifact-dir: artifacts/inverted_pendulum_frozen/offline-results-structured-critic_20260614T215834
-  time-model-artifact-dir: artifacts/inverted_pendulum_frozen/current-surface-lasso-20260630T184805
+  critic-artifact-dir: artifacts/inverted_pendulum/frozen/offline-results-structured-critic_20260614T215834
+  time-model-artifact-dir: artifacts/inverted_pendulum/frozen/current-surface-lasso-20260630T184805
   gamma: 1.0
   time-weight: 1.0
   action-weight: 1.0
@@ -52,4 +52,4 @@ rl:
   training-updates-per-transition: 4
   training-epochs: 1
   training-seed: 20260616
-  training-output-root: artifacts/model-snapshots
+  training-output-root: artifacts/inverted_pendulum/model-snapshots

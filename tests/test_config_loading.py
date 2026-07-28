@@ -137,7 +137,10 @@ def test_missing_parameter_fails_schema_validation(tmp_path) -> None:
     config_root.mkdir(parents=True)
     partial_path = config_root / "partial-config.yaml"
     partial_path.write_text(
-        "artifacts:\n  root-dir: artifacts/experiments\n  alias: null\n  enabled: true\n",
+        "artifacts:\n"
+        "  root-dir: artifacts/inverted_pendulum/experiments\n"
+        "  alias: null\n"
+        "  enabled: true\n",
         encoding="utf-8",
     )
 

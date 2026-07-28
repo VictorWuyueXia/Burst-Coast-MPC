@@ -21,11 +21,11 @@ suitable for source checks.
 Generate Monte Carlo data with the existing command:
 
 ```bash
-burst-coast-mpc --inverted-pendulum montecarlo --epochs 40
+bcmpc --inverted-pendulum montecarlo --epochs 40
 ```
 
 The trainer reads complete run folders recursively under
-`artifacts/montecarlo-data` by default. The physical `train`, `val`, and `test`
+`artifacts/inverted_pendulum/montecarlo-data` by default. The physical `train`, `val`, and `test`
 directories are the split boundary; each selected run must contain
 `rl_steps.csv` plus `config.json`.
 
@@ -34,7 +34,7 @@ The loader uses the logged `return-cost` target and the real logged
 
 ## 2. Edit The Minimum Config
 
-Training config lives at `scripts/inverted_pendulum/offline_training/config.yaml`.
+Training config lives at `src/inverted_pendulum/training_scripts/offline_training/config.yaml`.
 
 Keep the file small: `data-roots`, `output-root`, run name, seed, split, batch,
 learning-rate, epoch count, and plotting-grid count only.
@@ -44,7 +44,7 @@ learning-rate, epoch count, and plotting-grid count only.
 Launch from the repository root:
 
 ```bash
-python scripts/inverted_pendulum/offline_training/train.py
+python src/inverted_pendulum/training_scripts/offline_training/train.py
 ```
 
 ```text
@@ -62,7 +62,7 @@ Training is hard-coded to one GPU with `accelerator="gpu"`, `devices=1`, and
 Snapshots are written to:
 
 ```bash
-artifacts/model-snapshots/<run-name>_<timestamp>/
+artifacts/inverted_pendulum/model-snapshots/<run-name>_<timestamp>/
 ```
 
 Core reload artifacts:

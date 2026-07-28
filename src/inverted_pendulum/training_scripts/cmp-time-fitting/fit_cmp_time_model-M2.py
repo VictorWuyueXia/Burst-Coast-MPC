@@ -21,9 +21,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from threadpoolctl import threadpool_limits
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-ARTIFACT_ROOT = REPO_ROOT / "artifacts" / "MonteCarloData"
-OUTPUT_ROOT = REPO_ROOT / "artifacts" / "cmp-time-fitting"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+ARTIFACT_ROOT = REPO_ROOT / "artifacts" / "inverted_pendulum" / "MonteCarloData"
+OUTPUT_ROOT = REPO_ROOT / "artifacts" / "inverted_pendulum" / "cmp-time-fitting"
 SEEDS = (11, 23, 37, 53, 71)
 ALPHAS = np.logspace(-5, 0, 80)
 THREAD_COUNT = 8

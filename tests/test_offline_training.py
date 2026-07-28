@@ -9,8 +9,9 @@ import pytest
 
 SCRIPT_DIR = (
     Path(__file__).resolve().parents[1]
-    / "scripts"
+    / "src"
     / "inverted_pendulum"
+    / "training_scripts"
     / "offline_training"
 )
 

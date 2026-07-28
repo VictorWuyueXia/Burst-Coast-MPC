@@ -1,6 +1,6 @@
 data-roots:
-  - artifacts/montecarlo-data
-output-root: artifacts/model-snapshots
+  - artifacts/inverted_pendulum/montecarlo-data
+output-root: artifacts/inverted_pendulum/model-snapshots
 run-name: structured-critic
 seed: 20260615
 train-fraction: 0.8

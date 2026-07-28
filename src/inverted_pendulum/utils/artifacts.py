@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from burst_coast_mpc import __version__
+from bringup import __version__
 from inverted_pendulum.utils.config_schema import DataGenerationRootConfig, RootConfig
 from inverted_pendulum.utils.messages import ExperimentSummary, RLStepRecord, StepRecord
 

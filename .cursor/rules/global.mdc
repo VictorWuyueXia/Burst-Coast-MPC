@@ -1,0 +1,8 @@
+---
+description: 
+alwaysApply: true
+---
+
+Our overall grand mission goal here is to develope a easy-effort minimum-realization theory-oriented benchmark simulation for an MPC to solve for a burst of control commands for a short segment of time followed by a longer segment of sleep idle. The prediction horizon and the terminal value will eventually be determined by a neural networkd trained by reinforcement learning style.
+
+At start of a conversation, briefly scan through the code base and the docs to have a grand picture of our goal and current stage.

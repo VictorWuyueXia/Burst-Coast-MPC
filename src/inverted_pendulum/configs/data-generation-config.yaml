@@ -1,5 +1,5 @@
 artifacts:
-  root-dir: artifacts/experiments
+  root-dir: artifacts/inverted_pendulum/experiments
   alias: monte-carlo-data
 experiment:
   run-id: pendulum_monte_carlo

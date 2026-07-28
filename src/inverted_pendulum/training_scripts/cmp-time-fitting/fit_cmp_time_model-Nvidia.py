@@ -11,9 +11,9 @@ from datetime import datetime
 from pathlib import Path
 
 # Resolve Ubuntu workstation data and output locations.
-REPO_ROOT = Path(__file__).resolve().parents[3]
-ARTIFACT_ROOT = REPO_ROOT / "artifacts" / "MonteCarloData"
-OUTPUT_ROOT = REPO_ROOT / "artifacts" / "cmp-time-fitting"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+ARTIFACT_ROOT = REPO_ROOT / "artifacts" / "inverted_pendulum" / "MonteCarloData"
+OUTPUT_ROOT = REPO_ROOT / "artifacts" / "inverted_pendulum" / "cmp-time-fitting"
 MPLCONFIGDIR = Path("/tmp/burst-coast-mpc-matplotlib")
 MPLBACKEND = "Agg"
 THREAD_COUNT = "12"
