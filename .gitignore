@@ -42,12 +42,10 @@ env/
 .ruff_cache/
 
 # --- Experiment outputs and research logs ------------------------------------
-artifacts/inverted_pendulum/experiments/
-artifacts/inverted_pendulum/MonteCarloData/
-artifacts/inverted_pendulum/montecarlo-data/
-artifacts/inverted_pendulum/cmp-time-fitting/
-artifacts/inverted_pendulum/model-snapshots/online-critic*
-artifacts/inverted_pendulum/batch-*
+artifacts/inverted_pendulum/
+artifacts/experiments/
+artifacts/cmp-time-fitting/
+artifacts/MonteCarloData/
 runs/
 outputs/
 results/
@@ -87,3 +85,7 @@ debug/
 # Codex: ignore agent rules
 AGENTS.md
 !AGENTS.md
+
+# --- archive ----------------------------------------------------
+_archive/
+**/_archive/

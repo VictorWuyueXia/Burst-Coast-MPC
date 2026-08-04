@@ -10,21 +10,24 @@ from rich.console import Console
 from bringup.intelligent_mode import run_intelligent_mode
 from bringup.monte_carlo_mode import run_monte_carlo_mode
 from bringup.mpc_only_mode import run_mpc_only_mode
+from bringup.rotary_pendulum_mode import run_rotary_pendulum_mode
 from bringup.train_mode import run_train_mode
 
-app = typer.Typer(help="Run one selected Burst-Coast MPC task mode.", invoke_without_command=True)
+app = typer.Typer(help="Run one selected Burst-Coast scenario mode.", invoke_without_command=True)
 console = Console()
 
 
-def _selected_task(inverted_pendulum: bool, cr3bp: bool) -> str:
+def _selected_task(inverted_pendulum: bool, rotary_pendulum: bool, cr3bp: bool) -> str:
     """Resolve the one task selected by the root command flags."""
 
-    if inverted_pendulum == cr3bp:
-        msg = "Select exactly one task with --inverted-pendulum or --cr3bp"
+    if sum((inverted_pendulum, rotary_pendulum, cr3bp)) != 1:
+        msg = "Select exactly one task with --inverted-pendulum, --rotary-pendulum, or --cr3bp"
         raise typer.BadParameter(msg)
     if cr3bp:
         msg = "CR3BP task scaffold exists, but runtime implementation is not available yet"
         raise NotImplementedError(msg)
+    if rotary_pendulum:
+        return "rotary_pendulum"
     return "inverted_pendulum"
 
 
@@ -35,17 +38,24 @@ def select_task(
         bool,
         typer.Option("--inverted-pendulum", help="Run the inverted-pendulum task package."),
     ] = False,
+    rotary_pendulum: Annotated[
+        bool,
+        typer.Option("--rotary-pendulum", help="Run the rotary-pendulum task package."),
+    ] = False,
     cr3bp: Annotated[
         bool,
         typer.Option("--cr3bp", help="Run the CR3BP task package."),
     ] = False,
 ) -> None:
-    """Select a task; without a subcommand, run its MPC baseline."""
+    """Select a task; without a subcommand, run its default scenario bringup."""
 
     # Bind the task once so each mode receives the same explicit package selection.
-    ctx.obj = _selected_task(inverted_pendulum, cr3bp)
+    ctx.obj = _selected_task(inverted_pendulum, rotary_pendulum, cr3bp)
     if ctx.invoked_subcommand is None:
-        run_mpc_only_mode(ctx.obj, alias=None, no_visual=False, console=console)
+        if ctx.obj == "rotary_pendulum":
+            run_rotary_pendulum_mode(console=console)
+        else:
+            run_mpc_only_mode(ctx.obj, alias=None, no_visual=False, console=console)
         raise typer.Exit()
 
 

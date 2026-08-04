@@ -16,6 +16,17 @@ pip install -e .
 Run commands from the repository root so artifact paths in the configs resolve
 to the intended tracked and ignored directories.
 
+## Rotary-Pendulum Physics Simulation
+
+```bash
+bcmpc --rotary-pendulum
+```
+
+This runs the coupled QUBE-Servo 3 torque-driven model at 500 Hz and opens the
+combined 3D and time-series monitor. Until its MPC and RL paths are implemented,
+each replan samples a constant signed torque magnitude and a duration of up to
+three coupled natural periods.
+
 ## MPC Baseline
 
 ```bash
