@@ -9,17 +9,62 @@ from rotary_pendulum.environment.dynamics import (
     rk4_step,
     state_derivative,
 )
-from rotary_pendulum.utils.config_schema import load_config
-from rotary_pendulum.utils.monte_carlo import sample_action_plan
+from rotary_pendulum.utils.config_schema import (
+    EPISODE_CONFIG_PATHS,
+    load_episode_config,
+    load_visualization_config,
+)
+from rotary_pendulum.utils.messages import ActionPlan, CandidateRecord
+
+
+def _test_plan(*, solve_time_s: float = 0.003) -> ActionPlan:
+    """Create one complete typed action plan for plant-boundary tests."""
+
+    candidate = CandidateRecord(
+        split_ratio=0.5,
+        horizon_steps=2,
+        burst_steps=1,
+        coast_steps=1,
+        objective_value=1.25,
+        solve_time_s=solve_time_s,
+        solver_status="Solve_Succeeded",
+        selected=True,
+    )
+    return ActionPlan(
+        plan_id="test-plan",
+        replan_index=0,
+        hbar=1.0,
+        bbar=0.5,
+        horizon_steps=2,
+        burst_steps=1,
+        coast_steps=1,
+        objective_value=candidate.objective_value,
+        solve_time_s=solve_time_s,
+        solver_status=candidate.solver_status,
+        torques_nm=np.array([0.01, 0.0], dtype=np.float64),
+        predicted_states=np.zeros((3, 4), dtype=np.float64),
+        candidates=(candidate,),
+    )
 
 
 def test_default_config_reproduces_documented_model_constants() -> None:
-    config = load_config()
+    config = load_episode_config(EPISODE_CONFIG_PATHS, runtime_mode="headless")
+    visualization = load_visualization_config()
     model = derive_model(config.rotary_pendulum)
 
-    assert config.experiment.run_id == "rotary_pendulum_simulation"
-    assert config.simulation.timestep_s == pytest.approx(0.01)
-    assert config.visualization.update_every == 10
+    assert config.experiment.run_id == "rotary_pendulum_mpc"
+    assert config.simulation.timestep_s == pytest.approx(0.002)
+    assert config.mpc.prediction_horizon_natural_periods == pytest.approx(2.0)
+    assert config.mpc.split_ratios == pytest.approx([0.2, 0.3, 0.4])
+    assert config.mpc.terminal_swing_energy_weight == pytest.approx(1.0)
+    assert config.mpc.phase_chasing_weight == pytest.approx(1.0)
+    assert config.mpc.energy_transition_width == pytest.approx(0.25)
+    assert config.mpc.local_energy_shell_width == pytest.approx(0.25)
+    assert config.mpc.pendulum_local_weight == pytest.approx(0.01)
+    assert config.mpc.rotary_local_weight == pytest.approx(0.001)
+    assert config.mpc.arm_angle_soft_penalty_weight == pytest.approx(1.0e4)
+    assert config.mpc.torque_slew_weight == pytest.approx(1.0e-3)
+    assert visualization.update_every == 10
     assert model.arm_inertia_kg_m2 == pytest.approx(2.2879167e-4)
     assert model.pendulum_com_inertia_kg_m2 == pytest.approx(3.3282e-5)
     assert model.pendulum_inertia_kg_m2 == pytest.approx(1.33128e-4)
@@ -31,8 +76,13 @@ def test_default_config_reproduces_documented_model_constants() -> None:
     assert model.natural_period_s == pytest.approx(0.483922, rel=1e-6)
 
 
+def test_rotary_config_requires_explicit_domains() -> None:
+    with pytest.raises(ValueError, match="At least one config path"):
+        load_episode_config(())
+
+
 def test_vectorized_ode_matches_explicit_documented_accelerations() -> None:
-    config = load_config()
+    config = load_episode_config(EPISODE_CONFIG_PATHS, runtime_mode="headless")
     physical = config.rotary_pendulum
     model = derive_model(physical)
     state = np.array([0.2, 0.7, 1.1, -0.4], dtype=np.float64)
@@ -74,7 +124,7 @@ def test_vectorized_ode_matches_explicit_documented_accelerations() -> None:
 
 
 def test_energy_rate_geometry_and_equilibrium_match_the_mechanical_model() -> None:
-    config = load_config()
+    config = load_episode_config(EPISODE_CONFIG_PATHS, runtime_mode="headless")
     physical = config.rotary_pendulum
     model = derive_model(physical)
     state = np.array([0.4, 0.8, 1.2, -0.7], dtype=np.float64)
@@ -92,6 +142,25 @@ def test_energy_rate_geometry_and_equilibrium_match_the_mechanical_model() -> No
         - physical.pendulum_damping_nms * state[3] ** 2
     )
     assert numerical_energy_rate == pytest.approx(expected_energy_rate, rel=1e-7, abs=1e-9)
+
+    # Audit the pendulum-relative energy-transfer identity used by the redesigned objective.
+    swing_energy_plus = 0.5 * model.pendulum_inertia_kg_m2 * (
+        state[3] + epsilon * derivative[3]
+    ) ** 2 + model.gravity_torque_nm * (1.0 - np.cos(state[1] + epsilon * derivative[1]))
+    swing_energy_minus = 0.5 * model.pendulum_inertia_kg_m2 * (
+        state[3] - epsilon * derivative[3]
+    ) ** 2 + model.gravity_torque_nm * (1.0 - np.cos(state[1] - epsilon * derivative[1]))
+    numerical_swing_rate = (swing_energy_plus - swing_energy_minus) / (2.0 * epsilon)
+    expected_swing_rate = (
+        -model.coupling_inertia_kg_m2 * np.cos(state[1]) * state[3] * derivative[2]
+        + model.pendulum_inertia_kg_m2
+        * np.sin(state[1])
+        * np.cos(state[1])
+        * state[2] ** 2
+        * state[3]
+        - physical.pendulum_damping_nms * state[3] ** 2
+    )
+    assert numerical_swing_rate == pytest.approx(expected_swing_rate, rel=1e-7, abs=1e-9)
 
     # Downward geometry and energy retain the document's global angle convention.
     downward = np.zeros(4, dtype=np.float64)
@@ -112,7 +181,7 @@ def test_energy_rate_geometry_and_equilibrium_match_the_mechanical_model() -> No
 
 
 def test_mass_matrix_is_positive_and_lossless_rk4_energy_converges() -> None:
-    config = load_config()
+    config = load_episode_config(EPISODE_CONFIG_PATHS, runtime_mode="headless")
     physical = config.rotary_pendulum
     model = derive_model(physical)
 
@@ -138,53 +207,22 @@ def test_mass_matrix_is_positive_and_lossless_rk4_energy_converges() -> None:
     assert energy_drifts_j[1] < energy_drifts_j[0]
 
 
-def test_monte_carlo_plan_samples_requested_open_magnitude_and_discrete_horizon() -> None:
-    config = load_config()
-    model = derive_model(config.rotary_pendulum)
-    rng = np.random.default_rng(config.experiment.seed)
-    plans = [sample_action_plan(rng, config, model, index) for index in range(512)]
-    torques_nm = np.array([plan.torques_nm[0] for plan in plans])
-    horizons = np.array([plan.horizon_steps for plan in plans])
-    max_horizon = int(np.floor(3.0 * model.natural_period_s / config.simulation.timestep_s))
-    torque_limit_nm = config.rotary_pendulum.torque_limit_nm
-
-    assert np.all((horizons >= 1) & (horizons <= max_horizon))
-    assert np.all((np.abs(torques_nm) > 0.0) & (np.abs(torques_nm) < torque_limit_nm))
-    assert 0.44 < np.mean(torques_nm > 0.0) < 0.56
-    assert np.mean(horizons) == pytest.approx(0.5 * (max_horizon + 1), rel=0.06)
-    for plan, torque_nm in zip(plans, torques_nm, strict=True):
-        assert plan.plan_id == f"monte-carlo-{plan.replan_index:06d}"
-        assert plan.torques_nm.shape == (plan.horizon_steps,)
-        np.testing.assert_array_equal(plan.torques_nm, torque_nm)
-        assert plan.hbar == pytest.approx(
-            plan.horizon_steps * config.simulation.timestep_s / model.natural_period_s
-        )
-        assert plan.bbar == pytest.approx(abs(torque_nm) / torque_limit_nm)
-
-
 def test_environment_emits_complete_observation_and_explicit_replan_record() -> None:
-    config = load_config()
-    config.simulation.pace_s = 0.0
+    config = load_episode_config(EPISODE_CONFIG_PATHS, runtime_mode="headless")
     environment = RotaryPendulumEnvironment(config)
     observation = environment.reset()
-    plan = sample_action_plan(
-        np.random.default_rng(config.experiment.seed),
-        config,
-        environment.model,
-        replan_index=0,
-    )
+    plan = _test_plan()
     torque_limit_nm = config.rotary_pendulum.torque_limit_nm
 
     next_observation, record = environment.step(
         2.0 * torque_limit_nm,
         plan,
-        0.003,
         replan_flag=True,
     )
 
     assert observation.t_index == 0
     assert next_observation.t_index == environment.t_index == 1
-    assert next_observation.t_sec == environment.t_sec == pytest.approx(0.01)
+    assert next_observation.t_sec == environment.t_sec == pytest.approx(0.002)
     assert np.isfinite(environment.state).all()
     assert record.u_commanded_nm == pytest.approx(2.0 * torque_limit_nm)
     assert record.u_applied_nm == pytest.approx(torque_limit_nm)
@@ -192,20 +230,23 @@ def test_environment_emits_complete_observation_and_explicit_replan_record() -> 
     assert record.replan_flag is True
     assert record.solve_time_s == pytest.approx(0.003)
     assert record.energy_j == next_observation.energy_j
-    with pytest.raises(ValueError, match="zero away"):
-        environment.step(0.0, plan, 0.001, replan_flag=False)
+    assert record.energy_j == pytest.approx(
+        0.5 * environment.model.pendulum_inertia_kg_m2 * record.nu_rad_s**2
+        + environment.model.gravity_torque_nm * (1.0 - np.cos(record.alpha_rad))
+    )
+    _, coast_record = environment.step(0.0, plan, replan_flag=False)
+    assert coast_record.solve_time_s == 0.0
 
 
 def test_environment_requires_held_complete_upright_goal() -> None:
-    config = load_config()
-    config.simulation.pace_s = 0.0
+    config = load_episode_config(EPISODE_CONFIG_PATHS, runtime_mode="headless")
     config.experiment.initial_state.alpha_rad = np.pi
     config.goal.hold_steps = 2
     environment = RotaryPendulumEnvironment(config)
     first_observation = environment.reset()
-    plan = sample_action_plan(np.random.default_rng(2), config, environment.model, 0)
+    plan = _test_plan(solve_time_s=0.0)
 
-    second_observation, _ = environment.step(0.0, plan, 0.0, replan_flag=True)
+    second_observation, _ = environment.step(0.0, plan, replan_flag=True)
 
     assert first_observation.beta_rad == pytest.approx(0.0)
     assert first_observation.goal_reached is False

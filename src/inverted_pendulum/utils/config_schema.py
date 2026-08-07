@@ -1,98 +1,136 @@
-"""Typed configuration schema."""
+"""Strict typed configuration composed from task-domain YAML fragments."""
 
 from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
-from omegaconf import OmegaConf
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from omegaconf import DictConfig, OmegaConf
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from inverted_pendulum.utils.time import realtime
 
 CONFIG_ROOT = Path(__file__).resolve().parents[1] / "configs"
-DEFAULT_CONFIG_PATH = CONFIG_ROOT / "default-config.yaml"
-INTELLIGENT_CONFIG_PATH = CONFIG_ROOT / "intelligent-config.yaml"
-ONLINE_TRAINING_CONFIG_PATH = CONFIG_ROOT / "online-training-config.yaml"
-DATA_GENERATION_CONFIG_PATH = CONFIG_ROOT / "data-generation-config.yaml"
+ConfigMode = Literal["mpc-only", "intelligent", "online-training", "data-generation"]
 
 
-def load_config(config_path: Path = DEFAULT_CONFIG_PATH) -> RootConfig:
-    """Load the complete default episode config and validate every required field."""
+def _sources(*names: str) -> tuple[Path, ...]:
+    """Resolve declared package config fragments without cwd dependence."""
 
-    resolved = _load_resolved_config(config_path)
-    return RootConfig.model_validate(resolved)
-
-
-def load_intelligent_config() -> RootConfig:
-    """Load the deterministic critic-deployment episode config."""
-
-    return load_config(INTELLIGENT_CONFIG_PATH)
+    return tuple(CONFIG_ROOT / name for name in names)
 
 
-def load_online_training_config() -> RootConfig:
-    """Load the exploratory online fitted-Q training episode config."""
+EPISODE_CONFIG_SOURCES = _sources(
+    "physics-config.yaml",
+    "mission-config.yaml",
+    "runtime-config.yaml",
+    "mpc-config.yaml",
+    "artifacts-config.yaml",
+)
+MPC_ONLY_CONFIG_SOURCES = EPISODE_CONFIG_SOURCES
+INTELLIGENT_CONFIG_SOURCES = EPISODE_CONFIG_SOURCES + _sources("rl-config.yaml")
+ONLINE_TRAINING_CONFIG_SOURCES = INTELLIGENT_CONFIG_SOURCES
+DATA_GENERATION_CONFIG_SOURCES = EPISODE_CONFIG_SOURCES + _sources("data-generation-config.yaml")
+VISUALIZATION_CONFIG_SOURCE = CONFIG_ROOT / "visual-config.yaml"
 
-    return load_config(ONLINE_TRAINING_CONFIG_PATH)
+
+def load_mpc_only_config(
+    config_sources: tuple[Path, ...] = MPC_ONLY_CONFIG_SOURCES,
+) -> RootConfig:
+    """Compose and validate the physical MPC-only episode domains."""
+
+    return RootConfig.model_validate(_compose_config(config_sources, "mpc-only"))
+
+
+def load_intelligent_config(
+    config_sources: tuple[Path, ...] = INTELLIGENT_CONFIG_SOURCES,
+) -> RLRootConfig:
+    """Compose and validate deterministic critic-deployment domains."""
+
+    return RLRootConfig.model_validate(_compose_config(config_sources, "intelligent"))
+
+
+def load_online_training_config(
+    config_sources: tuple[Path, ...] = ONLINE_TRAINING_CONFIG_SOURCES,
+) -> RLRootConfig:
+    """Compose and validate exploratory online-training domains."""
+
+    return RLRootConfig.model_validate(_compose_config(config_sources, "online-training"))
 
 
 def load_data_generation_config(
-    config_path: Path = DATA_GENERATION_CONFIG_PATH,
+    config_sources: tuple[Path, ...] = DATA_GENERATION_CONFIG_SOURCES,
 ) -> DataGenerationRootConfig:
-    """Load the complete Monte Carlo data-generation config."""
+    """Compose and validate Monte Carlo data-generation domains."""
 
-    resolved = _load_resolved_config(config_path)
-    return DataGenerationRootConfig.model_validate(resolved)
-
-
-def _load_resolved_config(config_path: Path) -> dict:
-    """Resolve one YAML config file before Pydantic validation."""
-
-    # Bind the realtime resolver only at the YAML boundary.
-    OmegaConf.register_new_resolver("realtime", realtime, replace=True)
-    if not config_path.exists():
-        msg = f"Config file not found: {config_path}"
-        raise FileNotFoundError(msg)
-    return OmegaConf.to_container(OmegaConf.load(config_path), resolve=True)
-
-
-class ConfigBase(BaseModel):
-    """Common strict schema settings for human-readable YAML aliases."""
-
-    model_config = ConfigDict(
-        populate_by_name=True,
-        extra="forbid",
-        protected_namespaces=(),
-        allow_inf_nan=False,
+    return DataGenerationRootConfig.model_validate(
+        _compose_config(config_sources, "data-generation")
     )
 
 
-class ArtifactConfig(ConfigBase):
-    """Artifact recording controls for normal experiment runs."""
+def load_visualization_config(
+    config_source: Path = VISUALIZATION_CONFIG_SOURCE,
+) -> VisualizationConfig:
+    """Load display controls independently from headless runtime domains."""
 
+    resolved = _compose_config((config_source,))
+    return VisualizationRootConfig.model_validate(resolved).visualization
+
+
+def _compose_config(
+    config_sources: tuple[Path, ...], mode: ConfigMode | None = None
+) -> dict[str, object]:
+    """Merge domains, apply one mode profile, and resolve interpolation once."""
+
+    if not config_sources:
+        raise ValueError("At least one config source is required")
+    OmegaConf.register_new_resolver("realtime", realtime, replace=True)
+    for source in config_sources:
+        if not source.exists():
+            raise FileNotFoundError(f"Config file not found: {source}")
+    loaded_domains = tuple(OmegaConf.load(source) for source in config_sources)
+    merged = cast(DictConfig, OmegaConf.merge(*loaded_domains))
+    if mode is not None:
+        profile = OmegaConf.select(merged, f"modes.{mode}")
+        if profile is None and OmegaConf.select(merged, "modes") is not None:
+            raise ValueError(f"Config mode profile not found: {mode}")
+        if profile is not None:
+            merged = cast(DictConfig, OmegaConf.merge(merged, profile))
+    if "modes" in merged:
+        del merged["modes"]
+    resolved = OmegaConf.to_container(merged, resolve=True)
+    if not isinstance(resolved, dict):
+        raise TypeError("Composed config must resolve to a mapping")
+    return cast(dict[str, object], resolved)
+
+
+class ConfigBase(BaseModel):
+    """Apply strict validation and readable YAML aliases to every domain."""
+
+    model_config = ConfigDict(
+        populate_by_name=True, extra="forbid", protected_namespaces=(), allow_inf_nan=False
+    )
+
+
+# Declare the compact experiment, artifact, and physical domain value objects.
+class ArtifactConfig(ConfigBase):
     root_dir: str = Field(alias="root-dir")
     alias: str | None
     enabled: bool
 
 
 class DataGenerationArtifactConfig(ConfigBase):
-    """Artifact directory controls required by Monte Carlo data generation."""
-
     root_dir: str = Field(alias="root-dir")
     alias: str | None
 
 
 class InitialStateConfig(ConfigBase):
-    """Initial physical state for the pendulum environment."""
-
     theta_rad: float = Field(alias="theta-rad")
     omega_rad_s: float = Field(alias="omega-rad-s")
 
 
 class ExperimentConfig(ConfigBase):
-    """Top-level experiment controls owned by the Coordinator."""
-
     run_id: str = Field(alias="run-id")
     episode_id: int = Field(alias="episode-id")
     max_steps: int = Field(alias="max-steps", gt=0)
@@ -101,8 +139,6 @@ class ExperimentConfig(ConfigBase):
 
 
 class DataGenerationExperimentConfig(ConfigBase):
-    """Episode identity and stopping policy used by Monte Carlo generation."""
-
     run_id: str = Field(alias="run-id")
     episode_id: int = Field(alias="episode-id")
     max_steps: int = Field(alias="max-steps", gt=0)
@@ -110,8 +146,6 @@ class DataGenerationExperimentConfig(ConfigBase):
 
 
 class CoordinatorConfig(ConfigBase):
-    """Coordinator timing and synchronous execution policy."""
-
     node_id: str = Field(alias="node-id")
     mode: Literal["synchronous"]
     event_trigger: bool = Field(alias="event-trigger")
@@ -120,15 +154,11 @@ class CoordinatorConfig(ConfigBase):
 
 
 class SimulationConfig(ConfigBase):
-    """Simulation clock controls kept separate from wall-clock pacing."""
-
     timestep_s: float = Field(alias="timestep-s", gt=0.0)
     pace_s: float = Field(alias="pace-s", ge=0.0)
 
 
 class PendulumConfig(ConfigBase):
-    """Physical constants and conservative state bounds for the pendulum."""
-
     mass_kg: float = Field(alias="mass-kg", gt=0.0)
     gravity_m_s2: float = Field(alias="gravity-m-s2", gt=0.0)
     length_m: float = Field(alias="length-m", gt=0.0)
@@ -139,20 +169,24 @@ class PendulumConfig(ConfigBase):
 
 
 class GoalConfig(ConfigBase):
-    """Goal-set thresholds used by the Environment and Coordinator."""
-
     angle_tolerance_rad: float = Field(alias="angle-tolerance-rad", gt=0.0)
     omega_tolerance_rad_s: float = Field(alias="omega-tolerance-rad-s", gt=0.0)
     hold_steps: int = Field(alias="hold-steps", ge=0)
 
 
 class EnvironmentConfig(ConfigBase):
-    """Environment identity and simulation model configuration."""
-
     node_id: str = Field(alias="node-id")
     simulation: SimulationConfig
     pendulum: PendulumConfig
     goal: GoalConfig
+
+
+class VisualizationConfig(ConfigBase):
+    update_every: int = Field(alias="update-every", gt=0)
+
+
+class VisualizationRootConfig(ConfigBase):
+    visualization: VisualizationConfig
 
 
 class MPCConfig(ConfigBase):
@@ -160,8 +194,7 @@ class MPCConfig(ConfigBase):
 
     controller: Literal["IP-dynamics-naturalPeriod"]
     prediction_horizon_natural_periods: float = Field(
-        alias="prediction-horizon-natural-periods",
-        gt=0.0,
+        alias="prediction-horizon-natural-periods", gt=0.0
     )
     split_ratios: list[float] = Field(alias="split-ratios")
 
@@ -169,11 +202,9 @@ class MPCConfig(ConfigBase):
     @classmethod
     def _split_ratios_must_be_valid(cls, value: list[float]) -> list[float]:
         if not value:
-            msg = "split-ratios must contain at least one value"
-            raise ValueError(msg)
+            raise ValueError("split-ratios must contain at least one value")
         if any(ratio <= 0.0 or ratio > 1.0 or not math.isfinite(ratio) for ratio in value):
-            msg = "split-ratios entries must be finite values in (0, 1]"
-            raise ValueError(msg)
+            raise ValueError("split-ratios entries must be finite values in (0, 1]")
         return value
 
 
@@ -198,14 +229,19 @@ class RLConfig(ConfigBase):
 
 
 class RootConfig(ConfigBase):
-    """Fully composed normal episode configuration."""
+    """Composed physical MPC episode without any RL domain."""
 
     experiment: ExperimentConfig
     coordinator: CoordinatorConfig
     environment: EnvironmentConfig
     mpc: MPCConfig
-    rl: RLConfig
     artifacts: ArtifactConfig
+
+
+class RLRootConfig(RootConfig):
+    """Composed intelligent or training episode with explicit RL ownership."""
+
+    rl: RLConfig
 
 
 class DataGenerationConfig(ConfigBase):
@@ -228,40 +264,30 @@ class DataGenerationConfig(ConfigBase):
 
     @field_validator("theta_rad_sample_range", "omega_eq_scale_sample_range")
     @classmethod
-    def _sample_ranges_must_be_two_ordered_finite_values(
-        cls,
-        value: list[float],
-    ) -> list[float]:
-        if len(value) != 2:
-            msg = "sample ranges must contain exactly two values"
-            raise ValueError(msg)
-        if any(not math.isfinite(bound) for bound in value):
-            msg = "sample range bounds must be finite"
-            raise ValueError(msg)
+    def _sample_ranges_must_be_valid(cls, value: list[float]) -> list[float]:
+        if len(value) != 2 or any(not math.isfinite(bound) for bound in value):
+            raise ValueError("sample ranges must contain exactly two finite values")
         if value[1] < value[0]:
-            msg = "sample range upper bound must be greater than or equal to lower bound"
-            raise ValueError(msg)
+            raise ValueError("sample range upper bound must not be below its lower bound")
         return value
 
     @field_validator("bbar_max")
     @classmethod
-    def _bbar_range_must_be_ordered(cls, value: float, info) -> float:
+    def _bbar_range_must_be_ordered(cls, value: float, info: ValidationInfo) -> float:
         if "bbar_min" in info.data and value < info.data["bbar_min"]:
-            msg = "bbar-max must be greater than or equal to bbar-min"
-            raise ValueError(msg)
+            raise ValueError("bbar-max must be greater than or equal to bbar-min")
         return value
 
     @field_validator("hbar_max")
     @classmethod
-    def _hbar_range_must_be_ordered(cls, value: float, info) -> float:
+    def _hbar_range_must_be_ordered(cls, value: float, info: ValidationInfo) -> float:
         if "hbar_min" in info.data and value < info.data["hbar_min"]:
-            msg = "hbar-max must be greater than or equal to hbar-min"
-            raise ValueError(msg)
+            raise ValueError("hbar-max must be greater than or equal to hbar-min")
         return value
 
 
 class DataGenerationRootConfig(ConfigBase):
-    """Complete Monte Carlo generation configuration."""
+    """Composed Monte Carlo config without coordinator, initial-state, or RL domains."""
 
     experiment: DataGenerationExperimentConfig
     environment: EnvironmentConfig

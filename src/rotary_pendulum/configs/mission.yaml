@@ -1,0 +1,15 @@
+experiment:
+  run-id: rotary_pendulum_mpc
+  episode-id: 0
+  max-steps: 5000
+  initial-state:
+    theta-rad: 0.0
+    alpha-rad: 0.0
+    omega-rad-s: 0.0
+    nu-rad-s: 0.0
+goal:
+  theta-tolerance-rad: 0.05
+  beta-tolerance-rad: 0.05
+  omega-tolerance-rad-s: 0.05
+  nu-tolerance-rad-s: 0.05
+  hold-steps: 5

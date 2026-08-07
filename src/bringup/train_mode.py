@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from rich.console import Console
 
@@ -15,13 +16,20 @@ from inverted_pendulum.utils.artifacts import (
     attach_run_log_handler,
     detach_run_log_handler,
 )
-from inverted_pendulum.utils.config_schema import load_online_training_config
+from inverted_pendulum.utils.config_schema import (
+    load_online_training_config,
+    load_visualization_config,
+)
 from inverted_pendulum.utils.logging import (
     ThirdPersonObservers,
     configure_logging,
     episode_output,
 )
+from inverted_pendulum.utils.messages import StateObs, StepRecord
 from inverted_pendulum.visualization.artifact_plots import create_artifact_figures
+
+if TYPE_CHECKING:
+    from inverted_pendulum.visualization.realtime import RealtimeEpisodePlot
 
 
 def run_train_mode(
@@ -43,11 +51,12 @@ def run_train_mode(
     if alias is not None:
         config.artifacts.alias = alias
     policy = StructuredCriticPolicy(config.rl, config.environment, config.mpc)
+    visualization = None if no_visual else load_visualization_config()
     base_alias = config.artifacts.alias
     if config.artifacts.enabled and config.rl.training_epochs > 1 and base_alias is None:
         msg = "Multi-epoch online training requires a configured artifact alias"
         raise ValueError(msg)
-    epoch_outputs: list[dict] = []
+    epoch_outputs: list[dict[str, object]] = []
     total_rl_steps = 0
     snapshot_dir: Path | None = None
 
@@ -65,7 +74,7 @@ def run_train_mode(
             artifact_writer = ArtifactWriter.create(
                 epoch_config.artifacts.root_dir,
                 alias=epoch_config.artifacts.alias,
-                config_package="online-training-config",
+                config_package="online-training",
                 cli_args={
                     "mode": "train",
                     "alias": alias,
@@ -84,26 +93,29 @@ def run_train_mode(
             )
 
         # Create realtime diagnostics only when the operator has not disabled visuals.
-        realtime_plot = None
-        if not no_visual:
+        realtime_plot: RealtimeEpisodePlot | None = None
+        if visualization is not None:
             from inverted_pendulum.visualization.realtime import RealtimeEpisodePlot
 
             realtime_plot = RealtimeEpisodePlot(
                 epoch_config.environment.pendulum,
-                update_every=1,
+                update_every=visualization.update_every,
                 include_animation=True,
             )
 
         # Bridge coordinator events into the active visualization and artifact sinks.
-        def observe_episode_start(observation, realtime_plot=realtime_plot) -> None:
+        def observe_episode_start(
+            observation: StateObs,
+            realtime_plot: RealtimeEpisodePlot | None = realtime_plot,
+        ) -> None:
             if realtime_plot is not None:
                 realtime_plot.start_animation(observation)
 
         def observe_after_step(
-            observation,
-            record,
-            artifact_writer=artifact_writer,
-            realtime_plot=realtime_plot,
+            observation: StateObs,
+            record: StepRecord,
+            artifact_writer: ArtifactWriter | None = artifact_writer,
+            realtime_plot: RealtimeEpisodePlot | None = realtime_plot,
         ) -> None:
             if artifact_writer is not None:
                 artifact_writer.write_step(record)

@@ -62,7 +62,7 @@ def run_monte_carlo_mode(
         artifact_writer = ArtifactWriter.create(
             epoch_config.artifacts.root_dir,
             alias=epoch_config.artifacts.alias,
-            config_package="data-generation-config",
+            config_package="data-generation",
             cli_args={
                 "mode": "montecarlo",
                 "epochs": epochs,

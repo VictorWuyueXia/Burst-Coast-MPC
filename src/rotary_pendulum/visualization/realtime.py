@@ -7,9 +7,10 @@ from typing import Any
 import numpy as np
 
 from rotary_pendulum.environment.dynamics import ModelConstants
-from rotary_pendulum.utils.config_schema import RootConfig
+from rotary_pendulum.utils.config_schema import EpisodeConfig, VisualizationConfig
 from rotary_pendulum.utils.messages import StateObservation, StepRecord
 from rotary_pendulum.visualization.animation import RotaryPendulumAnimation
+from rotary_pendulum.visualization.phase import PHASE_HISTORY_S, oscillator_phase_points
 
 
 class RealtimeRotaryPendulumPlot:
@@ -17,13 +18,14 @@ class RealtimeRotaryPendulumPlot:
 
     def __init__(
         self,
-        config: RootConfig,
+        config: EpisodeConfig,
+        visualization: VisualizationConfig,
         model: ModelConstants,
     ) -> None:
         # Bind immutable model information and allocate dense and replan-level histories.
         self.config = config
         self.model = model
-        self.update_every = config.visualization.update_every
+        self.update_every = visualization.update_every
         self.series: dict[str, list[float]] = {
             name: []
             for name in (
@@ -35,7 +37,6 @@ class RealtimeRotaryPendulumPlot:
                 "kinetic_energy_j",
                 "potential_energy_j",
                 "energy_j",
-                "beta_rad",
                 "u_commanded_nm",
                 "u_applied_nm",
                 "replan_index",
@@ -80,7 +81,6 @@ class RealtimeRotaryPendulumPlot:
             "kinetic_energy_j": observation.kinetic_energy_j,
             "potential_energy_j": observation.potential_energy_j,
             "energy_j": observation.energy_j,
-            "beta_rad": observation.beta_rad,
             "u_commanded_nm": record.u_commanded_nm,
             "u_applied_nm": record.u_applied_nm,
             "replan_index": float(record.replan_index),
@@ -105,15 +105,22 @@ class RealtimeRotaryPendulumPlot:
         if not self.series["t_sec"]:
             return
 
-        # Map the latest ten seconds onto each rotating object's physical-radius plane.
+        # Map the latest ten seconds onto state-derived phase rings rather than link geometry.
         time = np.asarray(self.series["t_sec"], dtype=np.float64)
-        phase_start = int(np.searchsorted(time, time[-1] - 1.0, side="left"))
-        phase_theta = np.asarray(self.series["theta_rad"], dtype=np.float64)[phase_start:]
-        phase_alpha = np.asarray(self.series["alpha_rad"], dtype=np.float64)[phase_start:]
-        arm_x_m = self.config.rotary_pendulum.arm_length_m * np.cos(phase_theta)
-        arm_y_m = self.config.rotary_pendulum.arm_length_m * np.sin(phase_theta)
-        pendulum_x_m = self.config.rotary_pendulum.pendulum_length_m * np.cos(phase_alpha)
-        pendulum_y_m = self.config.rotary_pendulum.pendulum_length_m * np.sin(phase_alpha)
+        phase_start = int(np.searchsorted(time, time[-1] - PHASE_HISTORY_S, side="left"))
+        phase_states = np.column_stack(
+            (
+                np.asarray(self.series["theta_rad"], dtype=np.float64)[phase_start:],
+                np.asarray(self.series["alpha_rad"], dtype=np.float64)[phase_start:],
+                np.asarray(self.series["omega_rad_s"], dtype=np.float64)[phase_start:],
+                np.asarray(self.series["nu_rad_s"], dtype=np.float64)[phase_start:],
+            )
+        )
+        arm_phase_m, pendulum_phase_m = oscillator_phase_points(
+            phase_states,
+            self.config.rotary_pendulum,
+            self.model,
+        )
 
         # Update dense signals through one aligned mapping to keep display semantics auditable.
         line_data = {
@@ -126,15 +133,15 @@ class RealtimeRotaryPendulumPlot:
             "kinetic": (time, self.series["kinetic_energy_j"]),
             "potential": (time, self.series["potential_energy_j"]),
             "total": (time, self.series["energy_j"]),
-            "arm_rotation": (arm_x_m, arm_y_m),
-            "arm_rotation_current": (
-                [arm_x_m[-1]],
-                [arm_y_m[-1]],
+            "arm_phase": (arm_phase_m[:, 0], arm_phase_m[:, 1]),
+            "arm_phase_current": (
+                [arm_phase_m[-1, 0]],
+                [arm_phase_m[-1, 1]],
             ),
-            "pendulum_rotation": (pendulum_x_m, pendulum_y_m),
-            "pendulum_rotation_current": (
-                [pendulum_x_m[-1]],
-                [pendulum_y_m[-1]],
+            "pendulum_phase": (pendulum_phase_m[:, 0], pendulum_phase_m[:, 1]),
+            "pendulum_phase_current": (
+                [pendulum_phase_m[-1, 0]],
+                [pendulum_phase_m[-1, 1]],
             ),
             "replan": (time, self.series["replan_index"]),
             "solve": (self.series["replan_t_sec"], self.series["solve_time_s"]),
@@ -181,7 +188,7 @@ class RealtimeRotaryPendulumPlot:
             "solve": figure.add_subplot(grid[2, 1]),
             "hb": figure.add_subplot(grid[2, 2]),
         }
-        figure.suptitle("QUBE-Servo 3 Rotary-Pendulum Physics Simulation")
+        figure.suptitle("QUBE-Servo 3 Rotary-Pendulum Burst-Coast MPC")
         self._format_axes(axes)
         return figure, axes
 
@@ -196,19 +203,19 @@ class RealtimeRotaryPendulumPlot:
             "nu": self.axes["velocities"].plot([], [], label="nu pendulum")[0],
             "commanded": self.axes["torque"].plot([], [], linestyle="--", label="commanded")[0],
             "applied": self.axes["torque"].plot([], [], label="actual")[0],
-            "kinetic": self.axes["energy"].plot([], [], label="kinetic")[0],
-            "potential": self.axes["energy"].plot([], [], label="potential")[0],
-            "total": self.axes["energy"].plot([], [], linewidth=2.0, label="total")[0],
-            "arm_rotation": self.axes["phase"].plot(
-                [], [], color="tab:blue", alpha=0.5, label="arm r[cos(theta), sin(theta)]"
+            "kinetic": self.axes["energy"].plot([], [], label="swing kinetic")[0],
+            "potential": self.axes["energy"].plot([], [], label="swing potential")[0],
+            "total": self.axes["energy"].plot([], [], linewidth=2.0, label="swing total")[0],
+            "arm_phase": self.axes["phase"].plot(
+                [], [], color="tab:blue", alpha=0.5, label="arm oscillator phase"
             )[0],
-            "arm_rotation_current": self.axes["phase"].plot(
+            "arm_phase_current": self.axes["phase"].plot(
                 [], [], marker="o", linestyle="", color="tab:blue", alpha=1.0, label="arm current"
             )[0],
-            "pendulum_rotation": self.axes["phase"].plot(
-                [], [], color="tab:orange", alpha=0.5, label="pendulum L[cos(alpha), sin(alpha)]"
+            "pendulum_phase": self.axes["phase"].plot(
+                [], [], color="tab:orange", alpha=0.5, label="pendulum oscillator phase"
             )[0],
-            "pendulum_rotation_current": self.axes["phase"].plot(
+            "pendulum_phase_current": self.axes["phase"].plot(
                 [],
                 [],
                 marker="o",
@@ -218,9 +225,9 @@ class RealtimeRotaryPendulumPlot:
                 label="pendulum current",
             )[0],
             "replan": self.axes["replan"].step([], [], where="post", label="active plan")[0],
-            "solve": self.axes["solve"].plot(
-                [], [], marker="o", markersize=4, label="plan sampling"
-            )[0],
+            "solve": self.axes["solve"].plot([], [], marker="o", markersize=4, label="MPC solve")[
+                0
+            ],
         }
         self.axes["angles"].axhline(np.pi, linestyle=":", color="0.3", label="upright")
         self.axes["energy"].axhline(
@@ -240,15 +247,15 @@ class RealtimeRotaryPendulumPlot:
             "angles": ("Angular States", "t s", "angle rad"),
             "velocities": ("Angular Velocities", "t s", "rad/s"),
             "torque": ("Torque", "t s", "N m"),
-            "energy": ("Mechanical Energy", "t s", "J"),
+            "energy": ("Pendulum-Relative Swing Energy", "t s", "J"),
             "phase": (
-                "Rotational Position Plane (latest 10 s)",
-                "x = radius cos(angle) m",
-                "y = radius sin(angle) m",
+                "Oscillator Phase Plane (latest 10 s)",
+                "radius cos(phase) m",
+                "radius sin(phase) m",
             ),
             "replan": ("Replan Timeline", "t s", "replan index"),
-            "solve": ("Plan Generation Time", "replan t s", "solve time s"),
-            "hb": ("(h, b) Distribution", "h = H Ts / Tn", "b = |tau| / tau_max"),
+            "solve": ("MPC Solve Time", "replan t s", "solve time s"),
+            "hb": ("(h, b) Distribution", "h = H Ts / Tn", "b = B / H"),
         }
         for name, (title, x_label, y_label) in labels.items():
             axes[name].set_title(title)

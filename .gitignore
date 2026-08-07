@@ -43,6 +43,7 @@ env/
 
 # --- Experiment outputs and research logs ------------------------------------
 artifacts/inverted_pendulum/
+artifacts/rotary_pendulum/
 artifacts/experiments/
 artifacts/cmp-time-fitting/
 artifacts/MonteCarloData/
@@ -89,3 +90,6 @@ AGENTS.md
 # --- archive ----------------------------------------------------
 _archive/
 **/_archive/
+
+# --- Localized companion documents ------------------------------------------
+*-CN.*

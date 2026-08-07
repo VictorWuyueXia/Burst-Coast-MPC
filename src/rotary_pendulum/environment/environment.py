@@ -7,15 +7,15 @@ import time
 import numpy as np
 from numpy.typing import NDArray
 
-from rotary_pendulum.environment.dynamics import derive_model, energy_components, rk4_step
-from rotary_pendulum.utils.config_schema import RootConfig
+from rotary_pendulum.environment.dynamics import derive_model, rk4_step
+from rotary_pendulum.utils.config_schema import EpisodeConfig
 from rotary_pendulum.utils.messages import ActionPlan, StateObservation, StepRecord
 
 
 class RotaryPendulumEnvironment:
     """Own true state, RK4 integration, goal evaluation, and realtime pacing."""
 
-    def __init__(self, config: RootConfig) -> None:
+    def __init__(self, config: EpisodeConfig) -> None:
         # Bind one validated physical source of truth and its derived model constants.
         self.config = config
         self.model = derive_model(config.rotary_pendulum)
@@ -58,7 +58,6 @@ class RotaryPendulumEnvironment:
         self,
         commanded_torque_nm: float,
         plan: ActionPlan,
-        solve_time_s: float,
         *,
         replan_flag: bool,
     ) -> tuple[StateObservation, StepRecord]:
@@ -67,11 +66,6 @@ class RotaryPendulumEnvironment:
         # Reject invalid controller diagnostics instead of contaminating the physical rollout.
         if not np.isfinite(commanded_torque_nm):
             raise ValueError(f"Commanded torque must be finite, got {commanded_torque_nm}")
-        if not np.isfinite(solve_time_s) or solve_time_s < 0.0:
-            raise ValueError(f"Solve time must be finite and nonnegative, got {solve_time_s}")
-        if not replan_flag and solve_time_s != 0.0:
-            raise ValueError("Solve time must be zero away from a replanning step")
-
         # Saturate only at the physical plant boundary while retaining the original command.
         step_started_at = time.perf_counter()
         torque_limit_nm = self.config.rotary_pendulum.torque_limit_nm
@@ -102,6 +96,7 @@ class RotaryPendulumEnvironment:
             potential_energy_j=observation.potential_energy_j,
             energy_j=observation.energy_j,
             energy_error_j=observation.energy_error_j,
+            normalized_energy_error=observation.normalized_energy_error,
             beta_rad=observation.beta_rad,
             goal_reached=observation.goal_reached,
             u_commanded_nm=float(commanded_torque_nm),
@@ -110,7 +105,12 @@ class RotaryPendulumEnvironment:
             replan_index=plan.replan_index,
             hbar=plan.hbar,
             bbar=plan.bbar,
-            solve_time_s=float(solve_time_s),
+            horizon_steps=plan.horizon_steps,
+            burst_steps=plan.burst_steps,
+            coast_steps=plan.coast_steps,
+            objective_value=plan.objective_value,
+            solver_status=plan.solver_status,
+            solve_time_s=plan.solve_time_s if replan_flag else 0.0,
             replan_flag=replan_flag,
         )
         return observation, record
@@ -118,13 +118,11 @@ class RotaryPendulumEnvironment:
     def _make_observation(self) -> StateObservation:
         """Build one typed state, energy, phase, and held-goal observation."""
 
-        # Compute all diagnostics from the same unwrapped state used by the integrator.
+        # Compute objective-aligned swing diagnostics from the integrator's unwrapped state.
         theta_rad, alpha_rad, omega_rad_s, nu_rad_s = self._state
-        kinetic_energy_j, potential_energy_j, total_energy_j = energy_components(
-            self._state,
-            self.config.rotary_pendulum,
-            self.model,
-        )
+        kinetic_energy_j = 0.5 * self.model.pendulum_inertia_kg_m2 * nu_rad_s**2
+        potential_energy_j = self.model.gravity_torque_nm * (1.0 - np.cos(alpha_rad))
+        swing_energy_j = kinetic_energy_j + potential_energy_j
         beta_rad = float(np.arctan2(np.sin(alpha_rad - np.pi), np.cos(alpha_rad - np.pi)))
 
         # Require consecutive complete-state membership before declaring episode success.
@@ -136,7 +134,9 @@ class RotaryPendulumEnvironment:
             and abs(nu_rad_s) <= goal.nu_tolerance_rad_s
         )
         self._goal_hold_count = self._goal_hold_count + 1 if inside_goal else 0
-        energy_j = float(total_energy_j)
+        energy_j = float(swing_energy_j)
+        target_energy_j = 2.0 * self.model.gravity_torque_nm
+        energy_error_j = energy_j - target_energy_j
         return StateObservation(
             t_index=self._t_index,
             t_sec=self.t_sec,
@@ -147,7 +147,8 @@ class RotaryPendulumEnvironment:
             kinetic_energy_j=float(kinetic_energy_j),
             potential_energy_j=float(potential_energy_j),
             energy_j=energy_j,
-            energy_error_j=energy_j - 2.0 * self.model.gravity_torque_nm,
+            energy_error_j=energy_error_j,
+            normalized_energy_error=energy_error_j / target_energy_j,
             beta_rad=beta_rad,
             goal_reached=self._goal_hold_count >= goal.hold_steps,
         )

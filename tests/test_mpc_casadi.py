@@ -28,13 +28,13 @@ from inverted_pendulum.mpc.features import (
     phase_proxy_error,
     phase_proxy_error_symbolic,
 )
-from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.config_schema import load_mpc_only_config
 from inverted_pendulum.utils.messages import StateObs
 from inverted_pendulum.utils.monte_carlo import MonteCarloAction
 
 
 def _small_mpc_config():
-    config = load_config()
+    config = load_mpc_only_config()
     config.environment.simulation.pace_s = 0.0
     config.environment.goal.hold_steps = 999
     config.environment.simulation.timestep_s = 0.25
@@ -106,9 +106,7 @@ def test_casadi_dynamics_and_natural_period_features_match_numpy() -> None:
     energy_error, phase_error, local_error, gate, value = feature_function(state)
 
     assert float(energy_error) == pytest.approx(normalized_energy_error(state, pendulum))
-    assert np.asarray(phase_error).reshape(2) == pytest.approx(
-        phase_proxy_error(state, pendulum)
-    )
+    assert np.asarray(phase_error).reshape(2) == pytest.approx(phase_proxy_error(state, pendulum))
     assert np.asarray(local_error).reshape(2) == pytest.approx(local_upright_error(state, pendulum))
     assert float(gate) == pytest.approx(energy_gate(state, pendulum))
     assert float(value) == pytest.approx(energy_phase_value(state, pendulum))

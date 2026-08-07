@@ -1,0 +1,20 @@
+modes:
+  mpc-only:
+    artifacts:
+      root-dir: artifacts/inverted_pendulum/experiments
+      alias: null
+      enabled: true
+  intelligent:
+    artifacts:
+      root-dir: artifacts/inverted_pendulum/experiments
+      alias: intelligent
+      enabled: true
+  online-training:
+    artifacts:
+      root-dir: artifacts/inverted_pendulum/experiments
+      alias: online-training
+      enabled: true
+  data-generation:
+    artifacts:
+      root-dir: artifacts/inverted_pendulum/experiments
+      alias: monte-carlo-data

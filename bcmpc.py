@@ -53,7 +53,7 @@ def select_task(
     ctx.obj = _selected_task(inverted_pendulum, rotary_pendulum, cr3bp)
     if ctx.invoked_subcommand is None:
         if ctx.obj == "rotary_pendulum":
-            run_rotary_pendulum_mode(console=console)
+            run_rotary_pendulum_mode(alias=None, no_visual=False, console=console)
         else:
             run_mpc_only_mode(ctx.obj, alias=None, no_visual=False, console=console)
         raise typer.Exit()
@@ -73,7 +73,10 @@ def mpc_only(
 ) -> None:
     """Run one deterministic MPC episode for the selected task."""
 
-    run_mpc_only_mode(ctx.obj, alias=alias, no_visual=no_visual, console=console)
+    if ctx.obj == "rotary_pendulum":
+        run_rotary_pendulum_mode(alias=alias, no_visual=no_visual, console=console)
+    else:
+        run_mpc_only_mode(ctx.obj, alias=alias, no_visual=no_visual, console=console)
 
 
 @app.command("intelligent")

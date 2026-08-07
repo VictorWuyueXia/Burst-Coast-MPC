@@ -14,7 +14,7 @@ from bringup.epoch_coordinator import EpochCoordinator
 from inverted_pendulum.RL.policy import StructuredCriticPolicy
 from inverted_pendulum.utils.config_schema import (
     InitialStateConfig,
-    RootConfig,
+    RLRootConfig,
     load_data_generation_config,
     load_online_training_config,
 )
@@ -92,7 +92,7 @@ def current_sweep_seed() -> int:
     return int(timestamp_text) % SWEEP_SEED_MODULUS
 
 
-def discover_controller_specs(base_config: RootConfig) -> list[ControllerSpec]:
+def discover_controller_specs(base_config: RLRootConfig) -> list[ControllerSpec]:
     # Keep the structural baselines ahead of the learned online progression.
     specs = [
         ControllerSpec("mpc", "event-triggered-mpc", None, None),
@@ -137,7 +137,7 @@ def sample_evaluation_cases(sweep_seed: int) -> list[EvaluationCase]:
 def evaluate_controller(
     spec: ControllerSpec,
     cases: list[EvaluationCase],
-    base_config: RootConfig,
+    base_config: RLRootConfig,
 ) -> ControllerResult:
     # Mutate only controller identity, critic path, horizon, and initial condition.
     completion_time_s: list[float] = []

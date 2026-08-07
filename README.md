@@ -2,8 +2,8 @@
 
 Wake-sleep model predictive control experiments.
 
-This repository provides a typed configuration system, a CLI entry point, a
-synchronous `EpochCoordinator`, and a deterministic pendulum `Environment`.
+This repository provides domain-composed configuration, a CLI entry point,
+nonlinear rotary and inverted-pendulum environments, and burst-coast MPC.
 
 ## Environment
 
@@ -15,6 +15,7 @@ conda activate burst-coast-mpc
 python -m pip install -e .
 
 bcmpc --inverted-pendulum mpc-only --no-visual
+bcmpc --rotary-pendulum mpc-only --no-visual
 ```
 
 Use the human-maintained environment file only when changing dependencies:
@@ -25,4 +26,5 @@ conda activate burst-coast-mpc
 python -m pip install -e .
 
 bcmpc --inverted-pendulum mpc-only --no-visual
+bcmpc --rotary-pendulum mpc-only --no-visual
 ```

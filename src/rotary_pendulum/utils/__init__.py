@@ -1,1 +1,1 @@
-"""Configuration, messages, and sampling utilities."""
+"""Configuration, messages, and artifact utilities."""

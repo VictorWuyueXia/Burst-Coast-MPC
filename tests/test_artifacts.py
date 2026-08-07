@@ -7,7 +7,7 @@ import pytest
 
 from bringup.epoch_coordinator import EpochCoordinator
 from inverted_pendulum.utils.artifacts import RL_STEP_CSV_HEADERS, STEP_CSV_HEADERS, ArtifactWriter
-from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.config_schema import load_mpc_only_config
 from inverted_pendulum.utils.logging import ThirdPersonObservers
 from inverted_pendulum.utils.messages import RLStepRecord
 
@@ -18,7 +18,7 @@ def _require_matplotlib() -> None:
 
 
 def test_artifact_writer_records_short_episode(tmp_path) -> None:
-    config = load_config()
+    config = load_mpc_only_config()
     config.experiment.max_steps = 3
     config.environment.goal.hold_steps = 999
     config.environment.simulation.pace_s = 0.0
@@ -99,7 +99,7 @@ def test_artifact_writer_records_short_episode(tmp_path) -> None:
 
 
 def test_artifact_writer_records_rl_steps(tmp_path) -> None:
-    config = load_config()
+    config = load_mpc_only_config()
     writer = ArtifactWriter.create(
         tmp_path,
         alias="rl",

@@ -1,0 +1,35 @@
+modes:
+  intelligent:
+    rl:
+      critic-artifact-dir: artifacts/inverted_pendulum/frozen/offline-results-structured-critic_20260614T215834
+      time-model-artifact-dir: artifacts/inverted_pendulum/frozen/current-surface-lasso-20260630T184805
+      gamma: 1.0
+      time-weight: 1.0
+      action-weight: 1.0
+      compute-weight: 1.0
+      fail-penalty: 100.0
+      exploration-epsilon: 0.02
+      exploration-temperature: 0.5
+      training-learning-rate: 0.00025
+      training-batch-size: 16
+      training-updates-per-transition: 4
+      training-epochs: 1
+      training-seed: 20260616
+      training-output-root: artifacts/inverted_pendulum/model-snapshots
+  online-training:
+    rl:
+      critic-artifact-dir: artifacts/inverted_pendulum/frozen/offline-results-structured-critic_20260614T215834
+      time-model-artifact-dir: artifacts/inverted_pendulum/frozen/current-surface-lasso-20260630T184805
+      gamma: 1.0
+      time-weight: 1.0
+      action-weight: 1.0
+      compute-weight: 1.0
+      fail-penalty: 100.0
+      exploration-epsilon: 0.10
+      exploration-temperature: 2.0
+      training-learning-rate: 0.00025
+      training-batch-size: 16
+      training-updates-per-transition: 8
+      training-epochs: 128
+      training-seed: 20260616
+      training-output-root: artifacts/inverted_pendulum/model-snapshots

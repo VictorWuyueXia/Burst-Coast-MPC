@@ -1,32 +1,3 @@
-artifacts:
-  root-dir: artifacts/inverted_pendulum/experiments
-  alias: monte-carlo-data
-experiment:
-  run-id: pendulum_monte_carlo
-  episode-id: 0
-  max-steps: 3000
-  stop-on-goal: true
-environment:
-  node-id: Environment
-  simulation:
-    timestep-s: 0.01
-    pace-s: 0.0
-  pendulum:
-    mass-kg: 1.0
-    gravity-m-s2: 9.80665
-    length-m: 1.0
-    damping-nms: 0
-    torque-limit-nm: 1.0
-    theta-limit-abs-rad: 6.283
-    omega-limit-abs-rad-s: 3.142
-  goal:
-    angle-tolerance-rad: 0.05
-    omega-tolerance-rad-s: 0.05
-    hold-steps: 5
-mpc:
-  controller: IP-dynamics-naturalPeriod
-  prediction-horizon-natural-periods: 5.0
-  split-ratios: [0.1]
 data-generation:
   episodes: 1
   seed: null

@@ -5,7 +5,7 @@ import pytest
 
 from inverted_pendulum.environment import Environment
 from inverted_pendulum.mpc.features import phase_proxy_error
-from inverted_pendulum.utils.config_schema import load_config
+from inverted_pendulum.utils.config_schema import load_mpc_only_config
 from inverted_pendulum.utils.messages import ActionCommand, RLStepRecord
 from inverted_pendulum.visualization.realtime import DIAGNOSTIC_PHASE_EPSILON
 
@@ -16,7 +16,7 @@ def _require_matplotlib() -> None:
 
 
 def _one_record():
-    config = load_config()
+    config = load_mpc_only_config()
     config.environment.simulation.pace_s = 0.0
     environment = Environment(
         config.environment,

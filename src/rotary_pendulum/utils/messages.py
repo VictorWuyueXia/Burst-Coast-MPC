@@ -1,4 +1,4 @@
-"""Typed runtime messages for rotary-pendulum simulation and monitoring."""
+"""Typed runtime messages for rotary-pendulum MPC execution and recording."""
 
 from __future__ import annotations
 
@@ -9,20 +9,41 @@ from numpy.typing import NDArray
 
 
 @dataclass(frozen=True)
+class CandidateRecord:
+    """Record one split-ratio NLP result at a rotary MPC decision epoch."""
+
+    split_ratio: float
+    horizon_steps: int
+    burst_steps: int
+    coast_steps: int
+    objective_value: float
+    solve_time_s: float
+    solver_status: str
+    selected: bool
+
+
+@dataclass(frozen=True)
 class ActionPlan:
-    """One constant-torque Monte Carlo plan executed until the next replan."""
+    """Carry the selected burst-coast sequence through its complete rollout."""
 
     plan_id: str
     replan_index: int
     hbar: float
     bbar: float
     horizon_steps: int
+    burst_steps: int
+    coast_steps: int
+    objective_value: float
+    solve_time_s: float
+    solver_status: str
     torques_nm: NDArray[np.float64]
+    predicted_states: NDArray[np.float64]
+    candidates: tuple[CandidateRecord, ...]
 
 
 @dataclass(frozen=True)
 class StateObservation:
-    """One complete physical state and energy observation."""
+    """One complete physical state and pendulum-relative swing-energy observation."""
 
     t_index: int
     t_sec: float
@@ -34,6 +55,7 @@ class StateObservation:
     potential_energy_j: float
     energy_j: float
     energy_error_j: float
+    normalized_energy_error: float
     beta_rad: float
     goal_reached: bool
 
@@ -48,5 +70,25 @@ class StepRecord(StateObservation):
     replan_index: int
     hbar: float
     bbar: float
+    horizon_steps: int
+    burst_steps: int
+    coast_steps: int
+    objective_value: float
+    solver_status: str
     solve_time_s: float
     replan_flag: bool
+
+
+@dataclass(frozen=True)
+class EpisodeSummary:
+    """Summarize one completed physical and MPC episode for artifacts and CLI output."""
+
+    status: str
+    steps: int
+    replans: int
+    simulated_time_s: float
+    natural_period_s: float
+    final_state: tuple[float, float, float, float]
+    final_energy_error_j: float
+    final_normalized_energy_error: float
+    goal_reached: bool

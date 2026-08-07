@@ -1,0 +1,35 @@
+modes:
+  mpc-only:
+    coordinator:
+      node-id: EpochCoordinator
+      mode: synchronous
+      event-trigger: true
+      decision-interval-steps: 1
+      debug-log-every-n-steps: 1
+    environment:
+      simulation:
+        pace-s: ${realtime:${environment.simulation.timestep-s}}
+  intelligent:
+    coordinator:
+      node-id: EpochCoordinator
+      mode: synchronous
+      event-trigger: true
+      decision-interval-steps: 1
+      debug-log-every-n-steps: 25
+    environment:
+      simulation:
+        pace-s: ${realtime:${environment.simulation.timestep-s}}
+  online-training:
+    coordinator:
+      node-id: EpochCoordinator
+      mode: synchronous
+      event-trigger: true
+      decision-interval-steps: 1
+      debug-log-every-n-steps: 25
+    environment:
+      simulation:
+        pace-s: 0.0
+  data-generation:
+    environment:
+      simulation:
+        pace-s: 0.0

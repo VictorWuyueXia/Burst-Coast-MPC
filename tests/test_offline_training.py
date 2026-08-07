@@ -55,6 +55,7 @@ def _write_run(root: Path, name: str, return_offset: float) -> None:
             "time-weight": 1.0,
             "action-weight": 1.0,
             "compute-weight": 1.0,
+            "hbar-max": 5.0,
         },
     }
     config_file = (run_dir / "config.json").open("w", encoding="utf-8")

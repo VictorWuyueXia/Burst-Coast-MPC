@@ -1,0 +1,54 @@
+modes:
+  mpc-only:
+    experiment:
+      run-id: pendulum_baseline
+      episode-id: 0
+      max-steps: 3000
+      stop-on-goal: true
+      initial-state:
+        theta-rad: 1.57 # pi/2
+        omega-rad-s: 0.0
+    environment:
+      goal:
+        angle-tolerance-rad: 0.05
+        omega-tolerance-rad-s: 0.05
+        hold-steps: 5
+  intelligent:
+    experiment:
+      run-id: pendulum_intelligent
+      episode-id: 0
+      max-steps: 3000
+      stop-on-goal: true
+      initial-state:
+        theta-rad: 1.57
+        omega-rad-s: 0.0
+    environment:
+      goal:
+        angle-tolerance-rad: 0.05
+        omega-tolerance-rad-s: 0.05
+        hold-steps: 5
+  online-training:
+    experiment:
+      run-id: pendulum_online_training
+      episode-id: 0
+      max-steps: 3000
+      stop-on-goal: true
+      initial-state:
+        theta-rad: 1.57
+        omega-rad-s: 0.0
+    environment:
+      goal:
+        angle-tolerance-rad: 0.05
+        omega-tolerance-rad-s: 0.05
+        hold-steps: 5
+  data-generation:
+    experiment:
+      run-id: pendulum_monte_carlo
+      episode-id: 0
+      max-steps: 3000
+      stop-on-goal: true
+    environment:
+      goal:
+        angle-tolerance-rad: 0.05
+        omega-tolerance-rad-s: 0.05
+        hold-steps: 5

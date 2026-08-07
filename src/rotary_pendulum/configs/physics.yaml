@@ -1,0 +1,11 @@
+simulation:
+  timestep-s: 0.002
+rotary-pendulum:
+  gravity-m-s2: 9.81
+  arm-mass-kg: 0.095
+  arm-length-m: 0.085
+  pendulum-mass-kg: 0.024
+  pendulum-length-m: 0.129
+  rotary-damping-nms: 0.001
+  pendulum-damping-nms: 0.00005
+  torque-limit-nm: 0.0204

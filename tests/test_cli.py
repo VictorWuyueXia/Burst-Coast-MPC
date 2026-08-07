@@ -2,8 +2,8 @@ from typer.testing import CliRunner
 
 from bcmpc import app
 from inverted_pendulum.utils.config_schema import (
-    load_config,
     load_data_generation_config,
+    load_mpc_only_config,
     load_online_training_config,
 )
 from inverted_pendulum.utils.messages import EpisodeResult, ExperimentSummary, RLStepRecord
@@ -18,16 +18,19 @@ def _require_matplotlib() -> None:
 
 def test_cli_run_episode(monkeypatch) -> None:
     runner = CliRunner()
-    config = load_config()
+    config = load_mpc_only_config()
     config.experiment.max_steps = 2
     config.environment.simulation.timestep_s = 0.25
     config.environment.simulation.pace_s = 0.0
     config.artifacts.enabled = False
 
-    def load_config_stub():
+    def load_mpc_only_config_stub():
         return config
 
-    monkeypatch.setattr("bringup.mpc_only_mode.load_config", load_config_stub)
+    monkeypatch.setattr(
+        "bringup.mpc_only_mode.load_mpc_only_config",
+        load_mpc_only_config_stub,
+    )
 
     result = runner.invoke(
         app,
@@ -41,16 +44,19 @@ def test_cli_run_episode(monkeypatch) -> None:
 def test_cli_run_episode_writes_artifacts_with_alias(tmp_path, monkeypatch) -> None:
     _require_matplotlib()
     runner = CliRunner()
-    config = load_config()
+    config = load_mpc_only_config()
     config.artifacts.root_dir = str(tmp_path)
     config.experiment.max_steps = 2
     config.environment.simulation.timestep_s = 0.25
     config.environment.simulation.pace_s = 0.0
 
-    def load_config_stub():
+    def load_mpc_only_config_stub():
         return config
 
-    monkeypatch.setattr("bringup.mpc_only_mode.load_config", load_config_stub)
+    monkeypatch.setattr(
+        "bringup.mpc_only_mode.load_mpc_only_config",
+        load_mpc_only_config_stub,
+    )
 
     result = runner.invoke(
         app,

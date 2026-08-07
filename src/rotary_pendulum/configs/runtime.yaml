@@ -1,0 +1,7 @@
+modes:
+  realtime:
+    simulation:
+      pace-s: ${simulation.timestep-s}
+  headless:
+    simulation:
+      pace-s: 0.0

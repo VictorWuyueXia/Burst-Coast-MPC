@@ -1,0 +1,11 @@
+mpc:
+  prediction-horizon-natural-periods: 2.0
+  split-ratios: [0.2, 0.3, 0.4]
+  terminal-swing-energy-weight: 1.0
+  phase-chasing-weight: 1.0
+  energy-transition-width: 0.25
+  local-energy-shell-width: 0.25
+  pendulum-local-weight: 0.01
+  rotary-local-weight: 0.001
+  arm-angle-soft-penalty-weight: 10000.0
+  torque-slew-weight: 0.001

@@ -3,12 +3,12 @@ from typer.testing import CliRunner
 from bcmpc import app
 
 
-def test_rotary_task_defaults_to_physics_simulation(monkeypatch) -> None:
+def test_rotary_task_defaults_to_realtime_mpc(monkeypatch) -> None:
     runner = CliRunner()
     calls = []
 
-    def run_rotary_stub(*, console) -> None:
-        calls.append(console)
+    def run_rotary_stub(*, alias, no_visual, console) -> None:
+        calls.append((alias, no_visual, console))
 
     monkeypatch.setattr("bcmpc.run_rotary_pendulum_mode", run_rotary_stub)
 
@@ -16,6 +16,7 @@ def test_rotary_task_defaults_to_physics_simulation(monkeypatch) -> None:
 
     assert result.exit_code == 0, result.output
     assert len(calls) == 1
+    assert calls[0][:2] == (None, False)
 
 
 def test_task_selection_rejects_multiple_scenarios() -> None:
@@ -30,13 +31,20 @@ def test_task_selection_rejects_multiple_scenarios() -> None:
     assert "Select exactly one task" in result.output
 
 
-def test_rotary_mpc_path_remains_unimplemented() -> None:
+def test_rotary_mpc_only_routes_alias_and_headless_policy(monkeypatch) -> None:
     runner = CliRunner()
+    calls = []
+
+    def run_rotary_stub(*, alias, no_visual, console) -> None:
+        calls.append((alias, no_visual, console))
+
+    monkeypatch.setattr("bcmpc.run_rotary_pendulum_mode", run_rotary_stub)
 
     result = runner.invoke(
         app,
-        ["--rotary-pendulum", "mpc-only", "--no-visual"],
+        ["--rotary-pendulum", "mpc-only", "--alias", "trial", "--no-visual"],
     )
 
-    assert result.exit_code != 0
-    assert isinstance(result.exception, NotImplementedError)
+    assert result.exit_code == 0, result.output
+    assert len(calls) == 1
+    assert calls[0][:2] == ("trial", True)

@@ -16,11 +16,11 @@ from inverted_pendulum.mpc.features import (
     normalized_energy_error,
     phase_proxy_error,
 )
-from inverted_pendulum.utils.config_schema import PendulumConfig, load_config
+from inverted_pendulum.utils.config_schema import PendulumConfig, load_mpc_only_config
 
 
 def test_natural_period_features_match_upright_convention() -> None:
-    config = load_config()
+    config = load_mpc_only_config()
     pendulum = config.environment.pendulum
     upright = np.array([0.0, 0.0])
     bottom = np.array([math.pi, 0.0])
@@ -38,7 +38,7 @@ def test_natural_period_features_match_upright_convention() -> None:
 
 
 def test_current_gravity_sign_matches_theta_zero_upright_formulation() -> None:
-    config = load_config()
+    config = load_mpc_only_config()
     pendulum = config.environment.pendulum
 
     positive_derivative = pendulum_derivatives(np.array([0.1, 0.0]), 0.0, pendulum)
@@ -49,7 +49,7 @@ def test_current_gravity_sign_matches_theta_zero_upright_formulation() -> None:
 
 
 def test_unforced_undamped_rk4_approximately_conserves_energy() -> None:
-    config = load_config()
+    config = load_mpc_only_config()
     pendulum = PendulumConfig(
         mass_kg=config.environment.pendulum.mass_kg,
         gravity_m_s2=config.environment.pendulum.gravity_m_s2,
@@ -70,7 +70,7 @@ def test_unforced_undamped_rk4_approximately_conserves_energy() -> None:
 
 
 def test_prediction_horizon_split_dimensions_and_zero_coast_rollout() -> None:
-    config = load_config()
+    config = load_mpc_only_config()
     config.mpc.split_ratios = [0.2, 0.5, 1.0]
     config.mpc.prediction_horizon_natural_periods = 1.0
     half_period_s = math.pi / natural_frequency_rad_s(config.environment.pendulum)

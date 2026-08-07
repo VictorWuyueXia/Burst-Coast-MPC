@@ -1,0 +1,3 @@
+artifacts:
+  root-dir: artifacts/rotary_pendulum/experiments
+  alias: mpc-only

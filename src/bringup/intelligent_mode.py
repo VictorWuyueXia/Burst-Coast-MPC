@@ -13,12 +13,16 @@ from inverted_pendulum.utils.artifacts import (
     attach_run_log_handler,
     detach_run_log_handler,
 )
-from inverted_pendulum.utils.config_schema import load_intelligent_config
+from inverted_pendulum.utils.config_schema import (
+    load_intelligent_config,
+    load_visualization_config,
+)
 from inverted_pendulum.utils.logging import (
     ThirdPersonObservers,
     configure_logging,
     episode_output,
 )
+from inverted_pendulum.utils.messages import StateObs, StepRecord
 from inverted_pendulum.visualization.artifact_plots import create_artifact_figures
 
 
@@ -50,7 +54,7 @@ def run_intelligent_mode(
         artifact_writer = ArtifactWriter.create(
             config.artifacts.root_dir,
             alias=config.artifacts.alias,
-            config_package="intelligent-config",
+            config_package="intelligent",
             cli_args={
                 "mode": "intelligent",
                 "alias": alias,
@@ -72,18 +76,19 @@ def run_intelligent_mode(
     if not no_visual:
         from inverted_pendulum.visualization.realtime import RealtimeEpisodePlot
 
+        visualization = load_visualization_config()
         realtime_plot = RealtimeEpisodePlot(
             config.environment.pendulum,
-            update_every=1,
+            update_every=visualization.update_every,
             include_animation=True,
         )
 
     # Bridge coordinator events into the active visualization and artifact sinks.
-    def observe_episode_start(observation) -> None:
+    def observe_episode_start(observation: StateObs) -> None:
         if realtime_plot is not None:
             realtime_plot.start_animation(observation)
 
-    def observe_after_step(observation, record) -> None:
+    def observe_after_step(observation: StateObs, record: StepRecord) -> None:
         if artifact_writer is not None:
             artifact_writer.write_step(record)
         if realtime_plot is not None:
