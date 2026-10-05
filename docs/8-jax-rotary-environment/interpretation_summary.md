@@ -1,0 +1,11 @@
+# JAX Rotary-Pendulum Environment: Interpretation Summary
+
+The next implementation target is a small, pure JAX environment built beside the existing NumPy/CasADi benchmark. Its nonlinear plant is the same four-state, shaft-torque Furuta model; its simulation clock is **50 Hz** (20 ms per RK4 step). A controller acts at **10 Hz** by holding one torque over five physics steps. One episode lasts at most **1,000 physics steps = 20 seconds = 200 controller decisions**. The full-state upright goal must persist for five physics steps (100 ms). Reaching or exceeding the arm limit of ±90° terminates the episode as a constraint violation.
+
+This phase constructs and validates the environment only. It does not train an RL agent, design a reward, linearize the model, or replace the current MPC. The JAX plant exposes the raw one-step nonlinear transition for later batched prediction; a separate functional environment applies the five-step action hold, continuous initial-state sampling, and episode rules. This one source of dynamics can therefore serve both future RL interaction and nonlinear MPC/MPPI rollouts.
+
+The nominal physical parameters remain the current benchmark values. Three continuously sampled reset strata—near downward, moving swing, and near upright—are included. Their explicit numerical bounds in this plan are **provisional**, as requested, and must be checked against actual trajectory coverage before being frozen for experiments.
+
+The most important gate is numerical, not merely compilation: compare the new 20 ms transition with the existing 2 ms model over identical held torques, then test event logic and batched throughput. A 20 ms step is a modeling choice, not an already validated accuracy result. The existing 2 ms path stays intact as the reference until the new path passes those gates.
+
+Read [formulation](human-readables/formulation.md) for the physical meaning, [implementation plan](human-readables/implementation_plan.md) for milestones and the strict code budget, and [future RL plan](human-readables/future_rl.md) for the deferred learning decisions. The [machine-scannable contract](machine-scannables/interface_contract.md) and [validation matrix](machine-scannables/validation_matrix.md) specify exact interfaces and checks.

@@ -5,6 +5,13 @@ Wake-sleep model predictive control experiments.
 This repository provides domain-composed configuration, a CLI entry point,
 nonlinear rotary and inverted-pendulum environments, and burst-coast MPC.
 
+## Current rotary-pendulum plan
+
+The [JAX environment interpretation summary](docs/8-jax-rotary-environment/interpretation_summary.md)
+links the physical formulation, implementation milestones, validation contract,
+and deferred RL plan. It is a design document; the current runnable rotary
+environment remains the NumPy/CasADi implementation.
+
 ## Environment
 
 Use the explicit Windows package spec for the fastest clone-to-run setup:
