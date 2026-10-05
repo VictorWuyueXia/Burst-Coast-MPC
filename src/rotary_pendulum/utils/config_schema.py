@@ -16,6 +16,7 @@ RUNTIME_CONFIG_PATH = CONFIG_ROOT / "runtime.yaml"
 MPC_CONFIG_PATH = CONFIG_ROOT / "mpc.yaml"
 ARTIFACT_CONFIG_PATH = CONFIG_ROOT / "artifacts.yaml"
 VISUAL_CONFIG_PATH = CONFIG_ROOT / "visual.yaml"
+PPO_CONFIG_PATH = CONFIG_ROOT / "rl.yaml"
 EPISODE_CONFIG_PATHS = (
     PHYSICS_CONFIG_PATH,
     MISSION_CONFIG_PATH,
@@ -125,6 +126,76 @@ class VisualizationConfig(ConfigBase):
     update_every: int = Field(alias="update-every", gt=0)
 
 
+class PPOConfig(ConfigBase):
+    """Define direct-torque PPO training, reward, curriculum, and artifacts."""
+
+    action_repeat_steps: int = Field(alias="action-repeat-steps", gt=0)
+    parallel_environments: int = Field(alias="parallel-environments", gt=0)
+    rollout_steps: int = Field(alias="rollout-steps", gt=0)
+    minibatch_size: int = Field(alias="minibatch-size", gt=0)
+    optimization_epochs: int = Field(alias="optimization-epochs", gt=0)
+    curriculum_decisions: list[int] = Field(alias="curriculum-decisions")
+    initialization_bounds: dict[str, list[float]] = Field(alias="initialization-bounds")
+    stage_b_downward_fraction: float = Field(alias="stage-b-downward-fraction", ge=0.0, le=1.0)
+    stage_c_exact_fraction: float = Field(alias="stage-c-exact-fraction", ge=0.0, le=1.0)
+    discount_time_constant_s: float = Field(alias="discount-time-constant-s", gt=0.0)
+    gae_lambda: float = Field(alias="gae-lambda", gt=0.0, le=1.0)
+    policy_clip: float = Field(alias="policy-clip", gt=0.0)
+    value_loss_weight: float = Field(alias="value-loss-weight", gt=0.0)
+    entropy_weight: float = Field(alias="entropy-weight", ge=0.0)
+    initial_learning_rate: float = Field(alias="initial-learning-rate", gt=0.0)
+    final_learning_rate: float = Field(alias="final-learning-rate", gt=0.0)
+    adam_epsilon: float = Field(alias="adam-epsilon", gt=0.0)
+    maximum_gradient_norm: float = Field(alias="maximum-gradient-norm", gt=0.0)
+    target_kl: float = Field(alias="target-kl", gt=0.0)
+    initial_log_standard_deviation: float = Field(alias="initial-log-standard-deviation")
+    phase_weight: float = Field(alias="phase-weight", ge=0.0)
+    torque_slew_weight: float = Field(alias="torque-slew-weight", ge=0.0)
+    torque_effort_weight: float = Field(alias="torque-effort-weight", ge=0.0)
+    arm_boundary_weight: float = Field(alias="arm-boundary-weight", ge=0.0)
+    success_bonus: float = Field(alias="success-bonus", gt=0.0)
+    arm_failure_penalty: float = Field(alias="arm-failure-penalty", gt=0.0)
+    timeout_penalty: float = Field(alias="timeout-penalty", gt=0.0)
+    evaluation_episodes: int = Field(alias="evaluation-episodes", gt=0)
+    evaluation_hold_steps: int = Field(alias="evaluation-hold-steps", gt=0)
+    evaluation_every_updates: int = Field(alias="evaluation-every-updates", gt=0)
+    random_seed: int = Field(alias="random-seed", ge=0)
+    artifact_root: str = Field(alias="artifact-root", min_length=1)
+    device: Literal["cpu", "cuda"]
+
+    @field_validator("curriculum_decisions")
+    @classmethod
+    def _curriculum_decisions_must_define_three_stages(cls, values: list[int]) -> list[int]:
+        if len(values) != 3 or any(value < 0 for value in values) or sum(values) <= 0:
+            raise ValueError("curriculum-decisions must contain three nonnegative budgets")
+        return values
+
+    @field_validator("initialization_bounds")
+    @classmethod
+    def _initialization_bounds_must_be_complete(
+        cls, values: dict[str, list[float]]
+    ) -> dict[str, list[float]]:
+        expected = {"near-upright", "downward-noise", "phase"}
+        if set(values) != expected or any(len(bounds) != 8 for bounds in values.values()):
+            raise ValueError("initialization-bounds must define three named four-state boxes")
+        if any(
+            not all(math.isfinite(value) for value in bounds)
+            or any(bounds[index] > bounds[index + 1] for index in range(0, 8, 2))
+            for bounds in values.values()
+        ):
+            raise ValueError("Every initialization lower bound must be finite and ordered")
+        return values
+
+    @field_validator("minibatch_size")
+    @classmethod
+    def _minibatch_must_fit_rollout(cls, value: int, info: Any) -> int:
+        parallel = info.data.get("parallel_environments")
+        rollout = info.data.get("rollout_steps")
+        if parallel is not None and rollout is not None and parallel * rollout % value != 0:
+            raise ValueError("minibatch-size must divide the complete rollout batch")
+        return value
+
+
 class EpisodeConfig(ConfigBase):
     """Compose only the domains required by rotary MPC execution."""
 
@@ -150,6 +221,12 @@ def load_visualization_config(config_path: Path = VISUAL_CONFIG_PATH) -> Visuali
     """Load the visualization domain only for interactive execution."""
 
     return VisualizationConfig.model_validate(_load_domains((config_path,))["visualization"])
+
+
+def load_ppo_config(config_path: Path = PPO_CONFIG_PATH) -> PPOConfig:
+    """Load the dedicated rotary direct-torque PPO training domain."""
+
+    return PPOConfig.model_validate(_load_domains((config_path,))["ppo"])
 
 
 def _load_domains(

@@ -1,3 +1,9 @@
+# Project Goal
+
+Our overall grand mission goal here is to develope a easy-effort minimum-realization theory-oriented benchmark simulation for an MPC to solve for a burst of control commands for a short segment of time followed by a longer segment of sleep idle. The prediction horizon and the terminal value will eventually be determined by a neural networkd trained by reinforcement learning style.
+
+At start of a conversation, briefly scan through the code base and the docs to have a grand picture of our goal and current stage.
+
 # Our coding style rules
 
 - Adhere strictly to our coding style descipline, realizing goals with simplest possbile method, write your logic in compact streamlined line-of-logic files, avoid short wrapper/helper functions, avoid unescesary CLI/configs, avoid fallback values or behaviors, avoid try/with/except. Include this rule in your plan.
@@ -19,3 +25,18 @@
 - When writing docs, if your answer include mathematical expressions/formulas/variables, fully define them when they emerge, explain how to get the values (defined, measured, computed, heuristic, tunable, etc.), and give an intuitive interpretations for each of them. Output in .md files with "$$" latex math syntax. Split into human readable parts which is more illustrative and intuitive with major governing formulas, and machine schanning parts with as much rigorous details as you can write. Also make a 中文 version of the same doc file with same name and suffix -CN, and gitignore any files with suffix -CN.
 
 - When formulating a plan, explicitly identify stages and milestones of the dev process, give specific validation procedures for each milestone and their success flags. And always rememver our projects are meant to be show-of-concept, not to deliver a clinic/industry-ready product. So never over engineering the method, but proactively keep the mathematicall elegance (streamline, efficiency, naturally working, etc.) and strigency of our methods.
+
+# venv
+We are on a ubuntu remote server where conda or sudo is not available, we need to build or see the already built .venv acoording to the encironment or requirement files. But keep and keep updating the encironment or requirement files so we have them available when switching to other machines.
+
+# How to use GPU
+We are on a 8-GPU servers now which means we want to use the maximum parallel computing ability of them with our code to lighten the time cost of our computation. But you cannot access GPU with your sandbox terminal directly, and sudo is not available on this remote server. So the way is to submit the training/run command through the terminal tool with sandbox_permissions="require_escalated". After my approval, the command executed outside the sandbox on the same Ubuntu host, where CUDA and the GPUs were visible.
+For example, the earlier eight-GPU run used:
+```
+.venv/bin/python scripts/run_full_capability.py \
+  --config configs/controller_smoke.yaml \
+  --compute 8gpu \
+  --output-dir /tmp/laser_ablation_smoke_20260825 \
+  --seed 20260825
+```
+The tool invocation explicitly requested approval with the reason that JAX needed access to the server GPUs. I then monitored the returned process session incrementally.

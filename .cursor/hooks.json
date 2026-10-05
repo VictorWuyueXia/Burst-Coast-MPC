@@ -3,7 +3,7 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "python .cursor/hooks/activate-conda.py"
+        "command": "python3 .cursor/hooks/activate-venv.py"
       }
     ]
   }
