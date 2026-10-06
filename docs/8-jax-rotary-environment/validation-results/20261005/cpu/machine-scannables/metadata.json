@@ -1,0 +1,12 @@
+{
+  "seed": 20261005,
+  "platform": "Linux-5.15.0-173-generic-x86_64-with-glibc2.35",
+  "logical_cpu_count": 256,
+  "jax_version": "0.11.2",
+  "jaxlib_version": "0.11.2",
+  "backend": "cpu",
+  "x64_enabled": true,
+  "devices": [
+    "cpu:0"
+  ]
+}

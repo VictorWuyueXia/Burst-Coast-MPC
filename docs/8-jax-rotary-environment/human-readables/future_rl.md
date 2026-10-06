@@ -2,6 +2,16 @@
 
 This page is a reminder of intended later experiments, **not** a reward or network specification for the present environment work. The first learning phase is ordinary value learning and interaction with the JAX environment. Large-batch MPPI/MPC prediction, sampled local linear models, and joint learning with a controller in the loop follow only after the nonlinear simulator is validated.
 
+## Measured execution addendum
+
+The validated simulator has two deliberately layered interfaces. `rk4_step(x, u)` advances only the smooth nonlinear plant by one 20 ms physics interval and accepts arbitrary leading batch axes; use it for MPC/MPPI prediction, custom horizons, and differentiation. `step(env_state, u)` holds one clipped action for up to five physics intervals and owns goal dwell, arm-limit failure, timeout, and episode counters; use `jax.vmap(step)` for RL environment batches. The latter calls the former, so there is one dynamics implementation rather than two simulators.
+
+On one NVIDIA L40S, complete 20-second, 200-decision `step` rollouts were measured with inputs and scans kept on-device. Final-state-only execution reached 1,048,576 parallel environments in 162 ms using a 199 MiB allocator peak; 8,388,608 also fit, but took 5.48 s and is not an efficient training batch. Retaining the complete six-field environment history used 1.32 GiB for 262,144 environments, 5.27 GiB for 1,048,576, and 21.09 GiB for 4,194,304. These are environment-only measurements: policy activations, optimizer state, reward/value buffers, and logging require additional VRAM. Start independent RL sessions at 65,536 or 262,144 environments per GPU, then tune against the actual learner update cost.
+
+The eight L40S GPUs currently support eight **independent** one-GPU training sessions by launching one process with one `CUDA_VISIBLE_DEVICES` value per card. This environment does not yet create a synchronized eight-GPU learner; that later work needs explicit parameter and batch sharding plus gradient synchronization. Give each session a distinct root PRNG key and separate artifact directory. Add an on-device reward and automatic-reset wrapper before training, since a terminal lane freezes logically but remains inside the fixed scan until reset.
+
+JAX's default allocator reserved about 34.5 GiB of each 46.1 GiB card even though the simulator's active use was much smaller. One process per GPU is therefore appropriate. Do not place multiple default JAX processes on one card; if sharing is intentional, explicitly set `XLA_CLIENT_MEM_FRACTION` or disable preallocation with `XLA_PYTHON_CLIENT_PREALLOCATE=false`. The full measurements, including GPU telemetry and machine-readable tables, are in the [validation results](../validation-results/20261005/interpretation_summary.md).
+
 ## Learning objective to formulate next
 
 The desired behavior is to pump the pendulum toward the upright energy state while minimizing actuator-on time. The user also wants a preference for zero or near-maximum-magnitude torque, discouragement of small-to-maximum input changes, and weak time and/or energy tie-breakers. These requirements need explicit, testable definitions before training. In particular, “energy reached” is not success: success remains the complete upright state and 100 ms hold, and arm-limit failure remains terminal.

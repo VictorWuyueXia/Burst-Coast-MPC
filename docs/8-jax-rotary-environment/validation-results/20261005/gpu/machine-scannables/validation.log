@@ -1,0 +1,15 @@
+2026-10-05 17:30:43,386 INFO validation start metadata={'seed': 20261005, 'platform': 'Linux-5.15.0-173-generic-x86_64-with-glibc2.35', 'logical_cpu_count': 256, 'jax_version': '0.11.2', 'jaxlib_version': '0.11.2', 'backend': 'gpu', 'x64_enabled': False, 'devices': ['cuda:0']}
+2026-10-05 17:30:43,397 INFO accuracy cases=12288 dtype=float32
+2026-10-05 17:30:45,052 INFO resolution max_angle=9.57005e-05 max_rate=0.00266249 between_sample_misses=0
+2026-10-05 17:30:48,894 INFO rollouts success=0 violation=270 timeout=30
+2026-10-05 17:30:49,336 INFO benchmark batch=1024 compiling
+2026-10-05 17:30:49,668 INFO resource cpu_system=0.9% process_rss=1990MiB gpu_max=0.0%
+2026-10-05 17:30:55,126 INFO benchmark batch=1024 compile=0.580s run=0.011s rollouts_per_s=91666.1
+2026-10-05 17:30:55,126 INFO benchmark batch=8192 compiling
+2026-10-05 17:30:55,971 INFO resource cpu_system=1.0% process_rss=2046MiB gpu_max=0.0%
+2026-10-05 17:31:00,811 INFO benchmark batch=8192 compile=0.473s run=0.011s rollouts_per_s=721487.9
+2026-10-05 17:31:00,811 INFO benchmark batch=65536 compiling
+2026-10-05 17:31:02,122 INFO resource cpu_system=1.2% process_rss=2081MiB gpu_max=0.0%
+2026-10-05 17:31:08,197 INFO benchmark batch=65536 compile=0.388s run=0.017s rollouts_per_s=3874666.9
+2026-10-05 17:31:08,276 INFO resource cpu_system=0.6% process_rss=2107MiB gpu_max=96.0%
+2026-10-05 17:31:08,637 INFO validation complete resource_samples=320

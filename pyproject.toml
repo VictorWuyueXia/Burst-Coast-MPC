@@ -26,6 +26,7 @@ dependencies = [  # Core libraries needed to run the project
   "rich==15.0.0",         # Pretty terminal formatting
   "matplotlib==3.10.9",   # Plotting and visualization
   "scikit-learn==1.9.0",  # Sparse regression and validation utilities
+  "psutil==7.2.2",        # CPU and memory telemetry for validation runs
   "torch==2.11.0",        # Tensor backend for offline critic training
   "pytorch-lightning==2.6.5",  # Training loop orchestration for critic fitting
 ]
@@ -36,6 +37,12 @@ dev = [
   "pytest==9.0.3",   # Testing framework
   "ruff==0.15.17",   # Linter for code quality
   "mypy==2.1.0",     # Static type checking
+]
+jax = [
+  "jax==0.11.2",     # CPU development and numerical validation
+]
+jax-cuda13 = [
+  "jax[cuda13]==0.11.2",  # Linux accelerator execution with pip-provided CUDA 13
 ]
 
 # Define command-line script entry point for easy CLI usage

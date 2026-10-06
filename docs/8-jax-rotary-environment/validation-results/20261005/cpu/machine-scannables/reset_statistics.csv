@@ -1,0 +1,4 @@
+stratum,count,arm_accepted_fraction,goal_at_reset_fraction,minimum_variance
+0,10000,1.0,0.0,0.013389893626931666
+1,10000,1.0,0.0,0.08247196887757809
+2,10000,1.0,0.0,0.020738246184618385
