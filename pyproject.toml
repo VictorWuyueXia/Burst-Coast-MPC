@@ -40,9 +40,13 @@ dev = [
 ]
 jax = [
   "jax==0.11.2",     # CPU development and numerical validation
+  "flax==0.12.10",   # Functional neural-network modules for the JAX Q critic
+  "optax==0.2.8",    # JAX optimizer and gradient-transformation library
 ]
 jax-cuda13 = [
   "jax[cuda13]==0.11.2",  # Linux accelerator execution with pip-provided CUDA 13
+  "flax==0.12.10",         # Functional neural-network modules for the JAX Q critic
+  "optax==0.2.8",          # JAX optimizer and gradient-transformation library
 ]
 
 # Define command-line script entry point for easy CLI usage
@@ -79,3 +83,7 @@ select = ["E", "F", "I", "UP", "B"]  # Enable common code quality, formatting, a
 python_version = "3.12"      # Python version for analysis
 strict = true                # Enforce strict type checking rules
 warn_unreachable = true      # Warn on code that cannot be reached
+
+[[tool.mypy.overrides]]
+module = ["optax", "optax.*"]
+ignore_missing_imports = true  # Optax 0.2.8 does not publish a py.typed marker

@@ -17,6 +17,8 @@ dependencies:
   - matplotlib=3.10.9     # Static and interactive experiment visualization.
   - scikit-learn=1.9.0    # Sparse regression and validation utilities.
   - jax=0.11.2            # CPU development and batched rotary-pendulum simulation.
+  - flax=0.12.10          # Functional network modules for the JAX Q critic.
+  - optax=0.2.8           # Optimizer and gradient transformations for JAX learning.
   - pytest=9.0.3          # Regression test execution.
   - ruff=0.15.17          # Fast linting for code hygiene.
   - mypy=2.1.0            # Static type checking.

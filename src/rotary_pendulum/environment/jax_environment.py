@@ -67,19 +67,21 @@ def step(env_state: EnvState, u: ArrayLike) -> EnvState:
     def advance_one(state: EnvState, _: None) -> tuple[EnvState, None]:
         active = ~(state.success | state.arm_violation | state.timeout)
         integrated = rk4_step(state.x, applied_torque)
-        next_x = jnp.where(active, integrated, state.x)
+        next_x = jnp.where(active[..., None], integrated, state.x)
         next_steps = state.physics_steps + active.astype(jnp.int32)
-        upright_error = jnp.arctan2(jnp.sin(next_x[1] - jnp.pi), jnp.cos(next_x[1] - jnp.pi))
+        upright_error = jnp.arctan2(
+            jnp.sin(next_x[..., 1] - jnp.pi), jnp.cos(next_x[..., 1] - jnp.pi)
+        )
         inside_goal = (
-            (jnp.abs(next_x[0]) <= GOAL.theta_tolerance_rad)
+            (jnp.abs(next_x[..., 0]) <= GOAL.theta_tolerance_rad)
             & (jnp.abs(upright_error) <= GOAL.beta_tolerance_rad)
-            & (jnp.abs(next_x[2]) <= GOAL.omega_tolerance_rad_s)
-            & (jnp.abs(next_x[3]) <= GOAL.nu_tolerance_rad_s)
+            & (jnp.abs(next_x[..., 2]) <= GOAL.omega_tolerance_rad_s)
+            & (jnp.abs(next_x[..., 3]) <= GOAL.nu_tolerance_rad_s)
         )
         next_goal_count = jnp.where(
             active, jnp.where(inside_goal, state.goal_count + 1, 0), state.goal_count
         )
-        arm_violation = state.arm_violation | (active & (jnp.abs(next_x[0]) >= ARM_LIMIT_RAD))
+        arm_violation = state.arm_violation | (active & (jnp.abs(next_x[..., 0]) >= ARM_LIMIT_RAD))
         success = state.success | (active & (next_goal_count >= GOAL.hold_steps) & ~arm_violation)
         timeout = state.timeout | (
             active & (next_steps >= MAX_PHYSICS_STEPS) & ~arm_violation & ~success
