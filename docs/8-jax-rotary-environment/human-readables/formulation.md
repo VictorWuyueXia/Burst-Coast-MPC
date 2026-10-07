@@ -35,7 +35,7 @@ $j$ counts controller decisions, $u_j$ is the torque chosen at decision $j$, and
 
 ## Goal and constraint semantics
 
-The upright target remains the complete state $[0,\pi,0,0]^T$. Define $\beta=\operatorname{atan2}(\sin(\alpha-\pi),\cos(\alpha-\pi))$, the wrapped angular error from upright in radians. The existing goal tolerances are $\epsilon_\theta=\epsilon_\beta=0.05$ radians and $\epsilon_\omega=\epsilon_\nu=0.05$ radians per second. These are defined benchmark choices, not learned parameters. A physics sample is inside the goal when
+The upright target remains the complete state $[0,\pi,0,0]^T$. Define $\beta=\operatorname{atan2}(\sin(\alpha-\pi),\cos(\alpha-\pi))$, the wrapped angular error from upright in radians. Phase 10 revised the live goal tolerances to $\epsilon_\theta=\epsilon_\beta=0.08$ radians, $\epsilon_\omega=0.15$ radians per second, and $\epsilon_\nu=0.20$ radians per second after measuring the 100 ms action resolution. These are configured benchmark choices, not learned parameters. The original phase-8 validation used `0.05` for all four limits; its plant-parity evidence remains valid, while task results must state the contract revision. A physics sample is inside the goal when
 
 $$
 g(x)=\mathbf 1\{|\theta|\leq\epsilon_\theta,\ |\beta|\leq\epsilon_\beta,\ |\omega|\leq\epsilon_\omega,\ |\nu|\leq\epsilon_\nu\}=1.

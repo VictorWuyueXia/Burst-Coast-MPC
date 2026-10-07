@@ -10,9 +10,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from rotary_pendulum.environment.jax_dynamics import TORQUE_LIMIT_NM
 from rotary_pendulum.environment.jax_environment import ARM_LIMIT_RAD, EnvState, reset
 from rotary_pendulum.RL.jax_q import QNetwork
-from rotary_pendulum.RL.jax_task import collect, observe, transition
+from rotary_pendulum.RL.jax_task import ACTION_TORQUES_NM, collect, observe, transition
 
 REWARD = {
     "capture_weight": 1.0,
@@ -75,8 +76,13 @@ def test_transition_uses_actual_terminal_duration_and_no_post_terminal_reward() 
     np.testing.assert_allclose(repeated_components, 0.0, atol=1e-7)
 
 
+def test_action_order_has_measured_pump_and_fine_symmetric_pairs() -> None:
+    normalized = ACTION_TORQUES_NM / TORQUE_LIMIT_NM
+    np.testing.assert_allclose(normalized, [0.0, -0.45, 0.45, -0.02, 0.02], atol=1e-7)
+
+
 def test_shaping_telescopes_through_timeout_for_all_action_indices() -> None:
-    for action in range(3):
+    for action in range(5):
         state = reset(jax.random.fold_in(jax.random.key(7), action), 0)._replace(
             physics_steps=jnp.array(990, dtype=jnp.int32)
         )
@@ -136,6 +142,10 @@ def test_collection_inserts_terminal_next_state_and_wraps_replay() -> None:
     _, replay, metrics = collect_compiled(rollout, replay)
     assert int(replay["position"]) == 8 and int(replay["size"]) == 16
     action_count = (
-        metrics["off_actions"] + metrics["negative_actions"] + metrics["positive_actions"]
+        metrics["off_actions"]
+        + metrics["negative_pump_actions"]
+        + metrics["positive_pump_actions"]
+        + metrics["negative_fine_actions"]
+        + metrics["positive_fine_actions"]
     )
     assert float(action_count) == 12

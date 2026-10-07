@@ -11,9 +11,11 @@ import jax.numpy as jnp
 import optax
 from jax import Array
 
+ACTION_COUNT = 5
+
 
 class QNetwork(nn.Module):
-    """Map one normalized Markov observation to the three discrete action values."""
+    """Map one normalized Markov observation to the five discrete action values."""
 
     hidden_widths: tuple[int, ...] = (128, 128)
     activation_name: str = "tanh"
@@ -41,7 +43,7 @@ class QNetwork(nn.Module):
                 )(hidden)
             )
         return nn.Dense(
-            3,
+            ACTION_COUNT,
             kernel_init=nn.initializers.glorot_uniform(),
             bias_init=nn.initializers.zeros_init(),
             dtype=jnp.float32,

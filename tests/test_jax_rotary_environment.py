@@ -82,6 +82,10 @@ def test_constants_match_the_validated_nominal_configuration() -> None:
     assert MODEL == expected_model
     assert PHYSICS_DT_S == pytest.approx(0.02)
     assert TORQUE_LIMIT_NM == pytest.approx(0.0204)
+    assert GOAL.theta_tolerance_rad == pytest.approx(0.08)
+    assert GOAL.beta_tolerance_rad == pytest.approx(0.08)
+    assert GOAL.omega_tolerance_rad_s == pytest.approx(0.15)
+    assert GOAL.nu_tolerance_rad_s == pytest.approx(0.20)
     assert GOAL.hold_steps == 5
     assert MAX_PHYSICS_STEPS * PHYSICS_DT_S == pytest.approx(20.0)
 

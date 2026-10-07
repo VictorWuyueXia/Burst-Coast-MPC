@@ -11,8 +11,8 @@ from jax import Array
 
 from rotary_pendulum.environment.jax_dynamics import MODEL, PHYSICS_DT_S
 from rotary_pendulum.environment.jax_environment import EnvState
-from rotary_pendulum.RL.jax_q import QNetwork
-from rotary_pendulum.RL.jax_task import TARGET_ENERGY_J, observe, transition
+from rotary_pendulum.RL.jax_q import ACTION_COUNT, QNetwork
+from rotary_pendulum.RL.jax_task import ACTION_TORQUES_NM, TARGET_ENERGY_J, observe, transition
 
 
 def evaluate(
@@ -85,13 +85,13 @@ def evaluate(
             predicted_train + jnp.sum(potential, axis=-1, keepdims=True),
         )
         env_state = jax.tree.map(
-            lambda value: jnp.repeat(value[:, None, ...], 3, axis=1), initial_states
+            lambda value: jnp.repeat(value[:, None, ...], ACTION_COUNT, axis=1), initial_states
         )
         forced_action = jnp.broadcast_to(
-            jnp.arange(3, dtype=jnp.int32), env_state.physics_steps.shape
+            jnp.arange(ACTION_COUNT, dtype=jnp.int32), env_state.physics_steps.shape
         )
     else:
-        predicted_base = jnp.zeros((initial_states.x.shape[0], 3), dtype=jnp.float32)
+        predicted_base = jnp.zeros((initial_states.x.shape[0], ACTION_COUNT), dtype=jnp.float32)
         env_state = initial_states
         forced_action = jnp.zeros(initial_states.physics_steps.shape, dtype=jnp.int32)
     batch_shape = env_state.physics_steps.shape
@@ -115,15 +115,15 @@ def evaluate(
         if audit:
             action = jnp.where(decision == 0, forced_action, greedy_action)
         elif mode.startswith("lookahead"):
-            action_indices = jnp.arange(3, dtype=jnp.int32)
+            action_indices = jnp.arange(ACTION_COUNT, dtype=jnp.int32)
             sequences = jnp.stack(
                 jnp.meshgrid(action_indices, action_indices, action_indices, indexing="ij"),
                 axis=-1,
-            ).reshape((27, 3))
+            ).reshape((ACTION_COUNT**3, 3))
             candidate_state = jax.tree.map(
-                lambda value: jnp.repeat(value[:, None, ...], 27, axis=1), state
+                lambda value: jnp.repeat(value[:, None, ...], ACTION_COUNT**3, axis=1), state
             )
-            candidate_score = jnp.zeros((state.x.shape[0], 27), dtype=jnp.float32)
+            candidate_score = jnp.zeros((state.x.shape[0], ACTION_COUNT**3), dtype=jnp.float32)
             for depth in range(3):
                 candidate_action = jnp.broadcast_to(
                     sequences[None, :, depth], candidate_score.shape
@@ -156,7 +156,7 @@ def evaluate(
         )
         previous_action = totals[..., 6].astype(jnp.int32)
         off_to_on = (previous_action == 0) & (action != 0)
-        reversal = (previous_action != 0) & (action != 0) & (previous_action != action)
+        reversal = ACTION_TORQUES_NM[previous_action] * ACTION_TORQUES_NM[action] < 0.0
         theta, alpha, _, nu = jnp.moveaxis(next_state.x, -1, 0)
         energy_ratio = (
             0.5 * MODEL.pendulum_inertia_kg_m2 * nu**2

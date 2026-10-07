@@ -15,6 +15,8 @@ import jax
 import matplotlib.pyplot as plt
 import numpy as np
 
+from rotary_pendulum.RL.jax_task import ACTION_TORQUES_NM
+
 plt.switch_backend("Agg")
 
 
@@ -40,8 +42,15 @@ def write_artifacts(
         for key, value in metrics.items()
         if key != "history"
     }
+    action_order = [
+        "off",
+        "negative_pump",
+        "positive_pump",
+        "negative_fine",
+        "positive_fine",
+    ]
     metadata = {
-        "contract_id": "rotary-q-prior-v1",
+        "contract_id": "rotary-q-prior-v2",
         "network_id": experiment["network_id"],
         "reward_revision": experiment["reward_revision"],
         "experiment_id": experiment["experiment_id"],
@@ -52,12 +61,13 @@ def write_artifacts(
             "theta_over_limit sin_alpha cos_alpha omega_scaled nu_scaled "
             "remaining_fraction goal_hold_fraction"
         ).split(),
-        "action_order": ["off", "negative_full", "positive_full"],
-        "action_units": "N m; magnitude from the physical configuration",
+        "action_order": action_order,
+        "action_torques_nm": np.asarray(ACTION_TORQUES_NM).tolist(),
+        "action_units": "N m; 45% pump and 2% fine magnitudes from physical configuration",
         "hidden_widths": list(experiment["hidden_widths"]),
         "activation_name": experiment["activation_name"],
         "loss_name": experiment["loss_name"],
-        "output_meaning": "three shaped finite-deadline action returns in reward units",
+        "output_meaning": "five shaped finite-deadline action returns in reward units",
         "potential_formula": "Phi=-(e_E^2/(1+e_E^2)+w_c*q_c/(1+q_c)); zero at terminal",
         "base_reward": {
             key: experiment[key]
@@ -191,15 +201,21 @@ def write_artifacts(
         time_s = 0.1 * np.arange(states.shape[0])
         figure, axes = plt.subplots(3, 1, figsize=(9, 8), sharex=True)
         axes[0].plot(time_s, states[:, 0], label="arm angle")
-        axes[0].plot(time_s, states[:, 1], label="pendulum angle")
-        axes[0].set_ylabel("Angle [rad]")
+        upright_error = np.arctan2(np.sin(states[:, 1] - np.pi), np.cos(states[:, 1] - np.pi))
+        axes[0].plot(time_s, upright_error, label="pendulum upright error")
+        axes[0].set_ylabel("Angle / error [rad]")
         axes[0].legend()
         axes[1].plot(time_s, states[:, 2], label="arm velocity")
         axes[1].plot(time_s, states[:, 3], label="pendulum velocity")
         axes[1].set_ylabel("Velocity [rad/s]")
         axes[1].legend()
         axes[2].step(time_s, actions, where="post")
-        axes[2].set(xlabel="Time [s]", ylabel="Action index")
+        axes[2].set(
+            xlabel="Time [s]",
+            ylabel="Action",
+            yticks=np.arange(len(action_order)),
+            yticklabels=action_order,
+        )
         figure.suptitle("Representative discrete-Q trajectory")
         figure.tight_layout()
         figure.savefig(human_dir / "trajectories.png", dpi=160)

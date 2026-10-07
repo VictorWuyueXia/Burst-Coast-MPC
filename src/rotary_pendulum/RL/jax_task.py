@@ -21,9 +21,20 @@ from rotary_pendulum.environment.jax_environment import (
     reset,
     step,
 )
-from rotary_pendulum.RL.jax_q import QNetwork
+from rotary_pendulum.RL.jax_q import ACTION_COUNT, QNetwork
 
-ACTION_TORQUES_NM = jnp.array([0.0, -TORQUE_LIMIT_NM, TORQUE_LIMIT_NM], dtype=jnp.float32)
+PUMP_TORQUE_FRACTION = 0.45
+FINE_TORQUE_FRACTION = 0.02
+ACTION_TORQUES_NM = jnp.array(
+    [
+        0.0,
+        -PUMP_TORQUE_FRACTION * TORQUE_LIMIT_NM,
+        PUMP_TORQUE_FRACTION * TORQUE_LIMIT_NM,
+        -FINE_TORQUE_FRACTION * TORQUE_LIMIT_NM,
+        FINE_TORQUE_FRACTION * TORQUE_LIMIT_NM,
+    ],
+    dtype=jnp.float32,
+)
 TARGET_ENERGY_J = 2.0 * MODEL.gravity_torque_nm
 ARM_SPEED_SCALE = float(ARM_LIMIT_RAD) * MODEL.natural_frequency_rad_s
 PENDULUM_SPEED_SCALE = 2.0 * jnp.sqrt(MODEL.gravity_torque_nm / MODEL.pendulum_inertia_kg_m2)
@@ -121,17 +132,18 @@ def collect(
         q_values = cast(Array, network.apply(learner["params"], observation))
         greedy_action = jnp.argmax(q_values, axis=-1).astype(jnp.int32)
         random_action = jax.random.randint(
-            random_action_key, (environment_count,), 0, 3, dtype=jnp.int32
+            random_action_key, (environment_count,), 0, ACTION_COUNT, dtype=jnp.int32
         )
 
         exploratory_action = random_action
         if experiment["heuristic_fraction"] > 0.0:
             candidate_state = jax.tree.map(
-                lambda value: jnp.repeat(value[:, None, ...], 3, axis=1),
+                lambda value: jnp.repeat(value[:, None, ...], ACTION_COUNT, axis=1),
                 carry["env_state"],
             )
             candidate_action = jnp.broadcast_to(
-                jnp.arange(3, dtype=jnp.int32), (environment_count, 3)
+                jnp.arange(ACTION_COUNT, dtype=jnp.int32),
+                (environment_count, ACTION_COUNT),
             )
             candidate_reward = transition(candidate_state, candidate_action, experiment)[3]
             heuristic_action = jnp.argmax(candidate_reward, axis=-1).astype(jnp.int32)
@@ -152,7 +164,7 @@ def collect(
         previous_action = carry["episode_totals"][:, 6].astype(jnp.int32)
         on_time = elapsed * (action != 0)
         off_to_on = (previous_action == 0) & (action != 0)
-        reversal = (previous_action != 0) & (action != 0) & (previous_action != action)
+        reversal = ACTION_TORQUES_NM[previous_action] * ACTION_TORQUES_NM[action] < 0.0
         theta, alpha, _, nu = jnp.moveaxis(next_state.x, -1, 0)
         energy_ratio = (
             0.5 * MODEL.pendulum_inertia_kg_m2 * nu**2
@@ -224,7 +236,7 @@ def collect(
             (
                 jnp.sum(completed_add, axis=0),
                 jnp.sum(components, axis=0),
-                jnp.bincount(action, length=3),
+                jnp.bincount(action, length=ACTION_COUNT),
             )
         )
         return {
@@ -271,7 +283,9 @@ def collect(
             "time_cost_sum": totals[15],
             "terminal_reward_sum": totals[16],
             "off_actions": totals[17],
-            "negative_actions": totals[18],
-            "positive_actions": totals[19],
+            "negative_pump_actions": totals[18],
+            "positive_pump_actions": totals[19],
+            "negative_fine_actions": totals[20],
+            "positive_fine_actions": totals[21],
         },
     )

@@ -16,7 +16,7 @@ Status: planned interface; no JAX implementation exists yet. This contract is sp
 | `goal_hold_steps` | `5` | physics samples | [mission.yaml](../../../src/rotary_pendulum/configs/mission.yaml) | 100 ms sampled goal dwell |
 | `arm_limit_rad` | $\pi/2$ | rad | user decision | hard episode boundary |
 | `torque_limit_nm` | `0.0204` | N·m | [physics.yaml](../../../src/rotary_pendulum/configs/physics.yaml) | applied shaft-torque saturation |
-| `goal_tolerances` | `[0.05,0.05,0.05,0.05]` | `[rad,rad,rad/s,rad/s]` | mission YAML | absolute full-state thresholds |
+| `goal_tolerances` | `[0.08,0.08,0.15,0.20]` | `[rad,rad,rad/s,rad/s]` | mission YAML | phase-10 absolute full-state thresholds |
 | `state_order` | `[theta,alpha,omega,nu]` | `(4,)` | current plant | unwrapped angles and velocities |
 
 The eight nominal physical primitives—gravity, arm mass and length, pendulum mass and length, two viscous damping coefficients, and torque limit—are read once from `physics.yaml`. The existing `derive_model` supplies derived inertia and gravity coefficients. No random physical parameters and no hidden runtime defaults are allowed. The JAX-only clock and episode cap do not alter the old YAML values, which define the 2 ms reference application.
@@ -56,7 +56,7 @@ The $2\times2$ inverse is evaluated by its analytic determinant formula rather t
 $$
 \begin{aligned}
 \beta&=\operatorname{atan2}(\sin(\alpha-\pi),\cos(\alpha-\pi)),\\
-I_g&=(|\theta|\leq0.05)\land(|\beta|\leq0.05)\land(|\omega|\leq0.05)\land(|\nu|\leq0.05),\\
+I_g&=(|\theta|\leq0.08)\land(|\beta|\leq0.08)\land(|\omega|\leq0.15)\land(|\nu|\leq0.20),\\
 c^+&=\begin{cases}c+1,&I_g,\\0,&\text{otherwise},\end{cases}\\
 I_a&=(|\theta|\geq\pi/2),\\
 I_s&=(c^+\geq5)\land\neg I_a,\\
