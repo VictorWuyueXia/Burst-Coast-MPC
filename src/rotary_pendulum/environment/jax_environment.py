@@ -66,7 +66,7 @@ def step(
     physics_steps: int = HOLD_PHYSICS_STEPS,
     max_physics_steps: int | Array = MAX_PHYSICS_STEPS,
 ) -> EnvState:
-    """Hold bounded torque; only successful 100 ms dwell or timeout stops physics."""
+    """Hold torque; capture ignores arm position and excursions remain nonterminal."""
 
     applied_torque = jnp.clip(jnp.asarray(u), -TORQUE_LIMIT_NM, TORQUE_LIMIT_NM)
 
@@ -79,8 +79,7 @@ def step(
             jnp.sin(next_x[..., 1] - jnp.pi), jnp.cos(next_x[..., 1] - jnp.pi)
         )
         inside_goal = (
-            (jnp.abs(next_x[..., 0]) <= GOAL.theta_tolerance_rad)
-            & (jnp.abs(upright_error) <= GOAL.beta_tolerance_rad)
+            (jnp.abs(upright_error) <= GOAL.beta_tolerance_rad)
             & (jnp.abs(next_x[..., 2]) <= GOAL.omega_tolerance_rad_s)
             & (jnp.abs(next_x[..., 3]) <= GOAL.nu_tolerance_rad_s)
         )

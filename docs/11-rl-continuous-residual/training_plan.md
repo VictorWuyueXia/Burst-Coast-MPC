@@ -8,7 +8,9 @@ needed after that condition is met. This supersedes the earlier unconditional
 “no training yet” instruction with a conditional authorization; it does not
 declare the current heuristic acceptable.
 
-The current assessment is **not ready to start training**. Across the existing
+The latest [trajectory review](heuristic_review.md) refines the earlier blanket
+training hold: **a bounded residual-versus-direct pilot is reasonable; usefulness
+for learning remains unproven**. The review ran no training. Across the existing
 22 trials at 20/40/60 s, no downward reset reaches 90% of target energy and no
 downward, moving or near-upright reset achieves capture. Tight successes also
 occur with zero torque. The best energy-pumping configuration settles around
@@ -28,7 +30,7 @@ assessment adds no user-approved numerical success threshold.
 | --- | --- |
 | Authority | User message: “if the heuristic turns out to be reasonably acceptable, you can start the training with tuning authority we have discussed before” |
 | Authorization | Conditional autonomous TD3 training and iteration |
-| Current condition assessment | Not met, based on saved heuristic-only validation |
+| Current condition assessment | Partial-progress baseline supports a bounded comparative pilot; benefit to learning remains unproven |
 | Training executed under this authorization | None |
 | Permitted physical GPUs | 0, 1, 2, 3 only |
 | Policy / physical torque limits | 0.00918 / 0.0204 N m, unchanged |
@@ -47,8 +49,9 @@ assessment adds no user-approved numerical success threshold.
    arm filter intervenes, and whether its held-action energy predictions agree
    with actual motion. Passing does not require a finished balancing controller;
    it requires an explicitly justified assessment that the prior is useful.
-   Current flag: **not passed**.
-2. **Bounded TD3 pilot, conditional on stage 1.** Compare learned behavior with
+   Current flag: **partial progress verified; learning benefit unproven**.
+2. **Bounded comparative TD3 pilot.** Test whether partial heuristic progress
+   helps learning using matched direct-policy and residual-policy runs. Compare learned behavior with
    the same heuristic-only resets at 20/40/60 s. Check finite losses and targets,
    action saturation, arm-filter intervention, episode termination, and actual
    capture/recovery beyond favorable initial states. Save and inspect plots.
