@@ -110,6 +110,9 @@ def train(experiment: Mapping[str, Any]) -> Path:
     total_transitions = 0
     best_score = (-math.inf, -math.inf, -math.inf, -math.inf, -math.inf)
     best_learner = learner
+    best_eligible_score = best_score
+    best_eligible_learner = learner
+    eligible_found = False
     last_progress = time.monotonic()
     stages_passed = 0
     runtime_experiment = dict(experiment)
@@ -206,9 +209,13 @@ def train(experiment: Mapping[str, Any]) -> Path:
                 -float(jax.device_get(validation_metrics["near"]["mean_powered_s"])),
             )
             eligible = rates["tight"] >= 0.90 and rates["near"] >= 0.80
-            if eligible and score > best_score:
+            if score > best_score:
                 best_score = score
                 best_learner = learner
+            if eligible and score > best_eligible_score:
+                best_eligible_score = score
+                best_eligible_learner = learner
+            eligible_found = eligible_found or eligible
             if stage == 0:
                 gate = (
                     rates["tight"] >= 0.90
@@ -260,7 +267,7 @@ def train(experiment: Mapping[str, Any]) -> Path:
         if stage == 2:
             stages_passed = 3
 
-    selected = best_learner if best_score[0] > -math.inf else learner
+    selected = best_eligible_learner if eligible_found else best_learner
     evaluation_split = "final" if stages_passed == 3 else "validation"
     evaluation_metrics, artifact_trajectories = evaluate(
         selected, evaluation_sets[evaluation_split], f"{evaluation_split}_suite", runtime_experiment
@@ -269,7 +276,7 @@ def train(experiment: Mapping[str, Any]) -> Path:
         **evaluation_metrics,
         "stages_passed": stages_passed,
         "total_transitions": total_transitions,
-        "checkpoint_eligible": best_score[0] > -math.inf,
+        "checkpoint_eligible": eligible_found,
         "evaluation_split": evaluation_split,
         "history": history,
     }
@@ -281,8 +288,7 @@ def train(experiment: Mapping[str, Any]) -> Path:
         }
     )
     checkpoints = {"latest": learner}
-    if best_score[0] > -math.inf:
-        checkpoints["selected"] = selected
+    checkpoints["selected" if eligible_found else "diagnostic_best"] = selected
     write_artifacts(run_dir, artifact_metrics, artifact_trajectories, checkpoints, experiment)
     print(f"rotary-q artifact_dir={run_dir}", flush=True)
     return run_dir
