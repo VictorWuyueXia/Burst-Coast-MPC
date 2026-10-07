@@ -1,7 +1,8 @@
-"""Animate the four committed historical sessions without simulation or GPU dependencies."""
+"""Animate committed historical or recovery sessions without simulation or GPU dependencies."""
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -12,10 +13,14 @@ from matplotlib.animation import FuncAnimation
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--recovery", action="store_true", help="Show typical recovery outcomes")
+    recovery = parser.parse_args().recovery
     directory = (
         Path(__file__).resolve().parents[1]
         / "docs/12-energy-transfer"
-        / "machine-scannables/heuristic_confirmation_replay"
+        / "machine-scannables"
+        / ("recovery_confirmation_replay" if recovery else "heuristic_confirmation_replay")
     )
     manifest = json.loads((directory / "manifest.json").read_text())
     figure = plt.figure(figsize=(12, 9), layout="constrained")
@@ -50,7 +55,8 @@ def main() -> None:
             row = data[min(frame, len(data) - 1)]
             arm.set_data_3d(*[[row[f"origin_{a}_m"], row[f"pivot_{a}_m"]] for a in "xyz"])
             pendulum.set_data_3d(*[[row[f"pivot_{a}_m"], row[f"tip_{a}_m"]] for a in "xyz"])
-            ended = " (ended)" if frame >= len(data) - 1 else ""
+            outcome = "captured" if session["episode"]["success"] == "True" else "timeout"
+            ended = f" ({outcome})" if frame >= len(data) - 1 else ""
             axis.set_title(
                 f"{session['stratum']} · lane {session['source_lane']}{ended}\n"
                 f"t={row['time_s']:.2f} s, arm={np.degrees(row['theta_rad']):+.1f}°"

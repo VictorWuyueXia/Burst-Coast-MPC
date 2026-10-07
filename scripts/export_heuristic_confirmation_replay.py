@@ -1,7 +1,8 @@
-"""Extract the four recorded sessions in the historical heuristic confirmation figure."""
+"""Export the historical figure sessions or representative recovery outcomes for replay."""
 
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import json
@@ -15,14 +16,35 @@ from rotary_pendulum.utils.config_schema import RotaryPendulumConfig
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--recovery", action="store_true", help="Export typical recovery outcomes")
+    recovery = parser.parse_args().recovery
     root = Path(__file__).resolve().parents[1]
-    campaign = root / "artifacts/rotary_pendulum/energy-heuristic/confirm_20261008"
-    source = campaign / "energy_soft/machine-scannables"
-    output = root / "docs/12-energy-transfer/machine-scannables/heuristic_confirmation_replay"
+    campaign_name = "recovery_confirm_20261008" if recovery else "confirm_20261008"
+    trial = "recovery" if recovery else "energy_soft"
+    bundle = "recovery_confirmation_replay" if recovery else "heuristic_confirmation_replay"
+    campaign = root / "artifacts/rotary_pendulum/energy-heuristic" / campaign_name
+    source = campaign / trial / "machine-scannables"
+    output = root / "docs/12-energy-transfer/machine-scannables" / bundle
     figure = root / "docs/12-energy-transfer/human-readables/heuristic_confirmation.png"
-    original = source.parent / "human-readables/representative_sessions.png"
-    assert figure.read_bytes() == original.read_bytes(), "Figure does not match archived trial"
-    selection = json.loads((source / "plot_selection.json").read_text())
+    episodes = list(csv.DictReader((source / "episodes.csv").open()))
+    if recovery:
+        selection = {}
+        for label in ("downward", "moving", "near", "tight"):
+            eligible = [
+                row
+                for row in episodes
+                if row["stratum"] == label
+                and row["arm_violation"] == "False"
+                and row["success"] == ("False" if label == "downward" else "True")
+            ]
+            metric = "peak_arm_rad" if label == "downward" else "duration_s"
+            ordered = sorted(eligible, key=lambda row: (float(row[metric]), int(row["lane"])))
+            selection[label] = int(ordered[len(ordered) // 2]["lane"])
+    else:
+        original = source.parent / "human-readables/representative_sessions.png"
+        assert figure.read_bytes() == original.read_bytes(), "Figure does not match archived trial"
+        selection = json.loads((source / "plot_selection.json").read_text())
     initial = np.load(campaign / "machine-scannables/initial_states.npz")["x"]
     traces = np.load(source / "trajectories.npz")
     snapshot = campaign / "machine-scannables/source_snapshot"
@@ -35,10 +57,9 @@ def main() -> None:
         "physics.yaml": physics,
         "campaign.json": campaign / "machine-scannables/campaign.json",
         "provenance.json": campaign / "machine-scannables/provenance.json",
-        "plot_selection.json": source / "plot_selection.json",
     }.items():
         (output / name).write_bytes(path.read_bytes())
-    episodes = list(csv.DictReader((source / "episodes.csv").open()))
+    (output / "plot_selection.json").write_text(json.dumps(selection, indent=2) + "\n")
     sessions = []
     for label, lane in selection.items():
         active = traces["physics_active"][:, lane]
@@ -100,8 +121,14 @@ def main() -> None:
     manifest = {
         "schema_version": 1,
         "source_trial": str(source.parent.relative_to(root)),
-        "source_figure": str(figure.relative_to(root)),
-        "figure_sha256": hashlib.sha256(figure.read_bytes()).hexdigest(),
+        "source_figure": None if recovery else str(figure.relative_to(root)),
+        "selection_rule": (
+            "Within seed 20261008, no-excursion successes: upper median duration per stratum; "
+            "downward no-excursion failures: upper median peak arm angle. Ties: lane index."
+            if recovery
+            else "Original figure plot_selection.json"
+        ),
+        "figure_sha256": None if recovery else hashlib.sha256(figure.read_bytes()).hexdigest(),
         "source_trajectories_sha256": hashlib.sha256(
             (source / "trajectories.npz").read_bytes()
         ).hexdigest(),
