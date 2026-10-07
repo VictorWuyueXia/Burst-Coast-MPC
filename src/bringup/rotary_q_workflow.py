@@ -15,6 +15,7 @@ import optax
 from rotary_pendulum.environment.jax_environment import EnvState, reset
 from rotary_pendulum.RL.jax_artifacts import write_artifacts
 from rotary_pendulum.RL.jax_evaluation import evaluate
+from rotary_pendulum.RL.jax_experiment import validate_experiment
 from rotary_pendulum.RL.jax_q import QNetwork, update
 from rotary_pendulum.RL.jax_task import collect
 
@@ -22,26 +23,10 @@ from rotary_pendulum.RL.jax_task import collect
 def train(experiment: Mapping[str, Any]) -> Path:
     """Run one resolved three-stage Q-learning trial and save its complete evidence."""
 
+    updates_per_collection = validate_experiment(experiment)
     environment_count = int(experiment["parallel_environments"])
-    collection_decisions = int(experiment["collection_decisions"])
-    block_transitions = environment_count * collection_decisions
+    block_transitions = environment_count * int(experiment["collection_decisions"])
     replay_capacity = int(experiment["replay_capacity"])
-    minibatch_size = int(experiment["minibatch_size"])
-    updates_per_collection = float(
-        experiment["sample_reuse_ratio"] * block_transitions / minibatch_size
-    )
-    if replay_capacity < block_transitions:
-        raise ValueError("Replay capacity must contain one complete collection block")
-    if not updates_per_collection.is_integer() or updates_per_collection <= 0:
-        raise ValueError("Sample reuse must produce a positive integer update count")
-    if any(int(budget) % block_transitions for budget in experiment["stage_transition_budgets"]):
-        raise ValueError("Every stage budget must contain complete collection blocks")
-    if int(experiment["evaluation_every_transitions"]) % block_transitions:
-        raise ValueError("Evaluation cadence must contain complete collection blocks")
-    if len(experiment["stage_transition_budgets"]) != 3:
-        raise ValueError("The Q curriculum requires exactly three stage budgets")
-    if int(experiment["lookahead_decisions"]) != 3:
-        raise ValueError("The deployment contract requires a three-decision lookahead")
     run_dir = Path(experiment["run_dir"])
     run_dir.mkdir(parents=True, exist_ok=False)
 
@@ -205,7 +190,8 @@ def train(experiment: Mapping[str, Any]) -> Path:
                 stage,
                 min(rates[name] for name in scored_names),
                 sum(rates[name] for name in scored_names) / len(scored_names),
-                -max(violations.values()),
+                sum(float(validation_metrics[name]["mean_base_return"]) for name in scored_names)
+                / len(scored_names),
                 -float(jax.device_get(validation_metrics["near"]["mean_powered_s"])),
             )
             eligible = rates["tight"] >= 0.90 and rates["near"] >= 0.80
@@ -217,20 +203,13 @@ def train(experiment: Mapping[str, Any]) -> Path:
                 best_eligible_learner = learner
             eligible_found = eligible_found or eligible
             if stage == 0:
-                gate = (
-                    rates["tight"] >= 0.90
-                    and rates["near"] >= 0.80
-                    and violations["tight"] == 0.0
-                    and violations["near"] <= 0.01
-                )
+                gate = eligible
             elif stage == 1:
                 gate = (
                     rates["tight"] >= 0.90
                     and rates["near"] >= 0.80
                     and rates["downward"] >= 0.30
                     and rates["moving"] >= 0.30
-                    and violations["downward"] <= 0.10
-                    and violations["moving"] <= 0.10
                 )
             else:
                 gate = eligible
@@ -242,7 +221,8 @@ def train(experiment: Mapping[str, Any]) -> Path:
                 "epsilon": float(epsilon),
                 "minimum_success": score[1],
                 "overall_success": score[2],
-                "maximum_violation": -score[3],
+                "maximum_violation": max(violations.values()),
+                "mean_scored_return": score[3],
                 "loss": update_values.get("loss", math.nan),
             }
             row.update({f"update_{key}": value for key, value in update_values.items()})
@@ -257,7 +237,7 @@ def train(experiment: Mapping[str, Any]) -> Path:
                 f"tight={rates['tight']:.3f} near={rates['near']:.3f} "
                 f"moving={rates['moving']:.3f} downward={rates['downward']:.3f} "
                 f"train_successes={collection_values['successes']:.0f} "
-                f"train_arm_failures={collection_values['arm_failures']:.0f}",
+                f"completed_arm_excursions={collection_values['completed_arm_excursions']:.0f}",
                 flush=True,
             )
             next_evaluation += int(experiment["evaluation_every_transitions"])

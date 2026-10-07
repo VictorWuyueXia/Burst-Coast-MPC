@@ -1,5 +1,7 @@
 # Phase 10 Formulation: Five-Action Local Capture
 
+Version-2 historical formulation below. The current accepted reward and termination contract is [version 3](dense_reward_proposal.md): five direct dense terms, nonterminal arm excursions, and early success after 100 ms. Action magnitudes and goal tolerances remain as recorded here.
+
 ## Human quick reading
 
 Phase 9 showed that the three actions `off`, `negative full`, and `positive full` are too coarse at the 100 ms decision cadence. The strongest diagnostic learner captured only one of 512 tight starts, while representative trajectories accumulated many pendulum rotations under repeated maximum torque.

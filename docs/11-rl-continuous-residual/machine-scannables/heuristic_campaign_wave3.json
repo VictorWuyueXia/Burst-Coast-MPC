@@ -1,0 +1,58 @@
+{
+  "shared": {
+    "contract_id": "rotary-residual-td3-v1",
+    "validation_seed": 2026100711,
+    "episodes_per_stratum": 64,
+    "energy_time_s": 1.0,
+    "sensitivity_floor_per_s": 0.5,
+    "filter_steps": 20,
+    "energy_cost_per_s": 1.0,
+    "torque_cost_per_s": 0.02,
+    "time_cost_per_s": 1.05,
+    "arm_cost_per_s": 0.2,
+    "upright_reward_per_s": 1.0,
+    "upright_widths": [
+      0.16,
+      0.4,
+      0.3
+    ]
+  },
+  "trials": [
+    {
+      "name": "t005-b05",
+      "mode": "heuristic",
+      "energy_time_s": 0.05,
+      "sensitivity_floor_per_s": 0.5
+    },
+    {
+      "name": "t0025-b05",
+      "mode": "heuristic",
+      "energy_time_s": 0.025,
+      "sensitivity_floor_per_s": 0.5
+    },
+    {
+      "name": "t005-b2",
+      "mode": "heuristic",
+      "energy_time_s": 0.05,
+      "sensitivity_floor_per_s": 2
+    },
+    {
+      "name": "t0025-b2",
+      "mode": "heuristic",
+      "energy_time_s": 0.025,
+      "sensitivity_floor_per_s": 2
+    },
+    {
+      "name": "unfiltered-t01-b05",
+      "mode": "unfiltered",
+      "energy_time_s": 0.1,
+      "sensitivity_floor_per_s": 0.5
+    },
+    {
+      "name": "unfiltered-t0025-b05",
+      "mode": "unfiltered",
+      "energy_time_s": 0.025,
+      "sensitivity_floor_per_s": 0.5
+    }
+  ]
+}

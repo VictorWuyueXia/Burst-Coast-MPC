@@ -161,9 +161,11 @@ def test_action_clipping_boundary_detection_and_terminal_idempotence() -> None:
     np.testing.assert_allclose(positive.x, clipped.x)
     assert bool(positive.arm_violation)
     assert not bool(positive.success) and not bool(positive.timeout)
-    assert int(positive.physics_steps) == 1
-    for before, after in zip(positive, step(positive, -TORQUE_LIMIT_NM), strict=True):
-        np.testing.assert_array_equal(before, after)
+    assert int(positive.physics_steps) == 5
+    continued = step(positive, -TORQUE_LIMIT_NM)
+    assert int(continued.physics_steps) == 10
+    assert bool(continued.arm_violation)
+    assert not np.array_equal(positive.x, continued.x)
 
 
 def test_goal_hold_reset_and_success_over_timeout_precedence() -> None:

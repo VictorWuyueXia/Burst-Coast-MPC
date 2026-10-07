@@ -1,0 +1,70 @@
+{
+  "shared": {
+    "contract_id": "rotary-residual-td3-v1",
+    "validation_seed": 2026100711,
+    "episodes_per_stratum": 64,
+    "energy_time_s": 1.0,
+    "sensitivity_floor_per_s": 0.5,
+    "filter_steps": 20,
+    "energy_cost_per_s": 1.0,
+    "torque_cost_per_s": 0.02,
+    "time_cost_per_s": 1.05,
+    "arm_cost_per_s": 0.2,
+    "upright_reward_per_s": 1.0,
+    "upright_widths": [
+      0.16,
+      0.4,
+      0.3
+    ]
+  },
+  "trials": [
+    {
+      "name": "t01-b05",
+      "mode": "heuristic",
+      "energy_time_s": 0.1,
+      "sensitivity_floor_per_s": 0.5
+    },
+    {
+      "name": "t025-b05",
+      "mode": "heuristic",
+      "energy_time_s": 0.25,
+      "sensitivity_floor_per_s": 0.5
+    },
+    {
+      "name": "t4-b05",
+      "mode": "heuristic",
+      "energy_time_s": 4,
+      "sensitivity_floor_per_s": 0.5
+    },
+    {
+      "name": "t8-b05",
+      "mode": "heuristic",
+      "energy_time_s": 8,
+      "sensitivity_floor_per_s": 0.5
+    },
+    {
+      "name": "t01-b2",
+      "mode": "heuristic",
+      "energy_time_s": 0.1,
+      "sensitivity_floor_per_s": 2
+    },
+    {
+      "name": "t025-b2",
+      "mode": "heuristic",
+      "energy_time_s": 0.25,
+      "sensitivity_floor_per_s": 2
+    },
+    {
+      "name": "t4-b2",
+      "mode": "heuristic",
+      "energy_time_s": 4,
+      "sensitivity_floor_per_s": 2
+    },
+    {
+      "name": "t8-b2",
+      "mode": "heuristic",
+      "energy_time_s": 8,
+      "sensitivity_floor_per_s": 2
+    }
+  ]
+}

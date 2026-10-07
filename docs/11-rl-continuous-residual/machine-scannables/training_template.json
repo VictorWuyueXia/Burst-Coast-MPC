@@ -1,0 +1,30 @@
+{
+  "contract_id": "rotary-residual-td3-v1",
+  "validation_seed": 2026100711,
+  "episodes_per_stratum": 64,
+  "energy_time_s": 0.1,
+  "sensitivity_floor_per_s": 0.5,
+  "filter_steps": 20,
+  "energy_cost_per_s": 1.0,
+  "torque_cost_per_s": 0.02,
+  "time_cost_per_s": 1.05,
+  "arm_cost_per_s": 0.2,
+  "upright_reward_per_s": 1.0,
+  "upright_widths": [
+    0.16,
+    0.4,
+    0.3
+  ],
+  "seed": 2026100712,
+  "run_dir": "artifacts/rotary_pendulum/continuous-residual/future-td3-20s",
+  "deadline_s": 20,
+  "evaluation_max_s": 20,
+  "total_transitions": 1048576,
+  "parallel_environments": 256,
+  "replay_capacity": 262144,
+  "minibatch_size": 512,
+  "warmup_transitions": 16384,
+  "evaluation_every_transitions": 262144,
+  "learning_rate": 0.0003,
+  "exploration_noise": 0.1
+}

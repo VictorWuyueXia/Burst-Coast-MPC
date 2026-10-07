@@ -59,13 +59,19 @@ def reset(key: Array, stratum: ArrayLike) -> EnvState:
     )
 
 
-def step(env_state: EnvState, u: ArrayLike) -> EnvState:
-    """Hold one bounded torque for up to five event-checked physics steps."""
+def step(
+    env_state: EnvState,
+    u: ArrayLike,
+    *,
+    physics_steps: int = HOLD_PHYSICS_STEPS,
+    max_physics_steps: int | Array = MAX_PHYSICS_STEPS,
+) -> EnvState:
+    """Hold bounded torque; only successful 100 ms dwell or timeout stops physics."""
 
     applied_torque = jnp.clip(jnp.asarray(u), -TORQUE_LIMIT_NM, TORQUE_LIMIT_NM)
 
     def advance_one(state: EnvState, _: None) -> tuple[EnvState, None]:
-        active = ~(state.success | state.arm_violation | state.timeout)
+        active = ~(state.success | state.timeout)
         integrated = rk4_step(state.x, applied_torque)
         next_x = jnp.where(active[..., None], integrated, state.x)
         next_steps = state.physics_steps + active.astype(jnp.int32)
@@ -82,10 +88,8 @@ def step(env_state: EnvState, u: ArrayLike) -> EnvState:
             active, jnp.where(inside_goal, state.goal_count + 1, 0), state.goal_count
         )
         arm_violation = state.arm_violation | (active & (jnp.abs(next_x[..., 0]) >= ARM_LIMIT_RAD))
-        success = state.success | (active & (next_goal_count >= GOAL.hold_steps) & ~arm_violation)
-        timeout = state.timeout | (
-            active & (next_steps >= MAX_PHYSICS_STEPS) & ~arm_violation & ~success
-        )
+        success = state.success | (active & (next_goal_count >= GOAL.hold_steps))
+        timeout = state.timeout | (active & (next_steps >= max_physics_steps) & ~success)
         return EnvState(next_x, next_steps, next_goal_count, success, arm_violation, timeout), None
 
-    return jax.lax.scan(advance_one, env_state, None, length=HOLD_PHYSICS_STEPS)[0]
+    return jax.lax.scan(advance_one, env_state, None, length=physics_steps)[0]

@@ -1,6 +1,6 @@
 # JAX Rotary Environment: Machine-Scannable Contract
 
-Status: planned interface; no JAX implementation exists yet. This contract is specific to the nominal show-of-concept model. The existing NumPy/CasADi route remains independently runnable.
+Status: implemented nominal JAX interface, updated for the version-3 dense Q reward. Arm excursions are diagnostic and nonterminal. The existing NumPy/CasADi route remains independently runnable.
 
 ## Fixed numeric contract
 
@@ -14,7 +14,7 @@ Status: planned interface; no JAX implementation exists yet. This contract is sp
 | `max_decisions` | `200` | actions | 1000/5 | complete-action cap without early termination |
 | `max_duration_s` | `20` | s | 1000 × 0.02 | episode time cap |
 | `goal_hold_steps` | `5` | physics samples | [mission.yaml](../../../src/rotary_pendulum/configs/mission.yaml) | 100 ms sampled goal dwell |
-| `arm_limit_rad` | $\pi/2$ | rad | user decision | hard episode boundary |
+| `arm_limit_rad` | $\pi/2$ | rad | user decision | nonterminal reporting threshold and reward scale |
 | `torque_limit_nm` | `0.0204` | N·m | [physics.yaml](../../../src/rotary_pendulum/configs/physics.yaml) | applied shaft-torque saturation |
 | `goal_tolerances` | `[0.08,0.08,0.15,0.20]` | `[rad,rad,rad/s,rad/s]` | mission YAML | phase-10 absolute full-state thresholds |
 | `state_order` | `[theta,alpha,omega,nu]` | `(4,)` | current plant | unwrapped angles and velocities |
@@ -28,7 +28,7 @@ The eight nominal physical primitives—gravity, arm mass and length, pendulum m
 | `state_derivative(x, u)` | `x: (...,4)`, `u: (...)` or scalar | `dx: (...,4)` | pure, JIT and VMAP compatible |
 | `rk4_step(x, u)` | same shapes | `x_next: (...,4)` | pure raw nonlinear map; no clipping or terminal logic |
 | `reset(key, stratum)` | one JAX random key; scalar integer `0`, `1`, or `2` | `EnvState` with `x: (4,)` | pure; VMAP over distinct keys and strata |
-| `step(env_state, u)` | one `EnvState`; scalar commanded torque | new `EnvState` | pure; five-step scan with per-physics-step terminal checks |
+| `step(env_state, u, *, physics_steps=5)` | one `EnvState`; commanded torque; static sample count | new `EnvState` | pure; per-physics-step terminal checks; RL integrates reward using one-step calls |
 
 `EnvState` is one `NamedTuple` pytree with precisely these fields:
 
@@ -37,11 +37,11 @@ The eight nominal physical primitives—gravity, arm mass and length, pendulum m
 | `x` | floating `(4,)` | sampled state | 20 ms RK4 step under clipped torque while active |
 | `physics_steps` | integer scalar | `0` | increment once per actual physics step, never beyond 1000 |
 | `goal_count` | integer scalar | `0` | increment if full-state goal is met, otherwise zero |
-| `success` | boolean scalar | `false` | true at `goal_count >= 5` unless violation occurs |
-| `arm_violation` | boolean scalar | `false` | true at `abs(theta) >= pi/2` |
-| `timeout` | boolean scalar | `false` | true at 1000 steps if neither success nor violation occurred |
+| `success` | boolean scalar | `false` | true at `goal_count >= 5` |
+| `arm_violation` | boolean scalar | `false` | cumulative diagnostic: true after any sampled `abs(theta) >= pi/2`; never terminates |
+| `timeout` | boolean scalar | `false` | true at 1000 steps if success has not occurred |
 
-The derived `done` condition is `success | arm_violation | timeout`; it is not an extra stored field. Once done, `step` returns the same state even if called again. `step` may consume fewer than five physics steps if an outcome occurs during the held action. The raw `rk4_step` intentionally does **not** clip torque: differentiable prediction uses its stated input, and callers requiring feasible actions must bound them. Environment `step` clips once before the five-step hold. If a command is nonfinite, there is no fallback torque; host-side tests reject it and device-side validation must expose the invalid result rather than silently substitute zero. All reset-generated states and clipped actions must yield finite states in the benchmark domain.
+The derived `done` condition is `success | timeout`; it is not an extra stored field. Once done, `step` returns the same state even if called again. `step` may consume fewer than five physics steps if success or timeout occurs during the held action. An arm excursion neither stops nor clamps the state. The raw `rk4_step` intentionally does **not** clip torque: differentiable prediction uses its stated input, and callers requiring feasible actions must bound them. Environment `step` clips torque before integration. If a command is nonfinite, there is no fallback torque; host-side tests reject it and device-side validation must expose the invalid result rather than silently substitute zero. Finite behavior is validated over the benchmark domain; nonterminal excursions do not establish global numerical stability.
 
 ## Dynamics and event equations
 
@@ -59,12 +59,12 @@ $$
 I_g&=(|\theta|\leq0.08)\land(|\beta|\leq0.08)\land(|\omega|\leq0.15)\land(|\nu|\leq0.20),\\
 c^+&=\begin{cases}c+1,&I_g,\\0,&\text{otherwise},\end{cases}\\
 I_a&=(|\theta|\geq\pi/2),\\
-I_s&=(c^+\geq5)\land\neg I_a,\\
-I_t&=(n^+\geq1000)\land\neg I_a\land\neg I_s.
+I_s&=(c^+\geq5),\\
+I_t&=(n^+\geq1000)\land\neg I_s.
 \end{aligned}
 $$
 
-$\beta$ is the wrapped upright error, $I_g$ means inside the full-state goal, $c$ is consecutive-goal count, $I_a$ is arm violation, $I_s$ is success, $I_t$ is timeout, and $n^+$ is the updated physics-step count. The arm predicate is evaluated on unwrapped $\theta$. Violation has priority over success and timeout; success has priority over timeout. This is a sampled simulator, not a certified continuous-time boundary detector.
+$\beta$ is the wrapped upright error, $I_g$ means inside the full-state goal, $c$ is consecutive-goal count, $I_a$ is the arm-excursion diagnostic, $I_s$ is success, $I_t$ is timeout, and $n^+$ is the updated physics-step count. The arm predicate is evaluated on unwrapped $\theta$ and accumulated independently. Success has priority over timeout. This is a sampled simulator, not a continuous-time boundary detector.
 
 ## Initial-state sampler specification
 

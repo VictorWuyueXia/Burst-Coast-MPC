@@ -1,0 +1,25 @@
+{
+  "status": "discussion_only_not_training",
+  "backend": "NumPy float64 CPU",
+  "initial_state_order": [
+    "theta",
+    "alpha",
+    "omega",
+    "nu"
+  ],
+  "initial_state": [
+    0,
+    3.141592653589793,
+    0,
+    0
+  ],
+  "integrator": "five rk4_step calls at 0.02 s with constant torque; no episode termination",
+  "physical_limit_nm": 0.0204,
+  "gravity_hinge_reference_nm": 0.01518588,
+  "horizontal_rest_pendulum_acceleration_rad_s2": -114.06976744186045,
+  "source_sha256": {
+    "/home/yl948/MyEnd/Burst-Coast-MPC/src/rotary_pendulum/configs/physics.yaml": "3862513b68b21e1fe84889402614fa2911ae3b7e0127c07fd0b9ffe4f0975d65",
+    "src/rotary_pendulum/environment/dynamics.py": "285670f69d82373e3bd8c6bcce6dad6f6c773d3218342a4968622fc9a3d44681",
+    "src/rotary_pendulum/utils/config_schema.py": "6d778bed2adaa4458b9eb2ea3d363f71163a1de01ce13c556b94211a734eadb5"
+  }
+}

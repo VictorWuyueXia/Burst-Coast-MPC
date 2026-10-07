@@ -1,5 +1,7 @@
 # Reward and Validation Definitions
 
+Historical version-2 reward definitions. Current code implements the [version-3 dense reward](dense_reward_proposal.md), with arm excursions nonterminal and success after 100 ms. Historical campaign results below must not be interpreted as version-3 evidence.
+
 ## Human quick reading
 
 `Tight` and `near` name two distributions of episode starting states. They do not define success and they are not fuzzy labels assigned to a trajectory. Tight asks whether the controller can finish capture when the mechanism starts locally around upright. Near asks whether it can recover from a substantially wider upright neighborhood. The success box is a third, smaller object: the state must remain inside it for 100 ms to terminate successfully.

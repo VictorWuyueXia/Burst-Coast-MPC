@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from rotary_pendulum.RL.jax_task import ACTION_TORQUES_NM
+from rotary_pendulum.RL.jax_validation_plots import plot_validation
 
 plt.switch_backend("Agg")
 
@@ -50,7 +51,7 @@ def write_artifacts(
         "positive_fine",
     ]
     metadata = {
-        "contract_id": "rotary-q-prior-v2",
+        "contract_id": experiment["contract_id"],
         "network_id": experiment["network_id"],
         "reward_revision": experiment["reward_revision"],
         "experiment_id": experiment["experiment_id"],
@@ -67,19 +68,23 @@ def write_artifacts(
         "hidden_widths": list(experiment["hidden_widths"]),
         "activation_name": experiment["activation_name"],
         "loss_name": experiment["loss_name"],
-        "output_meaning": "five shaped finite-deadline action returns in reward units",
-        "potential_formula": "Phi=-(e_E^2/(1+e_E^2)+w_c*q_c/(1+q_c)); zero at terminal",
+        "output_meaning": "five direct finite-deadline action returns; base=train; no potentials",
+        "reward_component_order": ["energy", "torque", "time", "arm", "upright"],
+        "reward_formula": "dt*(-cE*abs(E/E_star-1)-cu*abs(u)/u_p-ct*(1+t/T)"
+        "-ca*(theta/arm_scale)^2+ch*exp(-0.5*sum(((beta,nu,omega)/widths)^2)))",
+        "reward_sampling": "20 ms post-integration samples, including the terminal sample",
         "base_reward": {
             key: experiment[key]
             for key in (
-                "success_reward",
-                "arm_failure_cost",
-                "timeout_cost",
-                "on_cost_per_s",
+                "energy_cost_per_s",
+                "torque_cost_per_s",
                 "time_cost_per_s",
+                "arm_cost_per_s",
+                "upright_reward_per_s",
+                "upright_widths",
             )
         },
-        "terminal_mask": "success, arm violation, and timeout all have zero continuation",
+        "terminal_mask": "100 ms success hold or 20 s timeout; arm excursions are nonterminal",
         "gamma": 1.0,
         "deadline_s": 20.0,
         "jax_version": importlib.metadata.version("jax"),
@@ -101,7 +106,7 @@ def write_artifacts(
     (machine_dir / "history.csv").write_text(history_buffer.getvalue())
 
     evaluation_rows = []
-    controllers = ("greedy", "lookahead_zero", "lookahead_potential", "lookahead_q")
+    controllers = ("greedy", "lookahead_zero", "lookahead_q")
     for controller in controllers:
         for stratum in ("overall", "downward", "moving", "near", "tight"):
             prefix = f"{controller}_{stratum}_"
@@ -123,16 +128,19 @@ def write_artifacts(
     all_arrays = {key: np.asarray(jax.device_get(value)) for key, value in trajectories.items()}
     for stratum in ("tight", "near"):
         success = all_arrays[f"{stratum}_success"]
-        selected = np.concatenate(
-            (np.flatnonzero(success)[:5], np.flatnonzero(~success)[:5])
-        )
-        episode_count = success.size
+        selected = np.concatenate((np.flatnonzero(success)[:5], np.flatnonzero(~success)[:5]))
         for key, value in list(all_arrays.items()):
             if not key.startswith(f"{stratum}_"):
                 continue
-            if value.shape[0] == episode_count:
+            if key.removeprefix(f"{stratum}_") in (
+                "initial_state",
+                "success",
+                "arm_violation",
+                "timeout",
+                "episode_totals",
+            ):
                 all_arrays[key] = value[selected]
-            elif value.ndim > 1 and value.shape[1] == episode_count:
+            else:
                 all_arrays[key] = value[:, selected]
         all_arrays[f"{stratum}_sample_index"] = selected
     initial_arrays = {
@@ -170,7 +178,7 @@ def write_artifacts(
         axes[0].legend(("tight", "near"))
         axes[1].plot(transitions, [row["tight_arm_violation"] for row in history_rows])
         axes[1].plot(transitions, [row["near_arm_violation"] for row in history_rows])
-        axes[1].set(ylabel="Arm-violation rate")
+        axes[1].set(ylabel="Arm excursion fraction")
         axes[1].legend(("tight", "near"))
         axes[2].plot(transitions, [row["loss"] for row in history_rows])
         axes[2].set(xlabel="Collected transitions", ylabel="Huber loss")
@@ -190,7 +198,7 @@ def write_artifacts(
         axis.bar(positions - 0.2, [row["success_rate"] for row in greedy_rows], 0.4)
         axis.bar(positions + 0.2, [row["arm_violation_rate"] for row in greedy_rows], 0.4)
         axis.set(xticks=positions, xticklabels=labels, ylabel="Episode fraction")
-        axis.legend(("Success", "Arm violation"))
+        axis.legend(("Success", "Arm excursion (nonterminal)"))
         figure.tight_layout()
         figure.savefig(human_dir / "outcomes.png", dpi=160)
         plt.close(figure)
@@ -207,79 +215,7 @@ def write_artifacts(
         figure.savefig(human_dir / "deployment.png", dpi=160)
         plt.close(figure)
 
-    if "tight_state" in trajectory_arrays:
-        figure, axes = plt.subplots(2, 5, figsize=(17, 7), sharex=True)
-        for row, stratum in enumerate(("tight", "near")):
-            states = trajectory_arrays[f"{stratum}_state"]
-            initial = trajectory_arrays[f"{stratum}_initial_state"]
-            valid = trajectory_arrays[f"{stratum}_valid"]
-            actions = trajectory_arrays[f"{stratum}_action"]
-            successes = trajectory_arrays[f"{stratum}_success"]
-            violations = trajectory_arrays[f"{stratum}_arm_violation"]
-            states = np.concatenate((initial[None], states), axis=0)
-            states = np.where(
-                np.concatenate((np.ones_like(valid[:1]), valid), axis=0)[..., None],
-                states,
-                np.nan,
-            )
-            time_s = 0.1 * np.arange(states.shape[0])
-            upright_error = np.arctan2(
-                np.sin(states[..., 1] - np.pi), np.cos(states[..., 1] - np.pi)
-            )
-            outcome_seen: set[str] = set()
-            for episode in range(states.shape[1]):
-                if successes[episode]:
-                    outcome = "success"
-                elif violations[episode]:
-                    outcome = "violation"
-                else:
-                    outcome = "timeout"
-                color = {"success": "#2A9D46", "violation": "#D95319", "timeout": "#777777"}[
-                    outcome
-                ]
-                label = outcome if outcome not in outcome_seen else None
-                outcome_seen.add(outcome)
-                axes[row, 0].plot(
-                    time_s,
-                    states[:, episode, 0],
-                    color=color,
-                    alpha=0.8,
-                    label=label,
-                )
-                axes[row, 1].plot(time_s, upright_error[:, episode], color=color, alpha=0.8)
-                axes[row, 2].plot(time_s, states[:, episode, 2], color=color, alpha=0.8)
-                axes[row, 3].plot(time_s, states[:, episode, 3], color=color, alpha=0.8)
-                torque = np.where(
-                    valid[:, episode],
-                    np.asarray(ACTION_TORQUES_NM)[actions[:, episode]],
-                    np.nan,
-                )
-                axes[row, 4].step(time_s[:-1], torque, where="post", color=color, alpha=0.8)
-            axes[row, 0].axhspan(-0.08, 0.08, color="#2A9D46", alpha=0.08)
-            axes[row, 0].axhline(np.pi / 2.0, color="black", linestyle="--", linewidth=0.8)
-            axes[row, 0].axhline(-np.pi / 2.0, color="black", linestyle="--", linewidth=0.8)
-            for column, limit in ((1, 0.08), (2, 0.15), (3, 0.20)):
-                axes[row, column].axhspan(-limit, limit, color="#2A9D46", alpha=0.08)
-            axes[row, 0].set_ylabel(f"{stratum}\nstate value")
-            axes[row, 0].legend(frameon=False, fontsize=8)
-        for axis, title in zip(
-            axes[0],
-            (
-                "arm angle θ [rad]",
-                "upright error β [rad]",
-                "arm speed ω [rad/s]",
-                "pendulum speed ν [rad/s]",
-                "torque [N m]",
-            ),
-            strict=True,
-        ):
-            axis.set_title(title)
-        for axis in axes[1]:
-            axis.set_xlabel("Time [s]")
-        figure.suptitle("Held-out greedy validation: first five successes and nonsuccesses")
-        figure.tight_layout()
-        figure.savefig(human_dir / "validation_trajectories.png", dpi=160)
-        plt.close(figure)
+    plot_validation(human_dir, trajectory_arrays)
 
     if "predicted_base" in audit_arrays:
         predicted = audit_arrays["predicted_base"].reshape(-1)

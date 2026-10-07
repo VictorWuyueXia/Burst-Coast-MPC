@@ -10,7 +10,7 @@ import jax.numpy as jnp
 from jax import Array
 
 from rotary_pendulum.environment.jax_dynamics import MODEL, PHYSICS_DT_S
-from rotary_pendulum.environment.jax_environment import EnvState
+from rotary_pendulum.environment.jax_environment import ARM_LIMIT_RAD, EnvState
 from rotary_pendulum.RL.jax_q import ACTION_COUNT, QNetwork
 from rotary_pendulum.RL.jax_task import ACTION_TORQUES_NM, TARGET_ENERGY_J, observe, transition
 
@@ -25,7 +25,7 @@ def evaluate(
 
     suite_modes = {
         "validation_suite": ("greedy",),
-        "final_suite": ("greedy", "lookahead_zero", "lookahead_potential", "lookahead_q"),
+        "final_suite": ("greedy", "lookahead_zero", "lookahead_q"),
     }
     if mode in suite_modes:
         strata = cast(Mapping[str, EnvState], initial_states)
@@ -69,7 +69,6 @@ def evaluate(
     valid_modes = {
         "greedy",
         "lookahead_zero",
-        "lookahead_potential",
         "lookahead_q",
         "value_audit",
     }
@@ -78,15 +77,13 @@ def evaluate(
     network = QNetwork(tuple(experiment["hidden_widths"]), experiment["activation_name"])
     audit = mode == "value_audit"
     if audit:
-        observation, potential = observe(initial_states, experiment)
+        observation = observe(initial_states)
         predicted_train = cast(Array, network.apply(learner["params"], observation))
-        initial_done = (
-            initial_states.success | initial_states.arm_violation | initial_states.timeout
-        )
+        initial_done = initial_states.success | initial_states.timeout
         predicted_base = jnp.where(
             initial_done[:, None],
             0.0,
-            predicted_train + jnp.sum(potential, axis=-1, keepdims=True),
+            predicted_train,
         )
         env_state = jax.tree.map(
             lambda value: jnp.repeat(value[:, None, ...], ACTION_COUNT, axis=1), initial_states
@@ -104,16 +101,16 @@ def evaluate(
         0.5 * MODEL.pendulum_inertia_kg_m2 * initial_nu**2
         + MODEL.gravity_torque_nm * (1.0 - jnp.cos(initial_alpha))
     ).astype(jnp.float32) / TARGET_ENERGY_J
-    initial_totals = jnp.zeros(batch_shape + (9,), dtype=jnp.float32)
+    initial_totals = jnp.zeros(batch_shape + (11,), dtype=jnp.float32)
     initial_totals = initial_totals.at[..., 7].set(initial_energy_ratio)
     initial_totals = initial_totals.at[..., 8].set(jnp.abs(env_state.x[..., 0]).astype(jnp.float32))
 
     def advance(
         carry: tuple[EnvState, Array, Array], _unused: None
-    ) -> tuple[tuple[EnvState, Array, Array], tuple[Array, Array, Array, Array, Array, Array]]:
+    ) -> tuple[tuple[EnvState, Array, Array], tuple[Array, ...]]:
         state, totals, decision = carry
-        active = ~(state.success | state.arm_violation | state.timeout)
-        observation, _potential = observe(state, experiment)
+        active = ~(state.success | state.timeout)
+        observation = observe(state)
         q_values = cast(Array, network.apply(learner["params"], observation))
         greedy_action = jnp.argmax(q_values, axis=-1).astype(jnp.int32)
         if audit:
@@ -136,17 +133,11 @@ def evaluate(
                 candidate_state = candidate_transition[0]
                 candidate_base = candidate_transition[2]
                 candidate_score += candidate_base
-            endpoint_observation, endpoint_potential = observe(candidate_state, experiment)
-            endpoint_done = (
-                candidate_state.success | candidate_state.arm_violation | candidate_state.timeout
-            )
-            if mode == "lookahead_potential":
-                candidate_score += jnp.sum(endpoint_potential, axis=-1)
-            elif mode == "lookahead_q":
+            endpoint_observation = observe(candidate_state)
+            endpoint_done = candidate_state.success | candidate_state.timeout
+            if mode == "lookahead_q":
                 endpoint_train = cast(Array, network.apply(learner["params"], endpoint_observation))
-                endpoint_base = jnp.max(endpoint_train, axis=-1) + jnp.sum(
-                    endpoint_potential, axis=-1
-                )
+                endpoint_base = jnp.max(endpoint_train, axis=-1)
                 candidate_score += jnp.where(endpoint_done, 0.0, endpoint_base)
             selected_sequence = jnp.argmax(candidate_score, axis=-1)
             action = sequences[selected_sequence, 0]
@@ -159,8 +150,8 @@ def evaluate(
             jnp.float32
         )
         previous_action = totals[..., 6].astype(jnp.int32)
-        off_to_on = (previous_action == 0) & (action != 0)
-        reversal = ACTION_TORQUES_NM[previous_action] * ACTION_TORQUES_NM[action] < 0.0
+        off_to_on = active & (previous_action == 0) & (action != 0)
+        reversal = active & (ACTION_TORQUES_NM[previous_action] * ACTION_TORQUES_NM[action] < 0.0)
         theta, alpha, _, nu = jnp.moveaxis(next_state.x, -1, 0)
         energy_ratio = (
             0.5 * MODEL.pendulum_inertia_kg_m2 * nu**2
@@ -175,6 +166,8 @@ def evaluate(
         totals = totals.at[..., 6].set(action)
         totals = totals.at[..., 7].max(energy_ratio)
         totals = totals.at[..., 8].max(jnp.abs(theta).astype(jnp.float32))
+        totals = totals.at[..., 9].add(elapsed * jnp.abs(ACTION_TORQUES_NM[action]))
+        totals = totals.at[..., 10].add(elapsed * (jnp.abs(theta) >= ARM_LIMIT_RAD))
         return (next_state, totals, decision + 1), (
             next_state.x,
             action,
@@ -182,6 +175,9 @@ def evaluate(
             train_reward,
             done,
             active,
+            result[4],
+            PHYSICS_DT_S * next_state.physics_steps,
+            next_state.goal_count,
         )
 
     (final_state, totals, _), history = jax.lax.scan(
@@ -190,7 +186,17 @@ def evaluate(
         None,
         length=200,
     )
-    state_history, actions, base_rewards, train_rewards, done_history, valid_history = history
+    (
+        state_history,
+        actions,
+        base_rewards,
+        train_rewards,
+        done_history,
+        valid_history,
+        reward_components,
+        time_s,
+        goal_count,
+    ) = history
     if audit:
         realized = totals[..., 0]
         error = predicted_base - realized
@@ -216,6 +222,9 @@ def evaluate(
             "train_reward": train_rewards,
             "done": done_history,
             "valid": valid_history,
+            "reward_components": reward_components,
+            "time_s": time_s,
+            "goal_count": goal_count,
         }
         return metrics, trajectories
 
@@ -265,6 +274,8 @@ def evaluate(
         "mean_reversals": jnp.mean(totals[..., 5]),
         "mean_peak_energy_ratio": jnp.mean(totals[..., 7]),
         "maximum_arm_angle_rad": jnp.max(totals[..., 8]),
+        "mean_absolute_torque_impulse_nm_s": jnp.mean(totals[..., 9]),
+        "mean_decision_sampled_arm_excursion_s": jnp.mean(totals[..., 10]),
     }
     trajectories = {
         "initial_state": initial_states.x,
@@ -274,6 +285,9 @@ def evaluate(
         "train_reward": train_rewards,
         "done": done_history,
         "valid": valid_history,
+        "reward_components": reward_components,
+        "time_s": time_s,
+        "goal_count": goal_count,
         "success": success,
         "arm_violation": violation,
         "timeout": timeout,

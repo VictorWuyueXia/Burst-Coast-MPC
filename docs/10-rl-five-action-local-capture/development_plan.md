@@ -1,5 +1,7 @@
 # Phase 10 Development: Five-Action Local Capture
 
+Historical version-2 implementation plan. Current changes and validation requirements are in [dense_reward_development.md](dense_reward_development.md). Future GPU work is restricted to physical GPUs 0–3, overriding historical eight-GPU references below.
+
 ## Human quick reading
 
 Update the existing compact JAX Q module in place. Replace the exposed physical-limit actions with the measured `±45%` pump pair, add the measured `±2%` fine pair, widen the configured upright goal, resize the Q output to five, and make collection, value audit, logging, and three-step planning enumerate all five actions. Keep the physical clip and phase-9 learning algorithm unchanged.

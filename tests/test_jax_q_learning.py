@@ -20,7 +20,6 @@ from rotary_pendulum.environment.jax_environment import EnvState
 from rotary_pendulum.RL.jax_artifacts import write_artifacts
 from rotary_pendulum.RL.jax_evaluation import evaluate
 from rotary_pendulum.RL.jax_q import QNetwork, update
-from rotary_pendulum.RL.jax_task import observe
 
 SETTINGS = {
     "hidden_widths": (128, 128),
@@ -36,12 +35,13 @@ SETTINGS = {
     "target_polyak": 0.005,
     "minibatch_size": 1,
     "updates_per_collection": 1,
-    "capture_weight": 1.0,
-    "success_reward": 5.0,
-    "arm_failure_cost": 5.0,
-    "timeout_cost": 2.0,
-    "on_cost_per_s": 0.05,
-    "time_cost_per_s": 0.005,
+    "contract_id": "rotary-q-prior-v3",
+    "energy_cost_per_s": 1.0,
+    "torque_cost_per_s": 0.02,
+    "time_cost_per_s": 1.05,
+    "arm_cost_per_s": 0.2,
+    "upright_reward_per_s": 1.0,
+    "upright_widths": [0.16, 0.4, 0.3],
 }
 
 
@@ -123,7 +123,7 @@ def test_evaluation_masks_terminal_values_and_enumerates_all_planners() -> None:
         arm_violation=jnp.zeros((1,), dtype=jnp.bool_),
         timeout=jnp.zeros((1,), dtype=jnp.bool_),
     )
-    for mode in ("greedy", "lookahead_zero", "lookahead_potential", "lookahead_q"):
+    for mode in ("greedy", "lookahead_zero", "lookahead_q"):
         metrics, trajectories = jax.jit(
             lambda learner_, mode_=mode: evaluate(learner_, states, mode_, SETTINGS)
         )(learner)
@@ -134,9 +134,7 @@ def test_evaluation_masks_terminal_values_and_enumerates_all_planners() -> None:
     audit_metrics, audit = jax.jit(
         lambda learner_: evaluate(learner_, states, "value_audit", SETTINGS)
     )(learner)
-    _, potential = observe(states, SETTINGS)
-    expected_base = jnp.broadcast_to(potential.sum(axis=-1)[:, None], (1, 5))
-    np.testing.assert_allclose(audit["predicted_base"], expected_base)
+    np.testing.assert_allclose(audit["predicted_base"], jnp.zeros((1, 5)))
     assert audit["realized_base"].shape == (1, 5)
     assert all(np.isfinite(float(value)) for value in audit_metrics.values())
 
@@ -188,6 +186,9 @@ def test_artifact_checkpoint_round_trip_and_clean_import(tmp_path: Path) -> None
                 f"{stratum}_success": jnp.array([True, False]),
                 f"{stratum}_arm_violation": jnp.array([False, False]),
                 f"{stratum}_timeout": jnp.array([False, True]),
+                f"{stratum}_time_s": jnp.array([[0.02, 0.1], [0.02, 0.2]]),
+                f"{stratum}_goal_count": jnp.array([[5, 0], [5, 0]]),
+                f"{stratum}_reward_components": jnp.zeros((2, 2, 5)),
             }
         )
     metrics = {
@@ -231,8 +232,10 @@ def test_artifact_checkpoint_round_trip_and_clean_import(tmp_path: Path) -> None
     assert (run_dir / "machine-scannables/checkpoints/latest.msgpack").is_file()
     assert (run_dir / "human-readables/q_calibration.png").is_file()
     assert (run_dir / "human-readables/validation_trajectories.png").is_file()
+    assert (run_dir / "human-readables/validation_rewards.png").is_file()
     metadata = json.loads((run_dir / "machine-scannables/metadata.json").read_text())
-    assert metadata["contract_id"] == "rotary-q-prior-v2"
+    assert metadata["contract_id"] == "rotary-q-prior-v3"
+    assert metadata["reward_component_order"] == ["energy", "torque", "time", "arm", "upright"]
     assert metadata["action_order"] == [
         "off",
         "negative_pump",

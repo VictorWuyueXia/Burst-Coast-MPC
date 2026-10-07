@@ -17,6 +17,8 @@ from rotary_pendulum.environment.jax_dynamics import (
 from rotary_pendulum.environment.jax_environment import (
     ARM_LIMIT_RAD,
     GOAL,
+    HOLD_PHYSICS_STEPS,
+    MAX_PHYSICS_STEPS,
     EnvState,
     reset,
     step,
@@ -40,30 +42,10 @@ ARM_SPEED_SCALE = float(ARM_LIMIT_RAD) * MODEL.natural_frequency_rad_s
 PENDULUM_SPEED_SCALE = 2.0 * jnp.sqrt(MODEL.gravity_torque_nm / MODEL.pendulum_inertia_kg_m2)
 
 
-def observe(env_state: EnvState, experiment: Mapping[str, Any]) -> tuple[Array, Array]:
-    """Return the seven Markov features and two terminal-masked reward potentials."""
+def observe(env_state: EnvState) -> Array:
+    """Return seven Markov features, including elapsed-horizon and hold memory."""
 
     theta, alpha, omega, nu = jnp.moveaxis(env_state.x, -1, 0)
-    swing_energy = 0.5 * MODEL.pendulum_inertia_kg_m2 * nu**2 + MODEL.gravity_torque_nm * (
-        1.0 - jnp.cos(alpha)
-    )
-    energy_error = (swing_energy - TARGET_ENERGY_J) / TARGET_ENERGY_J
-    beta = jnp.arctan2(jnp.sin(alpha - jnp.pi), jnp.cos(alpha - jnp.pi))
-    capture_error = 0.25 * (
-        (theta / GOAL.theta_tolerance_rad) ** 2
-        + (beta / GOAL.beta_tolerance_rad) ** 2
-        + (omega / GOAL.omega_tolerance_rad_s) ** 2
-        + (nu / GOAL.nu_tolerance_rad_s) ** 2
-    )
-    done = env_state.success | env_state.arm_violation | env_state.timeout
-    active = (~done).astype(env_state.x.dtype)
-    potentials = jnp.stack(
-        (
-            -active * energy_error**2 / (1.0 + energy_error**2),
-            -active * experiment["capture_weight"] * capture_error / (1.0 + capture_error),
-        ),
-        axis=-1,
-    )
     observation = jnp.stack(
         (
             theta / ARM_LIMIT_RAD,
@@ -71,43 +53,57 @@ def observe(env_state: EnvState, experiment: Mapping[str, Any]) -> tuple[Array, 
             jnp.cos(alpha),
             omega / ARM_SPEED_SCALE,
             nu / PENDULUM_SPEED_SCALE,
-            (1000.0 - env_state.physics_steps) / 1000.0,
+            (MAX_PHYSICS_STEPS - env_state.physics_steps) / float(MAX_PHYSICS_STEPS),
             env_state.goal_count / float(GOAL.hold_steps),
         ),
         axis=-1,
     ).astype(jnp.float32)
-    return observation, potentials.astype(jnp.float32)
+    return observation
 
 
 def transition(
     env_state: EnvState, action_index: Array, experiment: Mapping[str, Any]
 ) -> tuple[EnvState, Array, Array, Array, Array, Array]:
-    """Advance one decision and return base, shaped, and decomposed rewards."""
+    """Integrate five dense components at 20 ms; base and train returns coincide."""
 
-    _, starting_potential = observe(env_state, experiment)
     torque = ACTION_TORQUES_NM[jnp.asarray(action_index, dtype=jnp.int32)]
-    next_state = step(env_state, torque)
-    next_observation, ending_potential = observe(next_state, experiment)
-    starting_done = env_state.success | env_state.arm_violation | env_state.timeout
-    done = next_state.success | next_state.arm_violation | next_state.timeout
-    elapsed = PHYSICS_DT_S * (next_state.physics_steps - env_state.physics_steps).astype(
-        jnp.float32
+    widths = jnp.asarray(experiment["upright_widths"], dtype=env_state.x.dtype)
+
+    def advance_reward(state: EnvState, _: None) -> tuple[EnvState, Array]:
+        active = ~(state.success | state.timeout)
+        updated = step(state, torque, physics_steps=1)
+        theta, alpha, omega, nu = jnp.moveaxis(updated.x, -1, 0)
+        energy = 0.5 * MODEL.pendulum_inertia_kg_m2 * nu**2 + MODEL.gravity_torque_nm * (
+            1.0 - jnp.cos(alpha)
+        )
+        error = (energy - TARGET_ENERGY_J) / TARGET_ENERGY_J
+        beta = jnp.arctan2(jnp.sin(alpha - jnp.pi), jnp.cos(alpha - jnp.pi))
+        upright = jnp.exp(
+            -0.5 * jnp.sum((jnp.stack((beta, nu, omega), axis=-1) / widths) ** 2, axis=-1)
+        )
+        rates = jnp.stack(
+            (
+                -experiment["energy_cost_per_s"] * jnp.abs(error),
+                jnp.broadcast_to(
+                    -experiment["torque_cost_per_s"] * jnp.abs(torque) / ACTION_TORQUES_NM[2],
+                    error.shape,
+                ),
+                -experiment["time_cost_per_s"]
+                * (1.0 + updated.physics_steps / float(MAX_PHYSICS_STEPS)),
+                -experiment["arm_cost_per_s"] * (theta / ARM_LIMIT_RAD) ** 2,
+                experiment["upright_reward_per_s"] * upright,
+            ),
+            axis=-1,
+        )
+        return updated, jnp.where(active[..., None], PHYSICS_DT_S * rates, 0.0)
+
+    next_state, sample_components = jax.lax.scan(
+        advance_reward, env_state, None, length=HOLD_PHYSICS_STEPS
     )
-    terminal = (
-        experiment["success_reward"] * (next_state.success & ~starting_done)
-        - experiment["arm_failure_cost"] * (next_state.arm_violation & ~starting_done)
-        - experiment["timeout_cost"] * (next_state.timeout & ~starting_done)
-    )
-    on_cost = -experiment["on_cost_per_s"] * elapsed * (action_index != 0)
-    time_cost = -experiment["time_cost_per_s"] * elapsed
-    base_reward = terminal + on_cost + time_cost
-    shaping = ending_potential - starting_potential
-    components = jnp.concatenate(
-        (shaping, on_cost[..., None], time_cost[..., None], terminal[..., None]),
-        axis=-1,
-    )
-    train_reward = base_reward + jnp.sum(shaping, axis=-1)
-    return next_state, next_observation, base_reward, train_reward, components, done
+    components = jnp.sum(sample_components, axis=0).astype(jnp.float32)
+    reward = jnp.sum(components, axis=-1)
+    done = next_state.success | next_state.timeout
+    return next_state, observe(next_state), reward, reward, components, done
 
 
 def collect(
@@ -128,7 +124,7 @@ def collect(
         behavior_key, branch_key, random_action_key, heuristic_key = jax.random.split(
             behavior_key, 4
         )
-        observation, _potential = observe(carry["env_state"], experiment)
+        observation = observe(carry["env_state"])
         q_values = cast(Array, network.apply(learner["params"], observation))
         greedy_action = jnp.argmax(q_values, axis=-1).astype(jnp.int32)
         random_action = jax.random.randint(
@@ -190,7 +186,7 @@ def collect(
             (
                 done,
                 next_state.success,
-                next_state.arm_violation,
+                done & next_state.arm_violation,
                 next_state.timeout,
                 done * episode_totals[:, 0],
                 done * episode_totals[:, 1],
@@ -273,15 +269,15 @@ def collect(
         {
             "completed": totals[0],
             "successes": totals[1],
-            "arm_failures": totals[2],
+            "completed_arm_excursions": totals[2],
             "timeouts": totals[3],
             "base_return_sum": totals[4],
             "train_return_sum": totals[5],
-            "energy_shaping_sum": totals[12],
-            "capture_shaping_sum": totals[13],
-            "on_cost_sum": totals[14],
-            "time_cost_sum": totals[15],
-            "terminal_reward_sum": totals[16],
+            "energy_cost_sum": totals[12],
+            "torque_cost_sum": totals[13],
+            "time_cost_sum": totals[14],
+            "arm_cost_sum": totals[15],
+            "upright_reward_sum": totals[16],
             "off_actions": totals[17],
             "negative_pump_actions": totals[18],
             "positive_pump_actions": totals[19],

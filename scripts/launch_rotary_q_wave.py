@@ -17,6 +17,13 @@ def main() -> None:
         raise ValueError("Usage: launch_rotary_q_wave.py WAVE_PLAN.json")
     plan_path = Path(sys.argv[1])
     plan = json.loads(plan_path.read_text())
+    gpu_indices = [trial["gpu"] for trial in plan["trials"]]
+    if (
+        not gpu_indices
+        or any(type(index) is not int or index not in range(4) for index in gpu_indices)
+        or len(set(gpu_indices)) != len(gpu_indices)
+    ):
+        raise ValueError("A wave requires one to four distinct physical GPUs from 0–3")
     wave_dir = Path(plan["wave_dir"])
     config_dir = wave_dir / "machine-scannables" / "configs"
     log_dir = wave_dir / "machine-scannables" / "logs"
