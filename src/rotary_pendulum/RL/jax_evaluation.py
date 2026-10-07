@@ -44,10 +44,14 @@ def evaluate(
                 {f"{controller}_overall_{key}": value for key, value in metrics.items()}
             )
             for name, states in strata.items():
-                stratum_metrics, _ = compiled(learner, states)
+                stratum_metrics, stratum_trajectories = compiled(learner, states)
                 suite_metrics.update(
                     {f"{controller}_{name}_{key}": value for key, value in stratum_metrics.items()}
                 )
+                if controller == "greedy" and name in ("tight", "near"):
+                    suite_trajectories.update(
+                        {f"{name}_{key}": value for key, value in stratum_trajectories.items()}
+                    )
             if controller == "greedy":
                 suite_metrics.update(metrics)
                 suite_trajectories.update(trajectories)

@@ -247,6 +247,8 @@ def train(experiment: Mapping[str, Any]) -> Path:
             }
             row.update({f"update_{key}": value for key, value in update_values.items()})
             row.update({f"collection_{key}": value for key, value in collection_values.items()})
+            row.update({f"{name}_success": rates[name] for name in rates})
+            row.update({f"{name}_arm_violation": violations[name] for name in violations})
             history.append(row)
             rollout = {**rollout, "completed_totals": jnp.zeros((12,), dtype=jnp.float32)}
             interval_collection_metrics = {}

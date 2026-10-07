@@ -149,6 +149,8 @@ def test_evaluation_masks_terminal_values_and_enumerates_all_planners() -> None:
     assert "greedy_tight_success_rate" in validation_metrics
     assert "audit_rmse" not in validation_metrics
     assert validation_trajectories["state"].shape[1] == 3
+    assert validation_trajectories["tight_state"].shape == (200, 1, 4)
+    assert validation_trajectories["near_action"].shape == (200, 1)
 
 
 def test_artifact_checkpoint_round_trip_and_clean_import(tmp_path: Path) -> None:
@@ -176,6 +178,18 @@ def test_artifact_checkpoint_round_trip_and_clean_import(tmp_path: Path) -> None
         "audit_predicted_base": jnp.zeros((1, 5)),
         "audit_realized_base": jnp.zeros((1, 5)),
     }
+    for stratum in ("tight", "near"):
+        trajectories.update(
+            {
+                f"{stratum}_initial_state": jnp.zeros((2, 4)),
+                f"{stratum}_state": jnp.zeros((2, 2, 4)),
+                f"{stratum}_action": jnp.zeros((2, 2), dtype=jnp.int32),
+                f"{stratum}_valid": jnp.ones((2, 2), dtype=jnp.bool_),
+                f"{stratum}_success": jnp.array([True, False]),
+                f"{stratum}_arm_violation": jnp.array([False, False]),
+                f"{stratum}_timeout": jnp.array([False, True]),
+            }
+        )
     metrics = {
         "success_rate": 0.0,
         "greedy_overall_success_rate": 0.0,
@@ -186,6 +200,10 @@ def test_artifact_checkpoint_round_trip_and_clean_import(tmp_path: Path) -> None
                 "loss": 1.0,
                 "minimum_success": 0.0,
                 "overall_success": 0.0,
+                "tight_success": 0.5,
+                "near_success": 0.0,
+                "tight_arm_violation": 0.0,
+                "near_arm_violation": 0.0,
             }
         ],
     }
@@ -212,6 +230,7 @@ def test_artifact_checkpoint_round_trip_and_clean_import(tmp_path: Path) -> None
     assert (run_dir / "machine-scannables/value_audit.npz").is_file()
     assert (run_dir / "machine-scannables/checkpoints/latest.msgpack").is_file()
     assert (run_dir / "human-readables/q_calibration.png").is_file()
+    assert (run_dir / "human-readables/validation_trajectories.png").is_file()
     metadata = json.loads((run_dir / "machine-scannables/metadata.json").read_text())
     assert metadata["contract_id"] == "rotary-q-prior-v2"
     assert metadata["action_order"] == [

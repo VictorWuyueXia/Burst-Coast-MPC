@@ -27,6 +27,18 @@ The agent may tune the approved exploration, replay, optimizer, reward, and netw
 | `final_seed` | `2026100800`; inaccessible for tuning |
 | `artifact_root` | `artifacts/rotary_pendulum/q-prior-v2` |
 
+`tight` means 512 fixed validation starts sampled independently and uniformly over
+`theta ±0.08 rad`, wrapped upright error `beta ±0.12 rad`, arm speed `omega ±0.15 rad/s`,
+and pendulum speed `nu ±0.30 rad/s`. `near` means 1,024 fixed starts over
+`theta ±0.25 rad`, `beta ±0.25 rad`, and both speeds `±1 rad/s`. Neither term means
+the state already satisfies the goal. The goal is `±[0.08 rad, 0.08 rad, 0.15 rad/s,
+0.20 rad/s]` for five consecutive 20 ms physics steps.
+
+A `wave` means eight independent trials launched concurrently, one per GPU. Under the
+baseline stage-0 budget, each trial collects `8,388,608` transitions and validates every
+`1,048,576`, giving eight scheduled validations per trial and `67,108,864` collected
+transitions per complete wave.
+
 Changing the action values, clocks, goal, terminal events, observation, or reward formula requires another formulation revision. Coefficient changes increment `reward_revision`; architecture changes increment `network_id`.
 
 ### T10.1 Baseline
@@ -68,7 +80,7 @@ Stop when a family passes confirmation, after at most six eight-GPU waves, or af
 
 ### T10.5 Artifact requirement
 
-Each trial saves resolved configuration, metadata, validation history, evaluation tables, value audit, latest checkpoint, best held-out diagnostic checkpoint, and readable plots. Only an eligible best checkpoint is named `selected`; otherwise it is named `diagnostic_best`. Each wave adds a machine-readable comparison and a short interpretation. The final handoff contains lineage, gates, selected or diagnostic checkpoint status, and exact reproduction paths.
+Each trial saves resolved configuration, metadata, tight/near success and violation history, evaluation tables, value audit, latest checkpoint, best held-out diagnostic checkpoint, and readable plots. The required validation plots are `learning.png`, with tight/near rates at every scheduled check, and `validation_trajectories.png`, with the first five successes and first five nonsuccesses by validation index from both tight and near sets. The agent must inspect these plots before choosing the next wave and state the observed trajectory failure mode in the wave interpretation. Only an eligible best checkpoint is named `selected`; otherwise it is named `diagnostic_best`. Each wave adds a machine-readable comparison and a short interpretation. The final handoff contains lineage, gates, selected or diagnostic checkpoint status, and exact reproduction paths.
 
 ### T10.6 Execution structure budget
 

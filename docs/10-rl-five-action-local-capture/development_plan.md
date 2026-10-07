@@ -18,8 +18,9 @@ No new production class, dataclass, wrapper, or helper function is authorized.
 |---|---|---|
 | Existing class, modified | `QNetwork` | Emit five Q-values from the existing two-hidden-layer MLP |
 | Existing function, modified | `collect` | Explore, guide, replay, and count five actions |
-| Existing function, modified | `evaluate` | Audit five first actions and enumerate 125 three-step sequences |
-| Existing function, modified | `write_artifacts` | Declare version-2 metadata and five-action meanings |
+| Existing function, modified | `evaluate` | Audit five first actions, enumerate 125 three-step sequences, and retain tight/near validation trajectories |
+| Existing function, modified | `write_artifacts` | Declare version-2 metadata, plot validation histories, and plot first successes/failures from tight/near rollouts |
+| Existing function, modified | `train` | Record tight/near success and violation rates at every scheduled validation |
 | Existing function, modified | environment `step` behavior via mission config | Use the revised four goal tolerances; dwell logic is unchanged |
 | New module constant | `ACTION_COUNT=5` in `jax_q.py` | Single Python-sized Q output and branch count |
 | New module constant | `PUMP_TORQUE_FRACTION=0.45` in `jax_task.py` | Derive both energy actions without changing the physical clip |
@@ -40,6 +41,7 @@ Each diagnostic script has one workflow function and fixed study constants. They
 5. `jax_artifacts.py`: write `rotary-q-prior-v2`, the five names and torques, and five-value output meaning. Display action indices with their names in trajectory plots.
 6. `mission.yaml`: apply the four F10.2 tolerances. Keep `hold-steps=5`.
 7. Documentation: update the live phase-8 environment interface values and point to the version-2 rationale. Leave frozen phase-9 formulation and results unchanged.
+8. Validation evidence: every new training trial writes tight/near success and arm-violation histories plus a tight/near state-action trajectory figure. The figure uses the first five successes and first five nonsuccesses by fixed validation index; it does not cherry-pick visually favorable episodes.
 
 ### D10.2 Test edits
 
