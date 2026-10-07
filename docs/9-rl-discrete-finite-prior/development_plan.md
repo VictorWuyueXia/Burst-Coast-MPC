@@ -33,9 +33,9 @@ Four new computation files are under `src/rotary_pendulum/RL/`; the fifth is the
 | same | `collect(learner, rollout, replay, experiment)` | Scan a short collection block; exploration, replay insertion, autoreset, and episode statistics | included above |
 | `jax_q.py` | `QNetwork(hidden_widths, activation_name)` and `__call__(observation)` | One Flax module with explicit width/activation fields, seven inputs, and three Q_train outputs; no handwritten constructor | 90–180 lines |
 | same | `update(learner, replay, experiment)` | Sample replay, compute Double DQN loss, update weights and target copy | included above |
-| `src/bringup/rotary_q_workflow.py` | `train(experiment)` | Import environment/RL functions; initialize, run gated curriculum, emit progress, call evaluation, and select/save checkpoints | 150–280 lines |
+| `src/bringup/rotary_q_workflow.py` | `train(experiment)` | Import environment/RL functions; initialize, run gated curriculum, emit progress, call evaluation, and select/save checkpoints | 150–300 lines |
 | `jax_evaluation.py` | `evaluate(learner, initial_states, mode, experiment)` | Execute greedy/planning/value-audit batches and return metrics plus selected traces | 180–300 lines |
-| `jax_artifacts.py` | `write_artifacts(run_dir, metrics, trajectories, checkpoint, experiment)` | Write structured records, checkpoint files, and the fixed figure set | 100–220 lines |
+| `jax_artifacts.py` | `write_artifacts(run_dir, metrics, trajectories, checkpoint, experiment)` | Write structured records, checkpoint files, and the fixed figure set | 100–230 lines |
 
 Budget: one new module class, one method, seven module-level functions, and no new dataclasses/NamedTuples. Four substantive nested callbacks are allowed: `collect.advance` and `evaluate.advance` for decision scans; `update.update_one` for the update scan; and its `loss_fn` for differentiation. Their arguments are scan carry/input or trial network parameters respectively. No other wrappers/helpers are budgeted. Straight-line algebraic temporary variables are local computations, not additional independent parameters. Do not also create `RL/jax_training.py`; the workflow is the single owner of the training schedule. Existing `RL/__init__.py` becomes passive package metadata.
 
@@ -93,6 +93,7 @@ All settings below define the required baseline. Values labeled fixed stay fixed
 | Reward | `success_reward`, `arm_failure_cost`, `timeout_cost` | Fixed `5.0`, `5.0`, `2.0` |
 | Reward | `on_cost_per_s`, `time_cost_per_s` | Tunable `0.05`, `0.005` |
 | Potential | `capture_weight` | Tunable `1.0`; both F3 potential terms always active |
+| Curriculum | `stage_zero_tight_fraction` | Tunable `0.5`; remaining stage-0 resets use the near-upright stratum |
 | Run | `stage_transition_budgets` | Initial `[8388608,16777216,33554432]`; maxima per stage, including warmup in stage 0 |
 | Run | `evaluation_every_transitions` | Fixed `1048576`; also evaluate at every stage end |
 | Run | `progress_interval_s` | Fixed maximum `30` seconds between progress messages |

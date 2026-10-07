@@ -99,6 +99,7 @@ def test_collection_inserts_terminal_next_state_and_wraps_replay() -> None:
         "heuristic_fraction": 0.5,
         "epsilon": jnp.array(1.0),
         "stage": 2,
+        "stage_zero_tight_fraction": 0.5,
         "collection_decisions": 3,
     }
     model = QNetwork((8, 8), "tanh")

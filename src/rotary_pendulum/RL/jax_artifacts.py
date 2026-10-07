@@ -46,6 +46,8 @@ def write_artifacts(
         "reward_revision": experiment["reward_revision"],
         "experiment_id": experiment["experiment_id"],
         "seed": experiment["seed"],
+        "checkpoint_eligible": metrics.get("checkpoint_eligible", True),
+        "evaluation_split": metrics.get("evaluation_split", "provided"),
         "feature_order": (
             "theta_over_limit sin_alpha cos_alpha omega_scaled nu_scaled "
             "remaining_fraction goal_hold_fraction"
@@ -78,6 +80,9 @@ def write_artifacts(
     }
     (machine_dir / "metadata.json").write_text(
         json.dumps(metadata, indent=2, sort_keys=True, default=str) + "\n"
+    )
+    (machine_dir / "metrics.json").write_text(
+        json.dumps(serializable_metrics, indent=2, sort_keys=True, allow_nan=True) + "\n"
     )
     history_buffer = io.StringIO()
     history_writer = csv.DictWriter(history_buffer, fieldnames=list(history_rows[0]))
@@ -123,7 +128,8 @@ def write_artifacts(
     }
     np.savez_compressed(machine_dir / "initial_states.npz", **initial_arrays)  # type: ignore[arg-type]
     np.savez_compressed(machine_dir / "trajectories.npz", **trajectory_arrays)  # type: ignore[arg-type]
-    np.savez_compressed(machine_dir / "value_audit.npz", **audit_arrays)  # type: ignore[arg-type]
+    if audit_arrays:
+        np.savez_compressed(machine_dir / "value_audit.npz", **audit_arrays)  # type: ignore[arg-type]
     for checkpoint_name, learner in checkpoint.items():
         checkpoint_payload = dict(learner)
         checkpoint_payload["key"] = jax.random.key_data(checkpoint_payload["key"])
@@ -162,7 +168,7 @@ def write_artifacts(
         plt.close(figure)
 
     deployment_rows = [row for row in evaluation_rows if row["stratum"] == "overall"]
-    if deployment_rows and "mean_powered_s" in deployment_rows[0]:
+    if len(deployment_rows) > 1 and "mean_powered_s" in deployment_rows[0]:
         labels = [str(row["controller"]).replace("lookahead_", "") for row in deployment_rows]
         figure, axes = plt.subplots(2, 1, figsize=(8, 7), sharex=True)
         axes[0].bar(labels, [row["success_rate"] for row in deployment_rows])

@@ -17,12 +17,51 @@ from rotary_pendulum.RL.jax_task import TARGET_ENERGY_J, observe, transition
 
 def evaluate(
     learner: Mapping[str, Any],
-    initial_states: EnvState,
+    initial_states: EnvState | Mapping[str, EnvState],
     mode: str,
     experiment: Mapping[str, Any],
 ) -> tuple[dict[str, Array], dict[str, Array]]:
     """Evaluate one frozen checkpoint under a declared controller or value audit."""
 
+    suite_modes = {
+        "validation_suite": ("greedy",),
+        "final_suite": ("greedy", "lookahead_zero", "lookahead_potential", "lookahead_q"),
+    }
+    if mode in suite_modes:
+        strata = cast(Mapping[str, EnvState], initial_states)
+        combined = jax.tree.map(
+            lambda *parts: jnp.concatenate(parts, axis=0),
+            *(strata[name] for name in ("downward", "moving", "near")),
+        )
+        suite_metrics: dict[str, Array] = {}
+        suite_trajectories: dict[str, Array] = {}
+        for controller in suite_modes[mode]:
+            compiled = jax.jit(
+                lambda q, s, selected=controller: evaluate(q, s, selected, experiment)
+            )
+            metrics, trajectories = compiled(learner, combined)
+            suite_metrics.update(
+                {f"{controller}_overall_{key}": value for key, value in metrics.items()}
+            )
+            for name, states in strata.items():
+                stratum_metrics, _ = compiled(learner, states)
+                suite_metrics.update(
+                    {f"{controller}_{name}_{key}": value for key, value in stratum_metrics.items()}
+                )
+            if controller == "greedy":
+                suite_metrics.update(metrics)
+                suite_trajectories.update(trajectories)
+        if mode == "final_suite":
+            audit_metrics, audit_trajectories = jax.jit(
+                lambda q, s: evaluate(q, s, "value_audit", experiment)
+            )(learner, combined)
+            suite_metrics.update({f"audit_{key}": value for key, value in audit_metrics.items()})
+            suite_trajectories.update(
+                {f"audit_{key}": value for key, value in audit_trajectories.items()}
+            )
+        return suite_metrics, suite_trajectories
+
+    initial_states = cast(EnvState, initial_states)
     valid_modes = {
         "greedy",
         "lookahead_zero",

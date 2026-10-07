@@ -45,13 +45,12 @@ def train(experiment: Mapping[str, Any]) -> Path:
     run_dir = Path(experiment["run_dir"])
     run_dir.mkdir(parents=True, exist_ok=False)
 
-    root_key = jax.random.key(int(experiment["seed"]))
-    root_key = jax.random.fold_in(root_key, int(experiment["family_id"]))
-    model_key = jax.random.fold_in(root_key, 0)
-    behavior_key = jax.random.fold_in(root_key, 1)
-    reset_key = jax.random.fold_in(root_key, 2)
-    replay_key = jax.random.fold_in(root_key, 3)
-    initial_reset_key = jax.random.fold_in(reset_key, 0)
+    root_key = jax.random.fold_in(
+        jax.random.key(int(experiment["seed"])), int(experiment["family_id"])
+    )
+    model_key, behavior_key, reset_key, replay_key = (
+        jax.random.fold_in(root_key, domain) for domain in range(4)
+    )
     network = QNetwork(tuple(experiment["hidden_widths"]), experiment["activation_name"])
     params = network.init(model_key, jnp.zeros((1, 7), dtype=jnp.float32))
     adam_b1, adam_b2 = experiment["adam_betas"]
@@ -66,7 +65,7 @@ def train(experiment: Mapping[str, Any]) -> Path:
         "key": replay_key,
         "updates": jnp.array(0, dtype=jnp.int32),
     }
-    initial_keys = jax.random.split(initial_reset_key, environment_count)
+    initial_keys = jax.random.split(jax.random.fold_in(reset_key, 0), environment_count)
     initial_state = jax.vmap(reset)(initial_keys, jnp.full((environment_count,), 2))
     rollout: dict[str, Any] = {
         "env_state": initial_state,
@@ -121,6 +120,7 @@ def train(experiment: Mapping[str, Any]) -> Path:
         stage_transitions = 0
         consecutive_passes = 0
         next_evaluation = int(experiment["evaluation_every_transitions"])
+        interval_collection_metrics: dict[str, Any] = {}
         collect_compiled = jax.jit(
             lambda learner_, rollout_, replay_, epsilon_, stage_=stage: collect(
                 learner_,
@@ -134,8 +134,7 @@ def train(experiment: Mapping[str, Any]) -> Path:
                 epsilon = 1.0
             else:
                 fraction = max(
-                    0.0,
-                    1.0 - stage_transitions / float(experiment["epsilon_decay_transitions"]),
+                    0.0, 1.0 - stage_transitions / float(experiment["epsilon_decay_transitions"])
                 )
                 epsilon = (
                     experiment["epsilon_end"]
@@ -144,6 +143,10 @@ def train(experiment: Mapping[str, Any]) -> Path:
             rollout, replay, collection_metrics = collect_compiled(
                 learner, rollout, replay, jnp.asarray(epsilon, dtype=jnp.float32)
             )
+            interval_collection_metrics = {
+                key: interval_collection_metrics.get(key, 0.0) + value
+                for key, value in collection_metrics.items()
+            }
             total_transitions += block_transitions
             stage_transitions += block_transitions
             update_metrics: Mapping[str, Any] = {}
@@ -172,6 +175,28 @@ def train(experiment: Mapping[str, Any]) -> Path:
                 name: float(jax.device_get(metrics["arm_violation_rate"]))
                 for name, metrics in validation_metrics.items()
             }
+            collection_values = {
+                key: float(jax.device_get(value))
+                for key, value in interval_collection_metrics.items()
+            }
+            update_values = {
+                key: float(jax.device_get(value)) for key, value in update_metrics.items()
+            }
+            finite_values = (
+                *rates.values(),
+                *violations.values(),
+                *collection_values.values(),
+                *update_values.values(),
+            )
+            arrays_finite = jnp.all(jnp.isfinite(rollout["env_state"].x)) & jnp.all(
+                jnp.isfinite(replay["reward"])
+            )
+            if not bool(jax.device_get(arrays_finite)) or not all(
+                map(math.isfinite, finite_values)
+            ):
+                raise FloatingPointError(
+                    "Nonfinite Q-training state, reward, value, loss, or gradient"
+                )
             scored_names = ("tight", "near") if stage == 0 else ("downward", "moving", "near")
             score = (
                 stage,
@@ -203,24 +228,27 @@ def train(experiment: Mapping[str, Any]) -> Path:
             else:
                 gate = eligible
             consecutive_passes = consecutive_passes + 1 if gate else 0
-            history.append(
-                {
-                    "stage": stage,
-                    "transitions": total_transitions,
-                    "updates": int(learner["updates"]),
-                    "epsilon": float(epsilon),
-                    "minimum_success": score[1],
-                    "overall_success": score[2],
-                    "maximum_violation": -score[3],
-                    "loss": float(jax.device_get(update_metrics.get("loss", jnp.nan))),
-                    "completed": float(jax.device_get(collection_metrics["completed"])),
-                }
-            )
+            row = {
+                "stage": stage,
+                "transitions": total_transitions,
+                "updates": int(learner["updates"]),
+                "epsilon": float(epsilon),
+                "minimum_success": score[1],
+                "overall_success": score[2],
+                "maximum_violation": -score[3],
+                "loss": update_values.get("loss", math.nan),
+            }
+            row.update({f"update_{key}": value for key, value in update_values.items()})
+            row.update({f"collection_{key}": value for key, value in collection_values.items()})
+            history.append(row)
             rollout = {**rollout, "completed_totals": jnp.zeros((12,), dtype=jnp.float32)}
+            interval_collection_metrics = {}
             print(
                 f"rotary-q evaluation stage={stage} transitions={total_transitions} "
                 f"tight={rates['tight']:.3f} near={rates['near']:.3f} "
-                f"moving={rates['moving']:.3f} downward={rates['downward']:.3f}",
+                f"moving={rates['moving']:.3f} downward={rates['downward']:.3f} "
+                f"train_successes={collection_values['successes']:.0f} "
+                f"train_arm_failures={collection_values['arm_failures']:.0f}",
                 flush=True,
             )
             next_evaluation += int(experiment["evaluation_every_transitions"])
@@ -233,47 +261,28 @@ def train(experiment: Mapping[str, Any]) -> Path:
             stages_passed = 3
 
     selected = best_learner if best_score[0] > -math.inf else learner
-    final_states = jax.tree.map(
-        lambda *parts: jnp.concatenate(parts, axis=0),
-        *(evaluation_sets["final"][name] for name in ("downward", "moving", "near")),
+    evaluation_split = "final" if stages_passed == 3 else "validation"
+    evaluation_metrics, artifact_trajectories = evaluate(
+        selected, evaluation_sets[evaluation_split], f"{evaluation_split}_suite", runtime_experiment
     )
-    controller_metrics: dict[str, Any] = {}
-    final_metrics = final_trajectories = {}
-    for mode in ("greedy", "lookahead_zero", "lookahead_potential", "lookahead_q"):
-        mode_compiled = jax.jit(lambda q, s, m=mode: evaluate(q, s, m, runtime_experiment))
-        metrics, trajectories = mode_compiled(selected, final_states)
-        controller_metrics.update(
-            {f"{mode}_overall_{key}": value for key, value in metrics.items()}
-        )
-        for name, states in evaluation_sets["final"].items():
-            stratum_metrics, _ = mode_compiled(selected, states)
-            controller_metrics.update(
-                {f"{mode}_{name}_{key}": value for key, value in stratum_metrics.items()}
-            )
-        if mode == "greedy":
-            final_metrics, final_trajectories = metrics, trajectories
-    audit_metrics, audit_trajectories = jax.jit(
-        lambda learner_, states_: evaluate(learner_, states_, "value_audit", runtime_experiment)
-    )(selected, final_states)
     artifact_metrics = {
-        **final_metrics,
-        **controller_metrics,
-        **{f"audit_{key}": value for key, value in audit_metrics.items()},
+        **evaluation_metrics,
         "stages_passed": stages_passed,
         "total_transitions": total_transitions,
+        "checkpoint_eligible": best_score[0] > -math.inf,
+        "evaluation_split": evaluation_split,
         "history": history,
     }
-    artifact_trajectories = {
-        **final_trajectories,
-        **{f"audit_{key}": value for key, value in audit_trajectories.items()},
-        **{
-            f"initial_{split}_{name}_{field}": value
-            for split, strata in evaluation_sets.items()
-            for name, state in strata.items()
+    artifact_trajectories.update(
+        {
+            f"initial_{evaluation_split}_{name}_{field}": value
+            for name, state in evaluation_sets[evaluation_split].items()
             for field, value in zip(EnvState._fields, state, strict=True)
-        },
-    }
-    checkpoints = {"selected": selected, "latest": learner}
+        }
+    )
+    checkpoints = {"latest": learner}
+    if best_score[0] > -math.inf:
+        checkpoints["selected"] = selected
     write_artifacts(run_dir, artifact_metrics, artifact_trajectories, checkpoints, experiment)
     print(f"rotary-q artifact_dir={run_dir}", flush=True)
     return run_dir

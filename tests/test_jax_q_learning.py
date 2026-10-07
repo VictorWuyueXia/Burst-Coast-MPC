@@ -139,6 +139,16 @@ def test_evaluation_masks_terminal_values_and_enumerates_all_planners() -> None:
     assert audit["realized_base"].shape == (1, 3)
     assert all(np.isfinite(float(value)) for value in audit_metrics.values())
 
+    validation_metrics, validation_trajectories = evaluate(
+        learner,
+        {name: states for name in ("downward", "moving", "near", "tight")},
+        "validation_suite",
+        SETTINGS,
+    )
+    assert "greedy_tight_success_rate" in validation_metrics
+    assert "audit_rmse" not in validation_metrics
+    assert validation_trajectories["state"].shape[1] == 3
+
 
 def test_artifact_checkpoint_round_trip_and_clean_import(tmp_path: Path) -> None:
     run_dir = tmp_path / "trial"
@@ -193,6 +203,7 @@ def test_artifact_checkpoint_round_trip_and_clean_import(tmp_path: Path) -> None
         model.apply(restored["params"], sample), model.apply(params, sample), atol=1e-6
     )
     assert (run_dir / "machine-scannables/metadata.json").is_file()
+    assert (run_dir / "machine-scannables/metrics.json").is_file()
     assert (run_dir / "machine-scannables/history.csv").is_file()
     assert (run_dir / "machine-scannables/evaluation.csv").is_file()
     assert (run_dir / "machine-scannables/initial_states.npz").is_file()
