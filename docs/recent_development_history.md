@@ -90,3 +90,9 @@ Recovery materials are in `/tmp/controller-artifact-history-cleanup/`: `original
 3. **Clarify the next control objective before extending the method.** Capture, sustained upright balancing, reinforcement-learning initialization and eventual burst/sleep scheduling are different tasks. No new RL prior training or sleep mechanism was established by this work. Choose and define the next objective rather than inferring it from the project's long-term goal.
 
 Use precise, defined language and descriptive file names. For GPU experiments, first inspect shared-server occupancy and follow `AGENTS.md`; independent runs should use available parallel resources and print progress. File organization and Git cleanup require no GPU run.
+
+## Subsequent publication and RL preparation
+
+Commit `831f37e` (`heuristic action 1024/1024`) was pushed to `origin/dev` using the verified force-with-lease; it published the earlier history rewrite and the working changes. The pending-publication wording above records the earlier sequence, not an outstanding approval.
+
+The next task produced an [RL prior assessment and development plan](14-reinforcement-learning-prior/assessment_and_next_step_plan.md) and eight [portable animation episodes](../artifacts/rotary_pendulum/experiment-results/single-constant-torque-action-controller/portable-animation-records/interpretation_summary.md). They include typical captures, the slowest downward capture from one validation seed, exact downward rest, and two types of arm-limit crossing. The user requested force-adding this portable subset under ignored artifact paths; the complete archive remains ignored. No RL training or animation rendering was performed. The new bundle and documents are staged for a later commit, not yet published by this task.

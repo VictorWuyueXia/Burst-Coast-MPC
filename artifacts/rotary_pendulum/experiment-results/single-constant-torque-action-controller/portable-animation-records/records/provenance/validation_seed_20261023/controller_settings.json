@@ -1,0 +1,26 @@
+{
+  "seed": 20261023,
+  "episodes_per_stratum": 512,
+  "decisions": 200,
+  "chunk_decisions": 10,
+  "mode": "energy",
+  "trials": [
+    {
+      "name": "gain_0.004_work_0.02",
+      "work_gain": 0.004,
+      "work_weight": 0.02,
+      "arm_limit_weight": 10000.0
+    },
+    {
+      "name": "gain_0.005_work_0.02",
+      "work_gain": 0.005,
+      "work_weight": 0.02,
+      "arm_limit_weight": 10000.0
+    }
+  ],
+  "name": "gain_0.004_work_0.02",
+  "work_gain": 0.004,
+  "work_weight": 0.02,
+  "arm_limit_weight": 10000.0,
+  "pendulum_angle_convention": "[0, 360) degrees; 0 down, 180 up; state arrays use radians in [0, 2*pi)"
+}

@@ -1,0 +1,32 @@
+{
+  "jax_version": "0.11.2",
+  "jax_enable_x64": true,
+  "devices": [
+    "cuda:0",
+    "cuda:1"
+  ],
+  "cuda_visible_devices": "0,1",
+  "damping_nms": [
+    0.0,
+    0.0
+  ],
+  "arm_bound_is_soft": true,
+  "decoder_revision": "constant_action_100ms_v2",
+  "capture_requires_arm_centering": false,
+  "sha256": {
+    "scripts/validate_rotary_heuristic.py": "1f167783a6c68e80b6ff6a60a3d7cbacb05bf30dd0b82cef12bea1b6236aab20",
+    "src/rotary_pendulum/heuristic/artifacts.py": "439735f4dc7f075883f52bbab9706b22ef980a82be6a7f33f0d3a79574b61d81",
+    "src/rotary_pendulum/heuristic/energy.py": "227c8ffe148ee68f938da270677d6159fbe517a9ab43eccb370c8d457602d67e",
+    "src/rotary_pendulum/heuristic/decoder.py": "f12994dbfb13b6ea9e241950f9fbf3ae1856621e946ff9830441e8bc8cdebda0",
+    "src/rotary_pendulum/heuristic/evaluation.py": "9e2b6c37646064caf09450f6b4d3d64ba35acbff77495625091a23e4d306d26d",
+    "src/rotary_pendulum/environment/jax_dynamics.py": "8ad1366285444394e9ada703cabe15782b823a6f355d2833e696756f36b250f7",
+    "src/rotary_pendulum/environment/jax_environment.py": "b8bd0ee474ebcec00653f5256bda38c739966c2ef213e2abbecda6fa86bf7ad4",
+    "src/rotary_pendulum/environment/dynamics.py": "7046c18eee4afe1a1cf744465bec4d95dfb12a26a5d4b5c430e30b0a34aebc2e",
+    "src/rotary_pendulum/utils/config_schema.py": "5d2bbe4db6af3a83f0d2ec2610838b1d2d929b823cdd165f2c8dcf4d0b94599a",
+    "src/rotary_pendulum/RL/jax_residual_evaluation.py": "4987a23a5c5d6becb6f94b2dafe479c5fcd842bcf4a4a5afa86cafa6a4513284",
+    "src/rotary_pendulum/RL/jax_residual_control.py": "40331898df6438dd204690037e60952526d95d6f51ce45d15f4d9f6b96f43aa3",
+    "src/rotary_pendulum/configs/physics.yaml": "4909036f2e6600283088ecfb67e6cc6cdca3e3d26db42ca9d9e1cfd882342401",
+    "src/rotary_pendulum/configs/mission.yaml": "4ce13415b978586b8e16477b4920e5c1c062e8f13e376b505c96b11dd7a859e9",
+    "pyproject.toml": "8f8d1559a858dff6e9ea7eeb34e9b083d80e9ea8b20ea2b1a9d2f920f0d6b0f5"
+  }
+}

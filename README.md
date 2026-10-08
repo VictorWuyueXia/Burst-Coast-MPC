@@ -79,3 +79,7 @@ are in `scripts/experiments/`.
 
 For the latest operations, working-tree state and pending decisions, read the
 [development history and agent handoff](docs/recent_development_history.md).
+
+The [RL prior assessment and next-step plan](docs/14-reinforcement-learning-prior/assessment_and_next_step_plan.md)
+and [portable animation records](artifacts/rotary_pendulum/experiment-results/single-constant-torque-action-controller/portable-animation-records/interpretation_summary.md)
+cover learning from the current controller and replaying selected validation episodes.
