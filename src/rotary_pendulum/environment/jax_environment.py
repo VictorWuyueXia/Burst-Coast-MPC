@@ -18,7 +18,7 @@ assert isinstance(_mission_domains, dict)
 GOAL = GoalConfig.model_validate(_mission_domains["goal"])
 HOLD_PHYSICS_STEPS = 5
 MAX_PHYSICS_STEPS = 1000
-ARM_LIMIT_RAD = jnp.pi / 2.0
+ARM_LIMIT_RAD = jnp.pi
 RESET_LOW = jnp.array(
     [[-0.20, -0.20, -0.5, -0.5], [-0.50, 0.40, -2.0, -6.0], [-0.25, jnp.pi - 0.25, -1.0, -1.0]]
 )
@@ -49,6 +49,7 @@ def reset(key: Array, stratum: ArrayLike) -> EnvState:
     )
     moving_sign = jnp.where(jax.random.bernoulli(sign_key), 1.0, -1.0)
     state = state.at[1].set(jnp.where(stratum_index == 1, moving_sign * state[1], state[1]))
+    state = state.at[1].set(state[1] % (2 * jnp.pi) % (2 * jnp.pi))
     return EnvState(
         x=state,
         physics_steps=jnp.array(0, dtype=jnp.int32),
@@ -66,7 +67,7 @@ def step(
     physics_steps: int = HOLD_PHYSICS_STEPS,
     max_physics_steps: int | Array = MAX_PHYSICS_STEPS,
 ) -> EnvState:
-    """Hold torque; capture ignores arm position and excursions remain nonterminal."""
+    """Hold torque; capture is angle-only and arm excursions remain nonterminal."""
 
     applied_torque = jnp.clip(jnp.asarray(u), -TORQUE_LIMIT_NM, TORQUE_LIMIT_NM)
 
@@ -78,11 +79,7 @@ def step(
         upright_error = jnp.arctan2(
             jnp.sin(next_x[..., 1] - jnp.pi), jnp.cos(next_x[..., 1] - jnp.pi)
         )
-        inside_goal = (
-            (jnp.abs(upright_error) <= GOAL.beta_tolerance_rad)
-            & (jnp.abs(next_x[..., 2]) <= GOAL.omega_tolerance_rad_s)
-            & (jnp.abs(next_x[..., 3]) <= GOAL.nu_tolerance_rad_s)
-        )
+        inside_goal = jnp.abs(upright_error) <= GOAL.beta_tolerance_rad
         next_goal_count = jnp.where(
             active, jnp.where(inside_goal, state.goal_count + 1, 0), state.goal_count
         )

@@ -62,6 +62,11 @@ def test_realtime_rotary_plot_covers_mechanics_and_requested_signals() -> None:
     plot.start(observation)
     plot.add_step(observation, record)
     plot.finish()
+    assert plot.axes["angles"].get_ylim()[0] <= 0
+    assert plot.axes["angles"].get_ylim()[1] >= 360
+    np.testing.assert_allclose(
+        plot.lines["alpha"].get_ydata(), [np.rad2deg(observation.alpha_rad) % 360]
+    )
 
     assert set(plot.axes) == {
         "mechanism",

@@ -58,7 +58,7 @@ def main() -> None:
     axes[0, 0].axhline(1, color="black", ls=":", label="Upright target")
     axes[0, 0].set(
         xlabel="Time (s)",
-        ylabel="Mean E/E* over 64 downward resets",
+        ylabel="Mean relative swing energy / target; 64 downward resets",
         title="Energy rises but does not reach swing-up",
     )
     axes[0, 0].legend(fontsize=8)
@@ -117,7 +117,7 @@ def main() -> None:
         yticklabels=times,
         xlabel="Sensitivity floor b₀ (1/s)",
         ylabel="Energy time τ (s)",
-        title="Mean |E/E* − 1|: downward, 60 s; smaller is better",
+        title="Relative swing-energy error: downward, 60 s; smaller is better",
     )
     figure.colorbar(display, ax=axes[1, 0])
     for index, deadline in enumerate((20, 40, 60)):
@@ -194,7 +194,7 @@ def main() -> None:
     np.savez_compressed(
         machine / "energy_transfer_diagnostic.npz",
         time_s=time,
-        energy_j=energy,
+        relative_swing_energy_j=energy,
         instantaneous_w=instantaneous,
         held_interval_w=actual,
         torque_nm=torque,
@@ -203,7 +203,7 @@ def main() -> None:
     figure, axes = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
     axes[0].plot(time, x[:, 1], label="Pendulum α (from downward)")
     axes[0].set_ylabel("Angle (rad)")
-    axes[1].plot(time, energy / TARGET_ENERGY_J, label="E/E*")
+    axes[1].plot(time, energy / TARGET_ENERGY_J, label="Relative hinge-swing energy / target")
     axes[1].axhline(1, color="black", ls=":")
     axes[1].set_ylabel("Normalized energy")
     axes[2].step(time, 1000 * torque, where="post", label="Applied torque")

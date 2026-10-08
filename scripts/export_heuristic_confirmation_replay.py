@@ -22,11 +22,29 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     campaign_name = "recovery_confirm_20261008" if recovery else "confirm_20261008"
     trial = "recovery" if recovery else "energy_soft"
-    bundle = "recovery_confirmation_replay" if recovery else "heuristic_confirmation_replay"
-    campaign = root / "artifacts/rotary_pendulum/energy-heuristic" / campaign_name
+    campaign = (
+        root
+        / (
+            "artifacts/rotary_pendulum/experiment-results/"
+            "physical-energy-transfer-controller/raw-runs"
+        )
+        / campaign_name
+    )
     source = campaign / trial / "machine-scannables"
-    output = root / "docs/12-energy-transfer/machine-scannables" / bundle
-    figure = root / "docs/12-energy-transfer/human-readables/heuristic_confirmation.png"
+    output = (
+        root
+        / "artifacts/rotary_pendulum/experiment-results"
+        / (
+            "braking-prediction-controller-replay"
+            if recovery
+            else "original-analytical-controller-replay"
+        )
+        / "records"
+    )
+    figure = root / (
+        "artifacts/rotary_pendulum/experiment-results/"
+        "physical-energy-transfer-controller/figures/heuristic_confirmation.png"
+    )
     episodes = list(csv.DictReader((source / "episodes.csv").open()))
     if recovery:
         selection = {}
@@ -46,7 +64,10 @@ def main() -> None:
         assert figure.read_bytes() == original.read_bytes(), "Figure does not match archived trial"
         selection = json.loads((source / "plot_selection.json").read_text())
     initial = np.load(campaign / "machine-scannables/initial_states.npz")["x"]
-    traces = np.load(source / "trajectories.npz")
+    traces = dict(np.load(source / "trajectories.npz"))
+    initial[:, 1] = initial[:, 1] % (2 * np.pi) % (2 * np.pi)
+    for key in ("start_x", "x", "physics_x"):
+        traces[key][..., 1] = traces[key][..., 1] % (2 * np.pi) % (2 * np.pi)
     snapshot = campaign / "machine-scannables/source_snapshot"
     physics = snapshot / "src/rotary_pendulum/configs/physics.yaml"
     physical = RotaryPendulumConfig.model_validate(
@@ -96,7 +117,7 @@ def main() -> None:
         np.savez_compressed(
             output / f"{label}.npz",
             initial_x=initial[lane],
-            **{key: traces[key][:, lane] for key in traces.files},
+            **{key: traces[key][:, lane] for key in traces},
         )
         np.testing.assert_allclose(
             time[1:],
@@ -138,6 +159,7 @@ def main() -> None:
             "arm_length": physical.arm_length_m,
             "pendulum_length": physical.pendulum_length_m,
         },
+        "pendulum_angle_convention": "alpha_rad in [0, 2*pi); 0 downward, pi upright",
         "state_order": ["theta_rad", "alpha_rad", "omega_rad_s", "nu_rad_s"],
         "torque_convention": (
             "Row i > 0 torque applies on (time[i-1], time[i]]; initial row zero is a sentinel"

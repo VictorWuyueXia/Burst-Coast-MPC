@@ -15,7 +15,7 @@ import numpy as np
 from jax import Array
 
 from rotary_pendulum.environment.jax_dynamics import MODEL, PHYSICS_DT_S
-from rotary_pendulum.environment.jax_environment import ARM_LIMIT_RAD, EnvState, reset
+from rotary_pendulum.environment.jax_environment import ARM_LIMIT_RAD, GOAL, EnvState, reset
 from rotary_pendulum.RL.jax_residual_control import (
     POLICY_TORQUE_NM,
     TARGET_ENERGY_J,
@@ -50,6 +50,7 @@ def validation_resets(
         dtype=jnp.float32,
     )
     state = state._replace(x=state.x.at[3 * count : 4 * count].set(tight).at[-4:].set(probes))
+    state = state._replace(x=state.x.at[:, 1].set(state.x[:, 1] % (2 * jnp.pi) % (2 * jnp.pi)))
     lanes = 4 * count + 4
     repeated = jax.tree.map(
         lambda value: jnp.tile(value, (len(deadlines_s),) + (1,) * (value.ndim - 1)), state
@@ -142,7 +143,16 @@ def write_validation(
     np.savez_compressed(
         machine / "trajectories.npz", allow_pickle=False, **data, labels=np.asarray(labels)
     )
-    (machine / "settings.json").write_text(json.dumps(dict(settings), indent=2) + "\n")
+    (machine / "settings.json").write_text(
+        json.dumps(
+            {
+                **settings,
+                "energy_metric_definition": "hinge-relative swing energy, not full body energy",
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     x = data["physics_x"]
     energy = (
         0.5 * MODEL.pendulum_inertia_kg_m2 * x[..., 3] ** 2
@@ -209,21 +219,31 @@ def write_validation(
             # Include all 20 ms physics samples for state traces; torque stays at 100 ms.
             fine_time = (time[:, None] + 0.02 * np.arange(1, 6)).reshape(-1)
             state = x[active, lane].reshape(-1, 4)
-            angle = np.arctan2(np.sin(state[:, 1] - np.pi), np.cos(state[:, 1] - np.pi))
-            angle[np.abs(np.diff(angle, prepend=angle[0])) > np.pi] = np.nan
+            angle = np.rad2deg(state[:, 1] % (2 * np.pi)) % 360
+            angle[np.abs(np.diff(angle, prepend=angle[0])) > 180] = np.nan
             axes[0, column].plot(fine_time, state[:, 0], label="arm θ")
             for bound in (-float(ARM_LIMIT_RAD), float(ARM_LIMIT_RAD)):
                 axes[0, column].axhline(bound, color="red", ls=":")
             axes[0, column].set_ylabel("Arm position (rad)")
-            axes[1, column].plot(fine_time, angle, label="upright error β")
-            axes[1, column].plot(fine_time, state[:, 1], alpha=0.4, label="unwrapped α")
-            axes[1, column].set_ylabel("Pendulum angle (rad)")
+            axes[1, column].plot(fine_time, angle, label="Pendulum position")
+            axes[1, column].axhspan(
+                180 - np.rad2deg(GOAL.beta_tolerance_rad),
+                180 + np.rad2deg(GOAL.beta_tolerance_rad),
+                color="green",
+                alpha=0.15,
+            )
+            axes[1, column].set_ylim(0, 360)
+            axes[1, column].set_ylabel("Pendulum [deg; 0 down, 180 up]")
             axes[2, column].plot(fine_time, state[:, 2], label="arm ω")
             axes[2, column].plot(fine_time, state[:, 3], label="pendulum ν")
             axes[2, column].set_ylabel("Velocity (rad/s)")
-            axes[3, column].plot(fine_time, energy[active, lane].reshape(-1), label="E / E*")
+            axes[3, column].plot(
+                fine_time,
+                energy[active, lane].reshape(-1),
+                label="Relative hinge-swing energy / target",
+            )
             axes[3, column].axhline(1, color="black", ls=":")
-            axes[3, column].set_ylabel("Pendulum energy / target")
+            axes[3, column].set_ylabel("Relative swing energy / target")
             axes[4, column].step(
                 time,
                 1000 * data["heuristic_nm"][active, lane],
@@ -255,13 +275,15 @@ def write_validation(
     (machine / "plot_selection.json").write_text(json.dumps(selected, indent=2) + "\n")
     (human / "interpretation_summary.md").write_text(
         "# Validation plots\n\n"
-        "Angles: θ is the unwrapped arm position; α is pendulum angle from downward; "
+        "Angles: θ is the unwrapped arm position; "
+        "α is pendulum position in 0–360 degrees, measured from downward; "
         "β is wrapped angle from upright. Velocities ω and ν belong to arm and pendulum. "
-        "E/E* compares pendulum kinetic-plus-potential energy with the upright target.\n\n"
+        "E/E* uses hinge-relative swing energy, excluding arm-carried kinetic energy; "
+        "it is a control quantity, not the pendulum body's full physical energy.\n\n"
         "Filter modes: 0 accept, 1 coast, 2 brake, 3 least predicted excursion when no "
-        "candidate stays inside the arm bounds. Red lines show ±π/2 arm bounds. "
+        "candidate stays inside the arm bounds. Red lines show the configured arm bounds. "
         "Hold fraction 1 means five consecutive 20 ms goal samples and early success. "
-        "The goal requires |θ|, |β| ≤ 0.08 rad, |ω| ≤ 0.15 rad/s and |ν| ≤ 0.20 rad/s.\n\n"
+        "The goal checks only pendulum angle within 165–195 degrees.\n\n"
         "Each random stratum shows median-return and best-return longest-deadline cases. "
         "Probe plots show all deterministic probes. Complete traces, selections and "
         "episode outcomes are in ../machine-scannables/. Campaign interpretation is "

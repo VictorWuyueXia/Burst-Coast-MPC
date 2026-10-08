@@ -122,7 +122,10 @@ def rk4_step(
     k2 = state_derivative(state_array + 0.5 * timestep_s * k1, torque_nm, physical, model)
     k3 = state_derivative(state_array + 0.5 * timestep_s * k2, torque_nm, physical, model)
     k4 = state_derivative(state_array + timestep_s * k3, torque_nm, physical, model)
-    return state_array + timestep_s * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
+    following = state_array + timestep_s * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
+    # Store pendulum position in [0, 2π), preserving signed angular velocity.
+    following[..., 1] = following[..., 1] % (2 * np.pi) % (2 * np.pi)
+    return following
 
 
 def energy_components(

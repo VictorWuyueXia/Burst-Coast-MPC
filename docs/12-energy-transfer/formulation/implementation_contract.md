@@ -1,6 +1,6 @@
 # Implemented energy-work controller contract
 
-> Historical soft-penalty decoder contract. The encoder and upper policy remain applicable; decoder modes, coast rules and campaign schema below are archived behavior. Use the [recovery contract](decoder_recovery_contract.md) for the executed revision and [current results](../interpretation_summary.md) for performance.
+> Historical soft-penalty decoder contract. The encoder and upper policy remain applicable; decoder modes, coast rules and campaign schema below are archived behavior. Use the [recovery contract](decoder_recovery_contract.md) for the executed revision and [current results](../../../artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/interpretations/interpretation_summary.md) for performance.
 
 ## State, action and physical configuration
 
@@ -101,7 +101,7 @@ NPZ arrays have no object payload. Energy balance residual is actual endpoint to
 From repository root, using the existing `.venv` and host GPU access:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 JAX_PLATFORMS=cuda JAX_ENABLE_X64=1 XLA_PYTHON_CLIENT_PREALLOCATE=false MPLCONFIGDIR=/tmp/bcmpc-mpl PYTHONPATH=src .venv/bin/python scripts/validate_rotary_heuristic.py --config docs/12-energy-transfer/machine-scannables/campaign_confirm_20261008.json --output /tmp/energy-work-confirm
+CUDA_VISIBLE_DEVICES=0,1 JAX_PLATFORMS=cuda JAX_ENABLE_X64=1 XLA_PYTHON_CLIENT_PREALLOCATE=false MPLCONFIGDIR=/tmp/bcmpc-mpl PYTHONPATH=src .venv/bin/python scripts/validate_rotary_heuristic.py --config artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/records/campaign_confirm_20261008.json --output /tmp/energy-work-confirm
 CUDA_VISIBLE_DEVICES='' JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp/bcmpc-mpl .venv/bin/pytest -q tests/test_energy_heuristic.py tests/test_jax_rotary_environment.py
 ```
 

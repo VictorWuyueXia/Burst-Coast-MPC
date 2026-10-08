@@ -1,6 +1,6 @@
 # Historical confirmation replay schema, version 1
 
-Source: `confirm_20261008/energy_soft`, selected lanes in `plot_selection.json`. `manifest.json` identifies the original figure and trace archive by SHA-256, defines the frame and control intervals, records episode outcomes and hashes the exported data/config files. Paths in archived provenance identify their original context; playback has no dependency on those paths. Historical decoder mode meanings are in the [original contract](../implementation_contract.md), not the recovery decoder contract.
+Source: `confirm_20261008/energy_soft`, selected lanes in `plot_selection.json`. `manifest.json` identifies the original figure and trace archive by SHA-256, defines the frame and control intervals, records episode outcomes and hashes the exported data/config files. Paths in archived provenance identify their original context; playback has no dependency on those paths. Historical decoder mode meanings are in the [original contract](../formulation/implementation_contract.md), not the recovery decoder contract.
 
 ## CSV: one file per case
 

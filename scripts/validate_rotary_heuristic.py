@@ -14,7 +14,11 @@ import numpy as np
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path(__file__).resolve().parents[1] / "src/rotary_pendulum/configs/heuristic.json",
+    )
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     campaign = json.loads(arguments.config.read_text())
@@ -41,16 +45,10 @@ def main() -> None:
     if campaign["chunk_decisions"] > 10:
         raise ValueError("Progress chunks must be no longer than one simulated second")
     parameters = np.asarray(
-        [[t["work_gain"], t["kinetic_weight"], t["work_weight"]] for t in trials]
+        [[t["work_gain"], t["work_weight"], t["arm_limit_weight"]] for t in trials]
     )
     if not np.isfinite(parameters).all() or np.any(parameters < 0):
         raise ValueError("Controller gains must be finite and nonnegative")
-    if (
-        not isinstance(campaign["recovery_steps"], int)
-        or campaign["recovery_steps"] <= 5
-        or campaign["recovery_steps"] % 5
-    ):
-        raise ValueError("Recovery samples must be a multiple of five, greater than five")
     if len({trial["name"] for trial in trials}) != len(trials):
         raise ValueError("Trial names must be unique")
 
@@ -84,7 +82,7 @@ def main() -> None:
                 "cuda_visible_devices": os.environ["CUDA_VISIBLE_DEVICES"],
                 "damping_nms": [PHYSICAL.rotary_damping_nms, PHYSICAL.pendulum_damping_nms],
                 "arm_bound_is_soft": True,
-                "decoder_revision": "predictive_recovery_v1",
+                "decoder_revision": "constant_action_100ms_v2",
                 "capture_requires_arm_centering": False,
                 "sha256": {
                     str(source): hashlib.sha256(source.read_bytes()).hexdigest()
@@ -111,7 +109,6 @@ def main() -> None:
         lambda initial, parameters: evaluate(
             initial,
             parameters,
-            campaign["recovery_steps"],
             campaign["chunk_decisions"],
             campaign["mode"],
         ),
@@ -161,12 +158,12 @@ def main() -> None:
             energy_components(replay, PHYSICAL, MODEL)[2]
             - energy_components(start, PHYSICAL, MODEL)[2]
         )
+        difference = replay - traces["x"][index].reshape(-1, 4)[chosen]
+        difference[:, 1] = np.arctan2(np.sin(difference[:, 1]), np.cos(difference[:, 1]))
         audit = {
             "sample_count": len(chosen),
             "fine_step_s": 0.002,
-            "max_state_difference": np.max(
-                abs(replay - traces["x"][index].reshape(-1, 4)[chosen]), axis=0
-            ).tolist(),
+            "max_state_difference": np.max(abs(difference), axis=0).tolist(),
             "max_work_difference_j": float(
                 np.max(abs(work - traces["work_j"][index].ravel()[chosen]))
             ),

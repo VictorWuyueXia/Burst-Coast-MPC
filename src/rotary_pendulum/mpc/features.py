@@ -37,9 +37,8 @@ def objective_terms(
     nu_rad_s = state_array[..., 3]
     physical = physics.rotary_pendulum
     model = derive_model(physical)
-    swing_energy_j = (
-        0.5 * model.pendulum_inertia_kg_m2 * nu_rad_s**2
-        + model.gravity_torque_nm * (1.0 - np.cos(alpha_rad))
+    swing_energy_j = 0.5 * model.pendulum_inertia_kg_m2 * nu_rad_s**2 + model.gravity_torque_nm * (
+        1.0 - np.cos(alpha_rad)
     )
     target_energy_j = 2.0 * model.gravity_torque_nm
     energy_error = (swing_energy_j - target_energy_j) / target_energy_j
@@ -48,12 +47,10 @@ def objective_terms(
 
     # Chase the sign-controllable arm-acceleration phase while energy is off target.
     energy_command = -np.tanh(energy_error / mpc.energy_transition_width)
-    energy_speed_rad_s = 2.0 * np.sqrt(
-        model.gravity_torque_nm / model.pendulum_inertia_kg_m2
-    )
+    energy_speed_rad_s = 2.0 * np.sqrt(model.gravity_torque_nm / model.pendulum_inertia_kg_m2)
     phase_origin_speed_rad_s = PHASE_ORIGIN_SPEED_RATIO * energy_speed_rad_s
     phase_velocity_rad_s = nu_rad_s + phase_origin_speed_rad_s * np.exp(
-        -(energy_ratio / PHASE_ORIGIN_ENERGY_RATIO) ** 2
+        -((energy_ratio / PHASE_ORIGIN_ENERGY_RATIO) ** 2)
     )
     coupling_velocity_rad_s = np.cos(alpha_rad) * phase_velocity_rad_s
     phase_signal = coupling_velocity_rad_s / np.sqrt(
@@ -61,10 +58,7 @@ def objective_terms(
     )
     determinant = (
         model.pendulum_inertia_kg_m2
-        * (
-            model.base_inertia_kg_m2
-            + model.pendulum_inertia_kg_m2 * np.sin(alpha_rad) ** 2
-        )
+        * (model.base_inertia_kg_m2 + model.pendulum_inertia_kg_m2 * np.sin(alpha_rad) ** 2)
         - model.coupling_inertia_kg_m2**2 * np.cos(alpha_rad) ** 2
     )
     acceleration_authority_rad_s2 = (
@@ -77,14 +71,10 @@ def objective_terms(
         model,
     )[..., 2]
     phase_error = (
-        arm_acceleration_rad_s2 / acceleration_authority_rad_s2
-        + energy_command * phase_signal
+        arm_acceleration_rad_s2 / acceleration_authority_rad_s2 + energy_command * phase_signal
     )
     phase_cost = (
-        mpc.phase_chasing_weight
-        * energy_command**2
-        * np.cos(alpha_rad) ** 2
-        * phase_error**2
+        mpc.phase_chasing_weight * energy_command**2 * np.cos(alpha_rad) ** 2 * phase_error**2
     )
 
     # Activate weak terminal state capture only near the target swing-energy shell.
@@ -93,7 +83,7 @@ def objective_terms(
     rotary_local_error = (state_array[..., 0] / ARM_ANGLE_LIMIT_RAD) ** 2 + (
         omega_rad_s / (ARM_ANGLE_LIMIT_RAD * model.natural_frequency_rad_s)
     ) ** 2
-    local_gate = np.exp(-(energy_error / mpc.local_energy_shell_width) ** 2)
+    local_gate = np.exp(-((energy_error / mpc.local_energy_shell_width) ** 2))
     local_capture_cost = local_gate * (
         mpc.pendulum_local_weight * pendulum_local_error
         + mpc.rotary_local_weight * rotary_local_error
@@ -102,9 +92,7 @@ def objective_terms(
     # Preserve the symmetric high-penalty arm-angle operating envelope.
     theta_rad = state_array[..., 0]
     arm_excess = np.maximum(np.abs(theta_rad) - ARM_ANGLE_LIMIT_RAD, 0.0)
-    arm_limit_cost = mpc.arm_angle_soft_penalty_weight * (
-        arm_excess / ARM_ANGLE_LIMIT_RAD
-    ) ** 2
+    arm_limit_cost = mpc.arm_angle_soft_penalty_weight * (arm_excess / ARM_ANGLE_LIMIT_RAD) ** 2
     return tuple(
         np.asarray(term, dtype=np.float64)
         for term in (terminal_energy_cost, phase_cost, local_capture_cost, arm_limit_cost)
@@ -123,9 +111,8 @@ def objective_terms_symbolic(
     physical = physics.rotary_pendulum
     model = derive_model(physical)
     theta_rad, alpha_rad, omega_rad_s, nu_rad_s = x[0], x[1], x[2], x[3]
-    swing_energy_j = (
-        0.5 * model.pendulum_inertia_kg_m2 * nu_rad_s**2
-        + model.gravity_torque_nm * (1.0 - ca.cos(alpha_rad))
+    swing_energy_j = 0.5 * model.pendulum_inertia_kg_m2 * nu_rad_s**2 + model.gravity_torque_nm * (
+        1.0 - ca.cos(alpha_rad)
     )
     target_energy_j = 2.0 * model.gravity_torque_nm
     energy_error = (swing_energy_j - target_energy_j) / target_energy_j
@@ -133,12 +120,10 @@ def objective_terms_symbolic(
     terminal_energy_cost = mpc.terminal_swing_energy_weight * energy_error**2
 
     energy_command = -ca.tanh(energy_error / mpc.energy_transition_width)
-    energy_speed_rad_s = 2.0 * np.sqrt(
-        model.gravity_torque_nm / model.pendulum_inertia_kg_m2
-    )
+    energy_speed_rad_s = 2.0 * np.sqrt(model.gravity_torque_nm / model.pendulum_inertia_kg_m2)
     phase_origin_speed_rad_s = PHASE_ORIGIN_SPEED_RATIO * energy_speed_rad_s
     phase_velocity_rad_s = nu_rad_s + phase_origin_speed_rad_s * ca.exp(
-        -(energy_ratio / PHASE_ORIGIN_ENERGY_RATIO) ** 2
+        -((energy_ratio / PHASE_ORIGIN_ENERGY_RATIO) ** 2)
     )
     coupling_velocity_rad_s = ca.cos(alpha_rad) * phase_velocity_rad_s
     phase_signal = coupling_velocity_rad_s / ca.sqrt(
@@ -146,10 +131,7 @@ def objective_terms_symbolic(
     )
     determinant = (
         model.pendulum_inertia_kg_m2
-        * (
-            model.base_inertia_kg_m2
-            + model.pendulum_inertia_kg_m2 * ca.sin(alpha_rad) ** 2
-        )
+        * (model.base_inertia_kg_m2 + model.pendulum_inertia_kg_m2 * ca.sin(alpha_rad) ** 2)
         - model.coupling_inertia_kg_m2**2 * ca.cos(alpha_rad) ** 2
     )
     acceleration_authority_rad_s2 = (
@@ -157,14 +139,10 @@ def objective_terms_symbolic(
     )
     arm_acceleration_rad_s2 = state_derivative_symbolic(x, torque_nm, physics)[2]
     phase_error = (
-        arm_acceleration_rad_s2 / acceleration_authority_rad_s2
-        + energy_command * phase_signal
+        arm_acceleration_rad_s2 / acceleration_authority_rad_s2 + energy_command * phase_signal
     )
     phase_cost = (
-        mpc.phase_chasing_weight
-        * energy_command**2
-        * ca.cos(alpha_rad) ** 2
-        * phase_error**2
+        mpc.phase_chasing_weight * energy_command**2 * ca.cos(alpha_rad) ** 2 * phase_error**2
     )
 
     beta_rad = ca.atan2(ca.sin(alpha_rad - np.pi), ca.cos(alpha_rad - np.pi))
@@ -172,7 +150,7 @@ def objective_terms_symbolic(
     rotary_local_error = (theta_rad / ARM_ANGLE_LIMIT_RAD) ** 2 + (
         omega_rad_s / (ARM_ANGLE_LIMIT_RAD * model.natural_frequency_rad_s)
     ) ** 2
-    local_gate = ca.exp(-(energy_error / mpc.local_energy_shell_width) ** 2)
+    local_gate = ca.exp(-((energy_error / mpc.local_energy_shell_width) ** 2))
     local_capture_cost = local_gate * (
         mpc.pendulum_local_weight * pendulum_local_error
         + mpc.rotary_local_weight * rotary_local_error
@@ -181,8 +159,7 @@ def objective_terms_symbolic(
     upper_excess = ca.fmax(theta_rad - ARM_ANGLE_LIMIT_RAD, 0.0)
     lower_excess = ca.fmax(-theta_rad - ARM_ANGLE_LIMIT_RAD, 0.0)
     arm_limit_cost = mpc.arm_angle_soft_penalty_weight * (
-        (upper_excess / ARM_ANGLE_LIMIT_RAD) ** 2
-        + (lower_excess / ARM_ANGLE_LIMIT_RAD) ** 2
+        (upper_excess / ARM_ANGLE_LIMIT_RAD) ** 2 + (lower_excess / ARM_ANGLE_LIMIT_RAD) ** 2
     )
     return terminal_energy_cost, phase_cost, local_capture_cost, arm_limit_cost
 
@@ -196,8 +173,7 @@ def torque_continuation_cost(
     """Return the normalized active-burst torque-continuation cost."""
 
     normalized_delta = (
-        np.asarray(torque_nm, dtype=np.float64)
-        - np.asarray(previous_torque_nm, dtype=np.float64)
+        np.asarray(torque_nm, dtype=np.float64) - np.asarray(previous_torque_nm, dtype=np.float64)
     ) / physics.rotary_pendulum.torque_limit_nm
     return np.asarray(mpc.torque_slew_weight * normalized_delta**2)
 
@@ -210,7 +186,5 @@ def torque_continuation_cost_symbolic(
 ) -> Any:
     """Return the symbolic active-burst torque-continuation cost."""
 
-    normalized_delta = (
-        torque_nm - previous_torque_nm
-    ) / physics.rotary_pendulum.torque_limit_nm
+    normalized_delta = (torque_nm - previous_torque_nm) / physics.rotary_pendulum.torque_limit_nm
     return mpc.torque_slew_weight * normalized_delta**2

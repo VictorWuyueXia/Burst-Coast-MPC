@@ -25,7 +25,7 @@ def main() -> None:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
-    repository = Path(__file__).resolve().parents[4]
+    repository = Path(__file__).resolve().parents[3]
     settings = json.loads(arguments.config.read_text())
     output = arguments.output.resolve()
     machine, human = output / "machine-scannables", output / "human-readables"
@@ -34,7 +34,7 @@ def main() -> None:
     (machine / "study.json").write_text(json.dumps(settings, indent=2) + "\n")
     shutil.copy2(__file__, machine / "run_study.py")
     devices = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
-    assert devices == [""] or all(device in ("6", "7") for device in devices)
+    assert devices == [""] or all(device in ("0", "1", "2", "3") for device in devices)
     jobs = []
     for case in settings["cases"]:
         snapshot = machine / "sources" / case["name"]
@@ -65,10 +65,6 @@ def main() -> None:
                     "from rotary_pendulum.heuristic.energy import TARGET_ENERGY_J",
                 ),
                 ("np.pi / 2", "float(ARM_LIMIT_RAD)"),
-            ],
-            "scripts/validate_rotary_heuristic.py": [
-                ('("", "0", "1", "2", "3")', '("", "6", "7")'),
-                ("Only physical GPUs 0–3", "Only physical GPUs 6–7"),
             ],
         }
         patch = []
@@ -129,15 +125,16 @@ def main() -> None:
                 status = subprocess.check_output(
                     [
                         "nvidia-smi",
-                        f"--id={device}",
                         "--query-gpu=memory.used,utilization.gpu",
                         "--format=csv,noheader,nounits",
                     ],
                     text=True,
                 ).strip()
-                memory, utilization = map(int, status.split(","))
-                if memory > 100 or utilization > 0:
-                    raise RuntimeError(f"GPU {device} is occupied: {status}; no run launched")
+                occupancy = [tuple(map(int, row.split(","))) for row in status.splitlines()]
+                if sum(memory > 100 or use > 0 for memory, use in occupancy) > 4:
+                    raise RuntimeError("More than four GPUs occupied; stopping experiment")
+                if occupancy[int(device)][0] > 100 or occupancy[int(device)][1] > 0:
+                    raise RuntimeError(f"GPU {device} is occupied; no run launched")
             job = pending.pop(0)
             log = machine / f"{job['name']}.log"
             handle = log.open("w")

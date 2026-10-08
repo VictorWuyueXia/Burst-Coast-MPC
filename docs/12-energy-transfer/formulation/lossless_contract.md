@@ -138,8 +138,8 @@ Observed 1 ms coast drift is 1.31 × 10⁻¹² J and momentum drift 3.44 × 10�
 Reproduce from repository root:
 
 ```bash
-MPLCONFIGDIR=/tmp/bcmpc-mpl PYTHONPATH=src .venv/bin/python docs/12-energy-transfer/machine-scannables/validate_lossless.py
-.venv/bin/ruff check docs/12-energy-transfer/machine-scannables/validate_lossless.py
+MPLCONFIGDIR=/tmp/bcmpc-mpl PYTHONPATH=src .venv/bin/python scripts/experiments/physical-energy-transfer-controller/validate_lossless.py
+.venv/bin/ruff check scripts/experiments/physical-energy-transfer-controller/validate_lossless.py
 ```
 
 The new zero-damping study uses fine CPU integration as a reference; current JAX defaults still load the shared damped configuration. Future prediction and plant instances must both use the lossless parameters, and numerical drift must not be mislabeled as physical damping.

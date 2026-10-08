@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from rotary_pendulum.environment.jax_dynamics import MODEL, state_derivative
-from rotary_pendulum.environment.jax_environment import reset, step
+from rotary_pendulum.environment.jax_environment import ARM_LIMIT_RAD, reset, step
 from rotary_pendulum.RL.jax_residual_control import (
     POLICY_TORQUE_NM,
     TARGET_ENERGY_J,
@@ -74,12 +74,12 @@ def test_residual_can_cancel_and_reverse_heuristic() -> None:
 
 
 def test_arm_filter_intervenes_symmetrically_and_bounds_remain_nonterminal() -> None:
-    x = jnp.array([[1.5, 0, 3, 0], [-1.5, 0, -3, 0]])
+    x = jnp.array([[ARM_LIMIT_RAD - 0.07, 0, 3, 0], [-ARM_LIMIT_RAD + 0.07, 0, -3, 0]])
     torque, mode = filter_torque(x, jnp.array([POLICY_TORQUE_NM, -POLICY_TORQUE_NM]), 20)
     assert np.all(np.asarray(mode) != 0)
     assert float(torque[0]) < 0 < float(torque[1])
     np.testing.assert_allclose(torque[0], -torque[1], atol=1e-8)
-    state = reset(jax.random.PRNGKey(0), 0)._replace(x=jnp.array([2.0, 0, 0, 0]))
+    state = reset(jax.random.PRNGKey(0), 0)._replace(x=jnp.array([ARM_LIMIT_RAD + 0.1, 0, 0, 0]))
     following = step(state, 0)
     assert following.arm_violation and not following.timeout and not following.success
 

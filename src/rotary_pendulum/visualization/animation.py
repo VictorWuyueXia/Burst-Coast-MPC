@@ -76,7 +76,8 @@ class RotaryPendulumAnimation:
         self._tip_marker.set_data_3d([tip[0]], [tip[1]], [tip[2]])
         self.axis.set_title(
             "3D Mechanism\n"
-            f"theta={observation.theta_rad:+.2f} rad, alpha={observation.alpha_rad:+.2f} rad, "
+            f"arm={np.rad2deg(observation.theta_rad):+.1f}°, "
+            f"pendulum={np.rad2deg(observation.alpha_rad % (2 * np.pi)) % 360:.1f}°, "
             f"tau={applied_torque_nm:+.4f} N m"
         )
 

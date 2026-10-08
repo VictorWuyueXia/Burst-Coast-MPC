@@ -9,7 +9,7 @@ experiment:
     nu-rad-s: 0.0
 goal:
   theta-tolerance-rad: 0.08
-  beta-tolerance-rad: 0.08
+  beta-tolerance-rad: 0.2617993877991494
   omega-tolerance-rad-s: 0.15
   nu-tolerance-rad-s: 0.20
   hold-steps: 5

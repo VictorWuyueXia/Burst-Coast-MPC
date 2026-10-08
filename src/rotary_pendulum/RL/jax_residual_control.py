@@ -25,7 +25,7 @@ PENDULUM_SPEED_SCALE = 2.0 * jnp.sqrt(MODEL.gravity_torque_nm / MODEL.pendulum_i
 
 
 def heuristic_torque(x: Array, energy_time_s: float, sensitivity_floor_per_s: float) -> Array:
-    """Regularized inverse of dE/dt = drift + sensitivity * motor torque."""
+    """Regulate relative hinge-swing energy, not the pendulum body's total energy."""
 
     theta, alpha, omega, nu = jnp.moveaxis(x, -1, 0)
     inertia = MODEL.pendulum_inertia_kg_m2
@@ -105,7 +105,7 @@ def residual_action(
     x = jnp.stack(
         (
             observation[..., 0] * ARM_LIMIT_RAD,
-            jnp.arctan2(observation[..., 1], observation[..., 2]),
+            jnp.arctan2(observation[..., 1], observation[..., 2]) % (2 * jnp.pi) % (2 * jnp.pi),
             observation[..., 3] * ARM_SPEED_SCALE,
             observation[..., 4] * PENDULUM_SPEED_SCALE,
         ),

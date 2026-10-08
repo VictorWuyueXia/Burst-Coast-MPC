@@ -47,8 +47,8 @@ The upper policy was fixed during the recovery experiments to isolate this decod
 
 ## Reporting contract
 
-The [formulation](formulation_plan.md) defines energy and actual work. The [recovery contract](machine-scannables/decoder_recovery_contract.md) specifies the current algorithm. Re-encode actual physical motion every step. Log actual minus requested work, mode, root/recovery counts and predicted terminal speed. Never claim an override fulfilled the original energy plane. No hidden work-debt state is added.
+The [formulation](formulation_plan.md) defines energy and actual work. The [recovery contract](formulation/decoder_recovery_contract.md) specifies the current algorithm. Re-encode actual physical motion every step. Log actual minus requested work, mode, root/recovery counts and predicted terminal speed. Never claim an override fulfilled the original energy plane. No hidden work-debt state is added.
 
 Range recovery is a finite sampled prediction with a simple backup controller, not a hard invariant guarantee. The environment stays soft and nonterminal. Report any-excursion episodes, in-bound endpoint capture and capture without earlier excursion separately. Capture ends the episode and is not sustained hold.
 
-Human reports and PNGs are separate from machine NPZ/CSV/JSON and source snapshots. The [interpretation summary](interpretation_summary.md) states conclusions, limitations and reproduction commands. Compact records are retained in the documentation; full runtime artifacts are gitignored. Chinese companions use `-CN` and are gitignored as requested.
+Human reports and PNGs are separate from machine NPZ/CSV/JSON and source snapshots. The [interpretation summary](../../artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/interpretations/interpretation_summary.md) states conclusions, limitations and reproduction commands. Compact records are retained in the documentation; full runtime artifacts are gitignored. Chinese companions use `-CN` and are gitignored as requested.

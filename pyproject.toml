@@ -63,7 +63,7 @@ include = ["bringup*", "inverted_pendulum*", "rotary_pendulum*", "CR3BP*"]  # In
 
 [tool.setuptools.package-data]
 inverted_pendulum = ["configs/*.yaml"]  # Ship task configs
-rotary_pendulum = ["configs/*.yaml"]  # Ship rotary-pendulum task configs
+rotary_pendulum = ["configs/*.yaml", "configs/*.json"]  # Ship rotary-pendulum task configs
 
 # Pytest configuration for where to find code and tests
 [tool.pytest.ini_options]

@@ -10,32 +10,31 @@ from rotary_pendulum.environment.jax_dynamics import PHYSICS_DT_S
 from rotary_pendulum.environment.jax_environment import EnvState, step
 from rotary_pendulum.heuristic.decoder import decode
 from rotary_pendulum.heuristic.energy import encode, policy
-from rotary_pendulum.RL.jax_residual_control import filter_torque, heuristic_torque
 
 
 def evaluate(
-    initial: EnvState, parameters: Array, recovery_steps: int, decisions: int, mode: str
+    initial: EnvState, parameters: Array, decisions: int, mode: str
 ) -> tuple[EnvState, dict[str, Array]]:
-    """Advance a fixed chunk with parameters [work gain, kinetic weight, work weight]."""
+    """Advance a fixed chunk with parameters [work gain, work penalty, arm-limit penalty]."""
 
-    if mode not in ("energy", "zero", "previous"):
+    if mode not in ("energy", "zero"):
         raise ValueError(f"Unknown heuristic evaluation mode: {mode}")
+    initial = initial._replace(
+        x=initial.x.at[..., 1].set(initial.x[..., 1] % (2 * jnp.pi) % (2 * jnp.pi))
+    )
 
     def advance(state: EnvState, unused: None) -> tuple[EnvState, dict[str, Array]]:
-        requested = policy(encode(state.x), parameters[0], parameters[1])
+        requested = policy(encode(state.x), parameters[0])
         if mode == "energy":
-            torque, diagnostic = decode(state.x, requested, parameters[2], recovery_steps)
+            torque, diagnostic = decode(state.x, requested, parameters[1], parameters[2])
         else:
             torque = jnp.zeros_like(requested)
-            if mode == "previous":
-                torque, _ = filter_torque(state.x, heuristic_torque(state.x, 0.05, 2.0), 20)
             diagnostic = {
                 "mode": jnp.full(requested.shape, -1, jnp.int32),
                 "requested_work_j": jnp.zeros_like(requested),
                 "predicted_work_j": jnp.zeros_like(requested),
                 "predicted_peak_arm_rad": jnp.abs(state.x[..., 0]),
                 "root_count": jnp.zeros_like(requested, dtype=jnp.int32),
-                "recoverable_count": jnp.zeros_like(requested, dtype=jnp.int32),
                 "predicted_terminal_arm_speed": state.x[..., 2],
             }
 
@@ -52,6 +51,7 @@ def evaluate(
             "start_x": state.x,
             "x": following.x,
             "physics_x": jnp.moveaxis(samples, 0, -2),
+            "pendulum_angle_deg": jnp.rad2deg(jnp.moveaxis(samples[..., 1], 0, -1)) % 360,
             "physics_active": jnp.moveaxis(active, 0, -1),
             "energy_j": encode(following.x),
             "torque_nm": jnp.where(active_duration > 0.0, torque, 0.0),

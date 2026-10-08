@@ -1,4 +1,4 @@
-"""Animate committed historical or recovery sessions without simulation or GPU dependencies."""
+"""Animate archived historical or recovery sessions without simulation or GPU dependencies."""
 
 from __future__ import annotations
 
@@ -18,9 +18,13 @@ def main() -> None:
     recovery = parser.parse_args().recovery
     directory = (
         Path(__file__).resolve().parents[1]
-        / "docs/12-energy-transfer"
-        / "machine-scannables"
-        / ("recovery_confirmation_replay" if recovery else "heuristic_confirmation_replay")
+        / "artifacts/rotary_pendulum/experiment-results"
+        / (
+            "braking-prediction-controller-replay"
+            if recovery
+            else "original-analytical-controller-replay"
+        )
+        / "records"
     )
     manifest = json.loads((directory / "manifest.json").read_text())
     figure = plt.figure(figsize=(12, 9), layout="constrained")

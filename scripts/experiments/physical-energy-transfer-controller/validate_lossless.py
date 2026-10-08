@@ -19,13 +19,13 @@ from rotary_pendulum.utils.config_schema import PHYSICS_CONFIG_PATH, RotaryPendu
 def main():
     """Run vectorized physical probes and write separate data and explanatory plots."""
 
-    directory = Path(__file__).resolve().parent
-    human = directory.parent / "human-readables"
+    directory = Path(__file__).resolve().parents[3] / (
+        "artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/records"
+    )
+    human = directory.parent / "figures"
     human.mkdir(exist_ok=True)
     physical = RotaryPendulumConfig.model_validate(
-        OmegaConf.to_container(OmegaConf.load(PHYSICS_CONFIG_PATH), resolve=True)[
-            "rotary-pendulum"
-        ]
+        OmegaConf.to_container(OmegaConf.load(PHYSICS_CONFIG_PATH), resolve=True)["rotary-pendulum"]
     ).model_copy(update={"rotary_damping_nms": 0.0, "pendulum_damping_nms": 0.0})
     model = derive_model(physical)
     target = 2.0 * model.gravity_torque_nm
@@ -41,20 +41,30 @@ def main():
         history = np.asarray(history)
         energy = energy_ledger(history, np.zeros(2), physical, model)[0]
         momentum = (
-            (model.base_inertia_kg_m2 + model.pendulum_inertia_kg_m2
-             * np.sin(history[..., 1])**2) * history[..., 2]
-            + model.coupling_inertia_kg_m2 * np.cos(history[..., 1]) * history[..., 3]
-        )
+            model.base_inertia_kg_m2 + model.pendulum_inertia_kg_m2 * np.sin(history[..., 1]) ** 2
+        ) * history[..., 2] + model.coupling_inertia_kg_m2 * np.cos(history[..., 1]) * history[
+            ..., 3
+        ]
         drift = np.max(abs(energy.sum(axis=-1) - energy[0].sum(axis=-1)))
         momentum_drift = np.max(abs(momentum - momentum[0]))
         checks.append((dt, drift, momentum_drift))
         time = dt * np.arange(len(history))
-        records.extend(np.column_stack((
-            np.full(len(history), dt), time, history[:, 0], energy[:, 0],
-            energy[:, 0].sum(axis=-1), momentum[:, 0],
-        )))
-        print(f"dt={dt:g}: energy drift={drift:.3g} J; momentum drift={momentum_drift:.3g}",
-              flush=True)
+        records.extend(
+            np.column_stack(
+                (
+                    np.full(len(history), dt),
+                    time,
+                    history[:, 0],
+                    energy[:, 0],
+                    energy[:, 0].sum(axis=-1),
+                    momentum[:, 0],
+                )
+            )
+        )
+        print(
+            f"dt={dt:g}: energy drift={drift:.3g} J; momentum drift={momentum_drift:.3g}",
+            flush=True,
+        )
     assert checks[2][1] < checks[1][1] < checks[0][1]
     assert checks[2][1] < 1e-9
     assert checks[2][2] < 1e-9
@@ -62,7 +72,10 @@ def main():
     np.testing.assert_allclose(history[100, 1, 0], 1.65, atol=1e-12, rtol=0)
     assert history[100, 1, 0] > np.pi / 2
     np.savetxt(
-        directory / "lossless_coast.csv", records, delimiter=",", comments="",
+        directory / "lossless_coast.csv",
+        records,
+        delimiter=",",
+        comments="",
         header="dt_s,time_s,theta_rad,alpha_rad,omega_rad_s,nu_rad_s,"
         "arm_kinetic_J,pendulum_kinetic_J,potential_J,total_J,arm_momentum_kg_m2_s",
     )
@@ -76,25 +89,33 @@ def main():
     work = torques * (states[:, 0] - initial[0, 0])
     surface_residual = endpoints.sum(axis=-1) - energy[0, 0].sum() - work
     assert np.max(abs(surface_residual)) < 1e-9
-    inertia = model.base_inertia_kg_m2 + model.pendulum_inertia_kg_m2 * np.sin(states[:, 1])**2
+    inertia = model.base_inertia_kg_m2 + model.pendulum_inertia_kg_m2 * np.sin(states[:, 1]) ** 2
     coupling = model.coupling_inertia_kg_m2 * np.cos(states[:, 1])
-    fraction = model.arm_inertia_kg_m2 * model.pendulum_inertia_kg_m2 / (
-        inertia * model.pendulum_inertia_kg_m2 - coupling**2
+    fraction = (
+        model.arm_inertia_kg_m2
+        * model.pendulum_inertia_kg_m2
+        / (inertia * model.pendulum_inertia_kg_m2 - coupling**2)
     )
     assert np.all((fraction > 0) & (fraction < 1))
-    allocation = states[:, 2, None] * torques[:, None] * np.column_stack(
-        (fraction, 1.0 - fraction, np.zeros_like(fraction))
+    allocation = (
+        states[:, 2, None]
+        * torques[:, None]
+        * np.column_stack((fraction, 1.0 - fraction, np.zeros_like(fraction)))
     )
-    allocation_error = np.max(abs(
-        energy_ledger(states, torques, physical, model)[1]
-        - energy_ledger(states, 0.0, physical, model)[1] - allocation
-    ))
+    allocation_error = np.max(
+        abs(
+            energy_ledger(states, torques, physical, model)[1]
+            - energy_ledger(states, 0.0, physical, model)[1]
+            - allocation
+        )
+    )
     assert allocation_error < 1e-12
-    cost = 0.5 * np.sum((endpoints / target - np.array([0.0, 0.0, 1.0]))**2, axis=-1)
+    cost = 0.5 * np.sum((endpoints / target - np.array([0.0, 0.0, 1.0])) ** 2, axis=-1)
     np.savetxt(
         directory / "lossless_torque_curve.csv",
         np.column_stack((torques, states, endpoints, work, surface_residual, cost)),
-        delimiter=",", comments="",
+        delimiter=",",
+        comments="",
         header="torque_nm,theta_rad,alpha_rad,omega_rad_s,nu_rad_s,arm_kinetic_J,"
         "pendulum_kinetic_J,potential_J,work_J,surface_residual_J,squared_energy_cost",
     )
@@ -109,13 +130,17 @@ def main():
     slope = np.polyfit(np.log(beta), np.log(squared), 1)[0]
     assert abs(slope - 4.0) < 0.01
     np.savetxt(
-        directory / "lossless_cost.csv", np.column_stack((beta, linear, squared)),
-        delimiter=",", comments="",
+        directory / "lossless_cost.csv",
+        np.column_stack((beta, linear, squared)),
+        delimiter=",",
+        comments="",
         header="upright_error_rad,linear_height_cost,squared_energy_cost",
     )
     evidence = {
-        "rotary_damping_nms": 0.0, "pendulum_damping_nms": 0.0,
-        "shared_physics_config_changed": False, "target_energy_J": target,
+        "rotary_damping_nms": 0.0,
+        "pendulum_damping_nms": 0.0,
+        "shared_physics_config_changed": False,
+        "target_energy_J": target,
         "coast_initial_state": initial[0].tolist(),
         "coast_initial_energy_J": energy[0, 0].tolist(),
         "coast_energy_after_100ms_J": energy[100, 0].tolist(),
@@ -136,8 +161,7 @@ def main():
     for index, label in enumerate(("Arm kinetic", "Pendulum kinetic", "Potential")):
         axis.plot(time, 1000 * energy[:, 0, index], label=label)
     axis.plot(time, 1000 * energy[:, 0].sum(axis=-1), "k--", label="Total (conserved)")
-    axis.set(xlabel="Coast time [s]", ylabel="Energy [mJ]",
-             title="Zero damping + zero torque")
+    axis.set(xlabel="Coast time [s]", ylabel="Energy [mJ]", title="Zero damping + zero torque")
     axis.legend(fontsize=8)
     axis.grid(alpha=0.25)
 
@@ -147,17 +171,26 @@ def main():
     axis.add_collection3d(plane)
     axis.plot(*normalized.T, color="tab:blue", label="Actual coast trajectory")
     axis.scatter(*normalized[0], color="black", s=25, label="Initial energy point")
-    axis.set(xlabel="Arm kinetic / H₀", ylabel="Pendulum kinetic / H₀",
-             zlabel="Potential / H₀", title="Same plane, changing point\nH₀ = initial total energy",
-             xlim=(0, 1), ylim=(0, 1), zlim=(0, 1))
+    axis.set(
+        xlabel="Arm kinetic / H₀",
+        ylabel="Pendulum kinetic / H₀",
+        zlabel="Potential / H₀",
+        title="Same plane, changing point\nH₀ = initial total energy",
+        xlim=(0, 1),
+        ylim=(0, 1),
+        zlim=(0, 1),
+    )
     axis.tick_params(labelsize=8)
     axis.legend(fontsize=7, loc="upper left")
 
     axis = figure.add_subplot(133)
     axis.loglog(beta, linear, label="Linear height deficit")
     axis.loglog(beta, squared, label="Squared energy distance")
-    axis.set(xlabel="Upright angle error [rad]", ylabel="Dimensionless cost",
-             title="Squared energy cost is fourth-order locally")
+    axis.set(
+        xlabel="Upright angle error [rad]",
+        ylabel="Dimensionless cost",
+        title="Squared energy cost is fourth-order locally",
+    )
     axis.legend(fontsize=8)
     axis.grid(alpha=0.25)
     figure.savefig(human / "lossless_energy_geometry.png", dpi=170)

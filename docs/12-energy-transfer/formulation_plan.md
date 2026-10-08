@@ -8,7 +8,7 @@ For this first study, both damping coefficients are zero. This makes the total-e
 
 A normalized squared distance to the three-component target is a suitable first energy-space cost. It is different from squaring only total-energy error, which cannot distinguish kinetic energy from useful height. The squared component cost becomes flat near physical upright rest, so capture must be evaluated using explicit tolerances, not just a small cost.
 
-The analytical controller is now implemented in `src/rotary_pendulum/heuristic/`, and the shared `physics.yaml` sets both dampings to zero. Prediction and simulation use those same parameters. Previous damped artifacts remain historical. See [development plan](development_plan.md) for the implemented structure and [interpretation summary](interpretation_summary.md) for GPU results. This is a tested baseline, not a trained or successful general swing-up controller.
+The analytical controller is now implemented in `src/rotary_pendulum/heuristic/`, and the shared `physics.yaml` sets both dampings to zero. Prediction and simulation use those same parameters. Previous damped artifacts remain historical. See [development plan](development_plan.md) for the implemented structure and [interpretation summary](../../artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/interpretations/interpretation_summary.md) for GPU results. This is a tested baseline, not a trained or successful general swing-up controller.
 
 ## Physical state and three energies
 
@@ -81,7 +81,7 @@ $$
 \mathcal S(e,w)=\{z\in\mathcal E:\ \mathbf1^Tz=\mathbf1^Te+w\}.
 $$
 
-Here z is a possible next energy vector, and ℰ is the physically admissible energy region. In addition to nonnegative kinetic energies and 0 ≤ V ≤ E★, it includes a coupling constraint derived in the [lossless contract](machine-scannables/lossless_contract.md). S is generally a two-dimensional plane portion in three-dimensional energy space. It is a necessary work-balance condition, not a claim that every point on it is reachable.
+Here z is a possible next energy vector, and ℰ is the physically admissible energy region. In addition to nonnegative kinetic energies and 0 ≤ V ≤ E★, it includes a coupling constraint derived in the [lossless contract](formulation/lossless_contract.md). S is generally a two-dimensional plane portion in three-dimensional energy space. It is a necessary work-balance condition, not a claim that every point on it is reachable.
 
 The torque itself is one scalar. Let U = 0.00918 N m be the retained policy cap, within the physical 0.0204 N m limit. Let FΔ(x,u) be the physical endpoint after holding u for Δ, and 𝒲(x,u) be its shaft work:
 
@@ -143,11 +143,11 @@ $$
 \mathbf1^Te'=\mathbf1^Te+w+\delta W.
 $$
 
-Thus the three measured energies remain truthful even when the original requested plane is infeasible or rejected for recovery. There is no hidden energy debt. Exact equations and mode definitions are in the [recovery contract](machine-scannables/decoder_recovery_contract.md).
+Thus the three measured energies remain truthful even when the original requested plane is infeasible or rejected for recovery. There is no hidden energy debt. Exact equations and mode definitions are in the [recovery contract](formulation/decoder_recovery_contract.md).
 
 Zero torque alone cannot guarantee the arm bound: x = (1.55,0,1,0) coasts to θ = 1.65 rad in 100 ms. Conversely, a nonzero pulse can realize zero net work by braking and reversing within the interval. The new decoder preserves that choice. A finite sampled recovery test still cannot guarantee future containment; the environment neither clips nor terminates crossings.
 
-The old forced-coast decoder admitted downward pendulum/steady arm-rotation non-target motions, derived in the [historical implementation contract](machine-scannables/implementation_contract.md). The revision removed excursions from all 192 downward confirmation starts, but replaced rotation with bounded oscillation rather than successful swing-up. This distinction matters: useful energy transfer and phase matching must be measured separately from containment.
+The old forced-coast decoder admitted downward pendulum/steady arm-rotation non-target motions, derived in the [historical implementation contract](formulation/implementation_contract.md). The revision removed excursions from all 192 downward confirmation starts, but replaced rotation with bounded oscillation rather than successful swing-up. This distinction matters: useful energy transfer and phase matching must be measured separately from containment.
 
 ## What the planner needs, and what can be learned
 
@@ -173,7 +173,7 @@ The original stage-3 performance screen was not met; validating the implementati
 
 ## Numerical evidence and artifact interpretation
 
-![Lossless energy geometry and local cost](human-readables/lossless_energy_geometry.png)
+![Lossless energy geometry and local cost](../../artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/figures/lossless_energy_geometry.png)
 
 Left: three components change while their sum is constant. Middle: the blue coast trajectory stays on the gray constant-total plane; axes are divided by initial total energy H₀. The gray triangle is only a conservation relaxation, not the entire physically reachable set. Right: at zero speeds, squared energy distance falls fourth-order with small upright-angle error, while the linear height deficit falls second-order.
 
@@ -189,6 +189,6 @@ The original `validate_lossless.main()` and reused `energy_ledger` remain mechan
 
 ## Sources and reproduction
 
-Reproduce the lossless study with `MPLCONFIGDIR=/tmp/bcmpc-mpl PYTHONPATH=src .venv/bin/python docs/12-energy-transfer/machine-scannables/validate_lossless.py`. It uses the existing environment and no GPU or added dependency. The [lossless mathematical contract](machine-scannables/lossless_contract.md) specifies the exact surface, allocation, momentum and decoder rules; the [general analytical contract](machine-scannables/analytical_contract.md) retains the original Lagrangian derivation and damped evidence.
+Reproduce the lossless study with `MPLCONFIGDIR=/tmp/bcmpc-mpl PYTHONPATH=src .venv/bin/python scripts/experiments/physical-energy-transfer-controller/validate_lossless.py`. It uses the existing environment and no GPU or added dependency. The [lossless mathematical contract](formulation/lossless_contract.md) specifies the exact surface, allocation, momentum and decoder rules; the [general analytical contract](formulation/analytical_contract.md) retains the original Lagrangian derivation and damped evidence.
 
 The local derivations are the basis of this proposal. For primary-source context, [Cazzolato and Prime](https://digital.library.adelaide.edu.au/items/2dee399a-84e2-4990-a1e1-c191c44d3b92) discuss Furuta dynamics and modeling approximations; [Tedrake's pendulum notes](https://underactuated.mit.edu/pend.html) explain conservative energy contours and why energy shaping and stabilization are distinct. These sources do not validate this work decoder or its work policy or soft decoder.

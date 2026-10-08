@@ -32,7 +32,7 @@ We are on a ubuntu remote server where conda or sudo is not available, we need t
 # How to use GPU
 We are on a 8-GPU servers now which means we want to use the maximum parallel computing ability of them with our code to lighten the time cost of our computation. 
 
-We are on a shared server, so everytime when we run code that uses GPU, check the GPU occupation status -- if other users are running things on any GPU, avoid those GPUs. If many GPUs are in use, stop the run and tell me. Default to using GPU 6-7.
+We are on a shared server, so everytime when we run code that uses GPU, check the GPU occupation status -- if other users are running things on any GPU, avoid those GPUs. If more than 4 GPUs are in use, stop the operation and tell me. Default to using GPU 0-3.
 
 But you cannot access GPU with your sandbox terminal directly, and sudo is not available on this remote server. So the way is to submit the training/run command through the terminal tool with sandbox_permissions="require_escalated". After my approval, the command executed outside the sandbox on the same Ubuntu host, where CUDA and the GPUs were visible.
 For example, the earlier eight-GPU run used:

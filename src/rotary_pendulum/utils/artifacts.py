@@ -19,9 +19,9 @@ from bringup import __version__
 from rotary_pendulum.utils.config_schema import EpisodeConfig, VisualizationConfig
 from rotary_pendulum.utils.messages import ActionPlan, EpisodeSummary, StepRecord
 
-ARTIFACT_FORMAT_VERSION = 1
+ARTIFACT_FORMAT_VERSION = 3
 REPO_ROOT = Path(__file__).resolve().parents[3]
-STEP_CSV_HEADERS = tuple(field.name for field in fields(StepRecord))
+STEP_CSV_HEADERS = (*[field.name for field in fields(StepRecord)], "pendulum_angle_deg")
 PLAN_CSV_HEADERS = (
     "plan_id",
     "replan_index",
@@ -110,7 +110,9 @@ class RotaryArtifactWriter:
         )
         step_writer.writeheader()
         for record in records:
-            step_writer.writerow(asdict(record))
+            step_writer.writerow(
+                {**asdict(record), "pendulum_angle_deg": float(np.rad2deg(record.alpha_rad) % 360)}
+            )
         step_file.close()
         self.step_count = len(records)
 
@@ -170,13 +172,16 @@ class RotaryArtifactWriter:
             f"The episode ended with `{summary.status}` after {summary.steps} dynamics steps "
             f"and {summary.replans} complete MPC replans. Goal reached: "
             f"`{str(summary.goal_reached).lower()}`.\n\n"
-            f"- Final normalized energy error: {summary.final_normalized_energy_error:.6f}\n"
-            f"- Closest normalized energy error: {minimum_energy_error:.6f}\n"
+            "- Final normalized mechanical-energy error: "
+            f"{summary.final_normalized_energy_error:.6f}\n"
+            f"- Closest normalized mechanical-energy error: {minimum_energy_error:.6f}\n"
             f"- Closest wrapped upright pendulum error: {minimum_beta_error:.6f} rad\n"
             f"- Mean selected burst fraction B/H: {selected_splits.mean():.6f}\n\n"
             "The objective combines terminal pendulum-relative swing energy, burst-only phase "
             "chasing and actuation continuation, energy-gated terminal capture, and the ±90 "
-            "degree arm soft limit. If target swing energy is approached without satisfying the "
+            "degree arm soft limit. The energy logs show both bodies' physical mechanical energy; "
+            "the older MPC objective uses hinge-relative swing energy separately. If upright "
+            "energy is approached without satisfying the "
             "full-state goal, inspect the local capture errors; if it is not approached, the "
             "burst-coast structure or pumping objective remains limiting.\n"
         )
@@ -213,6 +218,12 @@ class RotaryArtifactWriter:
                 "config_sources": [str(path) for path in self.config_sources],
                 "cli_args": self.cli_args,
                 "package_version": __version__,
+                "pendulum_angle_convention": (
+                    "alpha_rad in [0, 2*pi); degrees in [0, 360); 0 down, 180 up"
+                ),
+                "energy_convention": (
+                    "kinetic_energy_j is both bodies; energy_j is total mechanical energy"
+                ),
                 "python_version": sys.version,
                 "platform": platform.platform(),
                 "git_commit": commit,

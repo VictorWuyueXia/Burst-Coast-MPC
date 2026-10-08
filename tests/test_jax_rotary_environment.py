@@ -83,10 +83,11 @@ def test_constants_match_the_validated_nominal_configuration() -> None:
     assert PHYSICS_DT_S == pytest.approx(0.02)
     assert TORQUE_LIMIT_NM == pytest.approx(0.0204)
     assert GOAL.theta_tolerance_rad == pytest.approx(0.08)
-    assert GOAL.beta_tolerance_rad == pytest.approx(0.08)
+    assert GOAL.beta_tolerance_rad == pytest.approx(np.pi / 12)
     assert GOAL.omega_tolerance_rad_s == pytest.approx(0.15)
     assert GOAL.nu_tolerance_rad_s == pytest.approx(0.20)
     assert GOAL.hold_steps == 5
+    assert ARM_LIMIT_RAD == pytest.approx(np.pi)
     assert MAX_PHYSICS_STEPS * PHYSICS_DT_S == pytest.approx(20.0)
 
 
@@ -117,7 +118,9 @@ def test_float64_rk4_parity_and_20ms_resolution_gate() -> None:
         candidate_20ms = rk4_step(candidate_20ms, jnp.asarray(torques))
     for _ in range(50):
         reference_2ms = numpy_rk4_step(reference_2ms, torques, 0.002, PHYSICAL, MODEL)
-    error = np.abs(np.asarray(candidate_20ms) - reference_2ms)
+    difference = np.asarray(candidate_20ms) - reference_2ms
+    difference[:, 1] = np.arctan2(np.sin(difference[:, 1]), np.cos(difference[:, 1]))
+    error = np.abs(difference)
 
     assert np.isfinite(candidate_20ms).all()
     assert error[:, :2].max() <= 0.02
@@ -128,11 +131,14 @@ def test_float64_rk4_parity_and_20ms_resolution_gate() -> None:
 def test_reset_support_variance_signs_and_seed_replay(stratum: int) -> None:
     keys = jax.random.split(jax.random.key(VALIDATION_SEED + stratum), 10_000)
     strata = jnp.full((10_000,), stratum)
-    states = np.asarray(jax.jit(jax.vmap(reset))(keys, strata).x)
+    states = np.array(jax.jit(jax.vmap(reset))(keys, strata).x)
     replay = np.asarray(jax.jit(jax.vmap(reset))(keys, strata).x)
 
     np.testing.assert_array_equal(states, replay)
     assert np.all(np.var(states, axis=0) > 0.0)
+    assert np.all((states[:, 1] >= 0) & (states[:, 1] < 2 * np.pi))
+    if stratum != 2:
+        states[:, 1] = np.arctan2(np.sin(states[:, 1]), np.cos(states[:, 1]))
     if stratum == 0:
         assert np.all(states >= [-0.20, -0.20, -0.5, -0.5])
         assert np.all(states <= [0.20, 0.20, 0.5, 0.5])

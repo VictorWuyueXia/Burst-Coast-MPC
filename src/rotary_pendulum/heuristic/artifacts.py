@@ -10,6 +10,9 @@ from typing import Any
 import matplotlib
 import numpy as np
 
+from rotary_pendulum.environment.dynamics import energy_components
+from rotary_pendulum.environment.jax_dynamics import MODEL, PHYSICAL
+from rotary_pendulum.environment.jax_environment import ARM_LIMIT_RAD, GOAL
 from rotary_pendulum.heuristic.energy import TARGET_ENERGY_J
 
 matplotlib.use("Agg")
@@ -25,7 +28,18 @@ def write_artifacts(
     machine.mkdir(parents=True, exist_ok=False)
     human.mkdir(parents=True, exist_ok=False)
     np.savez_compressed(machine / "trajectories.npz", allow_pickle=False, **traces)
-    (machine / "settings.json").write_text(json.dumps(settings, indent=2) + "\n")
+    (machine / "settings.json").write_text(
+        json.dumps(
+            {
+                **settings,
+                "pendulum_angle_convention": (
+                    "[0, 360) degrees; 0 down, 180 up; state arrays use radians in [0, 2*pi)"
+                ),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     rows: list[dict[str, Any]] = []
     for lane, label in enumerate(labels):
         active = traces["elapsed_s"][:, lane] > 0
@@ -44,7 +58,9 @@ def write_artifacts(
         cost = 0.5 * np.sum((energy - [0, 0, 1]) ** 2, axis=-1)
         speeds = np.concatenate((traces["start_x"][0, lane, 2:3], samples[..., 2][sample_active]))
         signs = np.sign(speeds[abs(speeds) > 0.15])
-        in_bound_hold = traces["success"][-1, lane] and abs(traces["x"][-1, lane, 0]) <= np.pi / 2
+        in_bound_hold = traces["success"][-1, lane] and abs(traces["x"][-1, lane, 0]) <= float(
+            ARM_LIMIT_RAD
+        )
         rows.append(
             {
                 "lane": lane,
@@ -59,11 +75,18 @@ def write_artifacts(
                 "final_energy_cost": float(cost[np.flatnonzero(active)[-1]]),
                 "peak_arm_rad": float(np.max(abs(samples[..., 0])[sample_active])),
                 "beyond_arm_s": float(
-                    0.02 * np.sum((abs(samples[..., 0]) > np.pi / 2) & sample_active)
+                    0.02 * np.sum((abs(samples[..., 0]) > float(ARM_LIMIT_RAD)) & sample_active)
                 ),
-                "recovery_unresolved_fraction": float(np.mean(traces["mode"][active, lane] == 2)),
+                "predicted_crossing_fraction": float(
+                    np.mean(traces["predicted_peak_arm_rad"][active, lane] > float(ARM_LIMIT_RAD))
+                ),
                 "work_override_fraction": float(np.mean(traces["mode"][active, lane] == 1)),
                 "numerical_reject_fraction": float(np.mean(traces["mode"][active, lane] == 3)),
+                "final_arm_speed_rad_s": float(samples[sample_active][-1, 2]),
+                "final_pendulum_speed_rad_s": float(samples[sample_active][-1, 3]),
+                "final_total_energy_j": float(
+                    traces["energy_j"][np.flatnonzero(active)[-1], lane].sum()
+                ),
                 "arm_reversals": int(np.sum(signs[1:] != signs[:-1])),
                 "maximum_potential_fraction": float(np.max(energy[active, 2])),
                 "zero_work_nonzero_torque_count": int(
@@ -135,35 +158,52 @@ def write_artifacts(
         )
         flattened_time = sample_time[sample_active]
         physical = samples[sample_active]
-        beta = np.arctan2(np.sin(physical[:, 1] - np.pi), np.cos(physical[:, 1] - np.pi))
-        axes[0, column].plot(flattened_time, abs(beta))
-        axes[0, column].axhline(0.08, color="green", linestyle="--", label="Capture angle")
+        angle_deg = np.rad2deg(physical[:, 1] % (2 * np.pi)) % 360
+        angle_deg[np.abs(np.diff(angle_deg, prepend=angle_deg[0])) > 180] = np.nan
+        axes[0, column].plot(flattened_time, angle_deg, marker=".", markersize=2)
+        axes[0, column].axhspan(
+            180 - np.rad2deg(GOAL.beta_tolerance_rad),
+            180 + np.rad2deg(GOAL.beta_tolerance_rad),
+            color="green",
+            alpha=0.15,
+            label="Upright goal band",
+        )
+        axes[0, column].set_ylim(0, 360)
+        axes[0, column].set_yticks([0, 90, 180, 270, 360])
         axes[0, column].set_title(f"{label}: lane {lane}; capture={rows[lane]['success']}")
         axes[1, column].plot(flattened_time, physical[:, 2], label="Arm speed")
         axes[1, column].plot(flattened_time, physical[:, 3], label="Pendulum speed")
-        energy = traces["energy_j"][active, lane] / TARGET_ENERGY_J
+        kinetic, potential, _ = energy_components(physical, PHYSICAL, MODEL)
+        arm_kinetic = 0.5 * MODEL.arm_inertia_kg_m2 * physical[:, 2] ** 2
+        energy = 1000 * np.stack((arm_kinetic, kinetic - arm_kinetic, potential), axis=-1)
         for index, name in enumerate(("Arm kinetic", "Pendulum kinetic", "Potential")):
-            axes[2, column].plot(time, energy[:, index], label=name)
-        axes[2, column].plot(time, energy.sum(axis=-1), "k--", label="Total")
-        axes[2, column].axhline(1, color="gray", linewidth=0.7)
-        axes[3, column].plot(flattened_time, physical[:, 0])
-        axes[3, column].axhline(np.pi / 2, color="red", linestyle="--", label="Soft bound")
-        axes[3, column].axhline(-np.pi / 2, color="red", linestyle="--")
-        start_time = time - traces["elapsed_s"][active, lane]
-        axes[4, column].step(start_time, 1000 * traces["torque_nm"][active, lane], where="post")
-        axes[5, column].plot(
-            time, 1000 * traces["requested_work_j"][active, lane], label="Requested"
+            axes[2, column].plot(flattened_time, energy[:, index], label=name)
+        axes[2, column].plot(flattened_time, energy.sum(axis=-1), "k--", label="Total")
+        axes[2, column].axhline(1000 * TARGET_ENERGY_J, color="gray", linewidth=0.7)
+        axes[3, column].plot(flattened_time, np.rad2deg(physical[:, 0]))
+        axes[3, column].axhline(
+            float(np.rad2deg(ARM_LIMIT_RAD)), color="red", linestyle="--", label="Soft bound"
         )
-        axes[5, column].plot(time, 1000 * traces["work_j"][active, lane], label="Delivered")
+        axes[3, column].axhline(-float(np.rad2deg(ARM_LIMIT_RAD)), color="red", linestyle="--")
+        start_time = time - traces["elapsed_s"][active, lane]
+        axes[4, column].stairs(
+            1000 * traces["torque_nm"][active, lane], np.r_[start_time, time[-1]]
+        )
+        axes[5, column].plot(
+            time, 1000 * traces["requested_work_j"][active, lane], marker=".", label="Requested"
+        )
+        axes[5, column].plot(
+            time, 1000 * traces["work_j"][active, lane], marker=".", label="Delivered"
+        )
         axes[5, column].set_xlabel("Time [s]")
         for row in range(6):
             axes[row, column].grid(alpha=0.25)
     for row, label in enumerate(
         (
-            "Distance from upright [rad]",
+            "Pendulum angle [deg; 0 down, 180 up]",
             "Signed speed [rad/s]",
-            "Energy / upright target",
-            "Arm angle [rad]",
+            "Physical energy [mJ]",
+            "Arm angle [deg]",
             "Applied torque [mN m]",
             "Work per decision [mJ]",
         )

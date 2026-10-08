@@ -1,6 +1,6 @@
 # Implemented recovery-decoder contract
 
-The user authorized all three recovery changes, including explicit work overrides. This contract describes the executed `predictive_recovery_v1` decoder. The [development plan](../development_plan.md) specifies its structure budget; the [results](../interpretation_summary.md) distinguish implementation checks from unresolved swing-up and containment failures.
+The user authorized all three recovery changes, including explicit work overrides. This contract describes the executed `predictive_recovery_v1` decoder. The [development plan](../development_plan.md) specifies its structure budget; the [results](../../../artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/interpretations/interpretation_summary.md) distinguish implementation checks from unresolved swing-up and containment failures.
 
 ## Dynamics and energy accounting
 
@@ -86,14 +86,14 @@ Episode records include `recovery_unresolved_fraction` (mode 2 share of active d
 
 `decoder_first_crossings.csv` and `decoder_recovery_audit.json` retain the previous decoder's first-crossing diagnosis and local zero-work/saturated-braking probes. They explain the revision, not its closed-loop success. The current `recovery_comparison.csv`, `recovery_confirmation_episodes.csv`, `recovery_pilots.csv`, `recovery_integration_audits.json` and `recovery_fine_summary.json` contain the new evaluation records. The readable report defines the strata and outcomes.
 
-The existing `audit_decoder_recovery.main()` retains its 1 ms NumPy local probes and additionally runs two independent closed loops: 20 ms and 2 ms NumPy plants, the same JAX decoder, 100 ms control updates and 20 ms capture checks. Initial states are the first 16 from each stratum plus four deterministic probes in archived confirmation seed 20261008. Each plant replans from its own evolving state. The predictor stays at 20 ms, so this tests closed-loop sensitivity to plant integration rather than refining the predictor too. It prints progress each simulated second and saves full numerical traces under `artifacts/rotary_pendulum/energy-heuristic/recovery_fine_audit/machine-scannables/`.
+The existing `audit_decoder_recovery.main()` retains its 1 ms NumPy local probes and additionally runs two independent closed loops: 20 ms and 2 ms NumPy plants, the same JAX decoder, 100 ms control updates and 20 ms capture checks. Initial states are the first 16 from each stratum plus four deterministic probes in archived confirmation seed 20261008. Each plant replans from its own evolving state. The predictor stays at 20 ms, so this tests closed-loop sensitivity to plant integration rather than refining the predictor too. It prints progress each simulated second and saves full numerical traces under `artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/raw-runs/recovery_fine_audit/machine-scannables/`.
 
 The local saturated-braking probes freeze at their first nonpositive speed only to measure stopping position; that freeze is diagnostic bookkeeping. Closed-loop replay freezes only at the shared capture condition, retaining the current environment semantics.
 
 Run from repository root with the existing virtual environment and archived initial states/traces:
 
 ```bash
-CUDA_VISIBLE_DEVICES=3 JAX_ENABLE_X64=true PYTHONPATH=src .venv/bin/python docs/12-energy-transfer/machine-scannables/audit_decoder_recovery.py
+CUDA_VISIBLE_DEVICES=3 JAX_ENABLE_X64=true PYTHONPATH=src .venv/bin/python scripts/experiments/physical-energy-transfer-controller/audit_decoder_recovery.py
 ```
 
 Use physical GPUs 0–3 only; allocation is checked before JAX initialization. Current confirmation campaigns use `recovery_steps`, `work_weight` and unchanged upper-policy parameters; old `coast_steps`/`arm_weight` campaigns require their source snapshots. Complete campaign commands and numerical limitations are in the interpretation summary.

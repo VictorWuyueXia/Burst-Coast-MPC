@@ -65,6 +65,10 @@ class RealtimeRotaryPendulumPlot:
         """Initialize the 3D mechanism from the reset state."""
 
         self.animation.start(observation)
+        arm_deg = np.rad2deg(observation.theta_rad)
+        self.axes["angles"].set_ylim(
+            min(0, float(arm_deg.min())) - 5, max(360, float(arm_deg.max())) + 5
+        )
         self.figure.canvas.draw_idle()
         self._plt.pause(0.001)
 
@@ -122,10 +126,14 @@ class RealtimeRotaryPendulumPlot:
             self.model,
         )
 
+        # Plot the complete pendulum orientation, breaking lines at the circular boundary.
+        angle_deg = np.rad2deg(np.asarray(self.series["alpha_rad"]) % (2 * np.pi)) % 360
+        angle_deg[np.abs(np.diff(angle_deg, prepend=angle_deg[0])) > 180] = np.nan
+
         # Update dense signals through one aligned mapping to keep display semantics auditable.
         line_data = {
-            "theta": (time, self.series["theta_rad"]),
-            "alpha": (time, self.series["alpha_rad"]),
+            "theta": (time, np.rad2deg(self.series["theta_rad"])),
+            "alpha": (time, angle_deg),
             "omega": (time, self.series["omega_rad_s"]),
             "nu": (time, self.series["nu_rad_s"]),
             "commanded": (time, self.series["u_commanded_nm"]),
@@ -159,6 +167,10 @@ class RealtimeRotaryPendulumPlot:
             if name not in {"mechanism", "phase", "hb"}:
                 axis.relim()
                 axis.autoscale_view()
+        arm_deg = np.rad2deg(self.series["theta_rad"])
+        self.axes["angles"].set_ylim(
+            min(0, float(arm_deg.min())) - 5, max(360, float(arm_deg.max())) + 5
+        )
         self.figure.canvas.draw_idle()
         self._plt.pause(0.001)
 
@@ -197,15 +209,15 @@ class RealtimeRotaryPendulumPlot:
 
         # Command and reference styles match the established inverted-pendulum artifacts.
         lines = {
-            "theta": self.axes["angles"].plot([], [], label="theta arm")[0],
-            "alpha": self.axes["angles"].plot([], [], label="alpha pendulum")[0],
+            "theta": self.axes["angles"].plot([], [], label="Arm (signed)")[0],
+            "alpha": self.axes["angles"].plot([], [], label="Pendulum (0–360°)")[0],
             "omega": self.axes["velocities"].plot([], [], label="omega arm")[0],
             "nu": self.axes["velocities"].plot([], [], label="nu pendulum")[0],
             "commanded": self.axes["torque"].plot([], [], linestyle="--", label="commanded")[0],
             "applied": self.axes["torque"].plot([], [], label="actual")[0],
-            "kinetic": self.axes["energy"].plot([], [], label="swing kinetic")[0],
-            "potential": self.axes["energy"].plot([], [], label="swing potential")[0],
-            "total": self.axes["energy"].plot([], [], linewidth=2.0, label="swing total")[0],
+            "kinetic": self.axes["energy"].plot([], [], label="total kinetic")[0],
+            "potential": self.axes["energy"].plot([], [], label="pendulum potential")[0],
+            "total": self.axes["energy"].plot([], [], linewidth=2.0, label="mechanical total")[0],
             "arm_phase": self.axes["phase"].plot(
                 [], [], color="tab:blue", alpha=0.5, label="arm oscillator phase"
             )[0],
@@ -244,10 +256,10 @@ class RealtimeRotaryPendulumPlot:
 
         # Labels distinguish arm and pendulum states and define normalized action coordinates.
         labels = {
-            "angles": ("Angular States", "t s", "angle rad"),
+            "angles": ("Angles: pendulum 0 down, 180 up", "t s", "angle deg"),
             "velocities": ("Angular Velocities", "t s", "rad/s"),
             "torque": ("Torque", "t s", "N m"),
-            "energy": ("Pendulum-Relative Swing Energy", "t s", "J"),
+            "energy": ("Physical Mechanical Energy", "t s", "J"),
             "phase": (
                 "Oscillator Phase Plane (latest 10 s)",
                 "radius cos(phase) m",

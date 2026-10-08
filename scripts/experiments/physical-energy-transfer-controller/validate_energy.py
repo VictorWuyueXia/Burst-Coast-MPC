@@ -60,11 +60,11 @@ def energy_ledger(x, u, physical: RotaryPendulumConfig, model: ModelConstants):
 def main():
     """Audit identities, phase aliasing, work inversion, and integration accuracy."""
 
-    directory = Path(__file__).resolve().parent
+    directory = Path(__file__).resolve().parents[3] / (
+        "artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/records"
+    )
     physical = RotaryPendulumConfig.model_validate(
-        OmegaConf.to_container(OmegaConf.load(PHYSICS_CONFIG_PATH), resolve=True)[
-            "rotary-pendulum"
-        ]
+        OmegaConf.to_container(OmegaConf.load(PHYSICS_CONFIG_PATH), resolve=True)["rotary-pendulum"]
     )
     model = derive_model(physical)
     rng = np.random.default_rng(20261007)
@@ -77,10 +77,11 @@ def main():
     # Differentiate L independently of the implemented generalized-force equations.
     q, velocity, torque = ca.SX.sym("q", 2), ca.SX.sym("v", 2), ca.SX.sym("u")
     kinetic = (
-        0.5 * (model.base_inertia_kg_m2 + model.pendulum_inertia_kg_m2 * ca.sin(q[1])**2)
-        * velocity[0]**2
+        0.5
+        * (model.base_inertia_kg_m2 + model.pendulum_inertia_kg_m2 * ca.sin(q[1]) ** 2)
+        * velocity[0] ** 2
         + model.coupling_inertia_kg_m2 * ca.cos(q[1]) * velocity[0] * velocity[1]
-        + 0.5 * model.pendulum_inertia_kg_m2 * velocity[1]**2
+        + 0.5 * model.pendulum_inertia_kg_m2 * velocity[1] ** 2
     )
     lagrangian = kinetic - model.gravity_torque_nm * (1 - ca.cos(q[1]))
     momentum = ca.gradient(lagrangian, velocity)
@@ -118,7 +119,8 @@ def main():
     np.savetxt(
         directory / "phase_alias.csv",
         np.column_stack((pairs, np.full(2, 0.002), pair_energy, pair_rates, pair_power)),
-        delimiter=",", comments="",
+        delimiter=",",
+        comments="",
         header="theta_rad,alpha_rad,omega_rad_s,nu_rad_s,torque_nm,arm_kinetic_J,"
         "pendulum_kinetic_J,potential_J,arm_rate_W,pendulum_kinetic_rate_W,potential_rate_W,"
         "input_power_W,transfer_power_W,arm_loss_W,pendulum_loss_W",
@@ -133,7 +135,8 @@ def main():
     np.savetxt(
         directory / "coast_alias.csv",
         np.column_stack((pairs, pair_energy, np.zeros(2), coast, coast_energy)),
-        delimiter=",", comments="",
+        delimiter=",",
+        comments="",
         header="initial_theta_rad,initial_alpha_rad,initial_omega_rad_s,initial_nu_rad_s,"
         "initial_arm_kinetic_J,initial_pendulum_kinetic_J,initial_potential_J,work_J,"
         "final_theta_rad,final_alpha_rad,final_omega_rad_s,final_nu_rad_s,"
@@ -149,8 +152,8 @@ def main():
         for _ in range(round(0.1 / dt)):
             stages, powers = [], []
             for stage in range(4):
-                current = state if stage == 0 else state + (
-                    dt * (0.5 if stage < 3 else 1.0) * stages[-1]
+                current = (
+                    state if stage == 0 else state + (dt * (0.5 if stage < 3 else 1.0) * stages[-1])
                 )
                 stages.append(state_derivative(current, torques, physical, model))
                 stage_power = energy_ledger(current, torques, physical, model)[2]
@@ -166,14 +169,23 @@ def main():
             np.column_stack((np.full(2, dt), torques, state, final_energy, accumulated, residual))
         )
     np.savetxt(
-        directory / "startup_work.csv", rows, delimiter=",", comments="",
+        directory / "startup_work.csv",
+        rows,
+        delimiter=",",
+        comments="",
         header="dt_s,torque_nm,theta_rad,alpha_rad,omega_rad_s,nu_rad_s,arm_kinetic_J,"
         "pendulum_kinetic_J,potential_J,input_work_J,damping_loss_J,balance_residual_J",
     )
     assert abs(rows[4][-1]) < abs(rows[2][-1]) < abs(rows[0][-1])
     metrics.append(("refined_startup_balance_error", abs(rows[4][-1]), "J", 1e-10))
-    np.savetxt(directory / "identity_checks.csv", np.array(metrics, dtype=object),
-               fmt="%s", delimiter=",", comments="", header="metric,value,unit,pass_upper_bound")
+    np.savetxt(
+        directory / "identity_checks.csv",
+        np.array(metrics, dtype=object),
+        fmt="%s",
+        delimiter=",",
+        comments="",
+        header="metric,value,unit,pass_upper_bound",
+    )
     for name, value, unit, bound in metrics:
         assert value < bound, (name, value, bound)
         print(f"PASS {name}: {value:.6g} {unit} < {bound:g}", flush=True)

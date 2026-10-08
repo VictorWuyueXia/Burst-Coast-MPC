@@ -29,15 +29,13 @@ def oscillator_phase_points(
     arm_basis = np.stack((theta_rad, omega_rad_s / natural_frequency_rad_s), axis=-1)
     pendulum_basis = np.stack(
         (
-            np.sin(0.5 * alpha_rad),
+            np.sin(0.5 * np.arctan2(np.sin(alpha_rad), np.cos(alpha_rad))),
             nu_rad_s / (2.0 * natural_frequency_rad_s),
         ),
         axis=-1,
     )
     arm_norm = np.sqrt(np.sum(arm_basis**2, axis=-1, keepdims=True) + PHASE_EPSILON**2)
-    pendulum_norm = np.sqrt(
-        np.sum(pendulum_basis**2, axis=-1, keepdims=True) + PHASE_EPSILON**2
-    )
+    pendulum_norm = np.sqrt(np.sum(pendulum_basis**2, axis=-1, keepdims=True) + PHASE_EPSILON**2)
     return (
         np.asarray(physical.arm_length_m * arm_basis / arm_norm),
         np.asarray(physical.pendulum_length_m * pendulum_basis / pendulum_norm),

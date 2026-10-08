@@ -70,7 +70,9 @@ def rk4_step_symbolic(x: Any, torque_nm: Any, physics: EpisodeConfig) -> Any:
     k2 = state_derivative_symbolic(x + 0.5 * timestep_s * k1, torque_nm, physics)
     k3 = state_derivative_symbolic(x + 0.5 * timestep_s * k2, torque_nm, physics)
     k4 = state_derivative_symbolic(x + timestep_s * k3, torque_nm, physics)
-    return x + timestep_s * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
+    following = x + timestep_s * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
+    alpha = ca.fmod(ca.fmod(following[1], 2 * np.pi) + 2 * np.pi, 2 * np.pi)
+    return ca.vertcat(following[0], alpha, following[2], following[3])
 
 
 def prediction_horizon_steps(physics: EpisodeConfig, mpc: MPCConfig) -> int:
@@ -130,6 +132,7 @@ def rollout_burst_coast(
         dtype=np.float64,
     )
     predicted_states[0] = np.asarray(state, dtype=np.float64).reshape(4)
+    predicted_states[0, 1] = predicted_states[0, 1] % (2 * np.pi) % (2 * np.pi)
     for index, torque_nm in enumerate(predicted_inputs_nm):
         predicted_states[index + 1] = rk4_step(
             predicted_states[index],

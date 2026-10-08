@@ -43,7 +43,7 @@ class ActionPlan:
 
 @dataclass(frozen=True)
 class StateObservation:
-    """One complete physical state and pendulum-relative swing-energy observation."""
+    """Alpha is in [0, 2π); beta is upright error; energies cover both physical bodies."""
 
     t_index: int
     t_sec: float

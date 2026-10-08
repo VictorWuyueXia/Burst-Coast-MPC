@@ -199,8 +199,8 @@ The initial pilot budget and unvalidated screening thresholds are specified in t
 Run from repository root:
 
 ```bash
-PYTHONPATH=src .venv/bin/python docs/12-energy-transfer/machine-scannables/validate_energy.py
-.venv/bin/ruff check docs/12-energy-transfer/machine-scannables/validate_energy.py
+PYTHONPATH=src .venv/bin/python scripts/experiments/physical-energy-transfer-controller/validate_energy.py
+.venv/bin/ruff check scripts/experiments/physical-energy-transfer-controller/validate_energy.py
 ```
 
 The existing environment already supplies NumPy, CasADi and OmegaConf. The diagnostic uses CPU float64, no training, no GPU, no additional dependencies, and no changes to runtime physics. It maps CasADi differentiation over 512 states and vectorizes physical computations; time integration alone remains sequential.

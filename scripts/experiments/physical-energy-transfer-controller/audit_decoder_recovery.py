@@ -20,8 +20,10 @@ def main() -> None:
         for device in os.environ["CUDA_VISIBLE_DEVICES"].split(",")
     ):
         raise ValueError("Only physical GPUs 0–3 are authorized")
-    directory = Path(__file__).resolve().parent
-    root = directory.parents[2] / "artifacts/rotary_pendulum/energy-heuristic"
+    directory = Path(__file__).resolve().parents[3] / (
+        "artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/records"
+    )
+    root = directory.parent / "raw-runs"
     physical = RotaryPendulumConfig.model_validate(
         OmegaConf.to_container(OmegaConf.load(PHYSICS_CONFIG_PATH), resolve=True)["rotary-pendulum"]
     )

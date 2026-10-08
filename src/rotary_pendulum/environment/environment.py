@@ -7,7 +7,7 @@ import time
 import numpy as np
 from numpy.typing import NDArray
 
-from rotary_pendulum.environment.dynamics import derive_model, rk4_step
+from rotary_pendulum.environment.dynamics import derive_model, energy_components, rk4_step
 from rotary_pendulum.utils.config_schema import EpisodeConfig
 from rotary_pendulum.utils.messages import ActionPlan, StateObservation, StepRecord
 
@@ -42,7 +42,7 @@ class RotaryPendulumEnvironment:
         return self._t_index * self.config.simulation.timestep_s
 
     def reset(self) -> StateObservation:
-        """Reset to the configured unwrapped initial state and emit its observation."""
+        """Reset with pendulum position in [0, 2π) and signed arm position and speeds."""
 
         # Store the complete minimal state in governing-equation coordinate order.
         initial = self.config.experiment.initial_state
@@ -50,6 +50,7 @@ class RotaryPendulumEnvironment:
             [initial.theta_rad, initial.alpha_rad, initial.omega_rad_s, initial.nu_rad_s],
             dtype=np.float64,
         )
+        self._state[1] = self._state[1] % (2 * np.pi) % (2 * np.pi)
         self._t_index = 0
         self._goal_hold_count = 0
         return self._make_observation()
@@ -118,11 +119,11 @@ class RotaryPendulumEnvironment:
     def _make_observation(self) -> StateObservation:
         """Build one typed state, energy, phase, and held-goal observation."""
 
-        # Compute objective-aligned swing diagnostics from the integrator's unwrapped state.
+        # Pendulum position is canonical; beta below is a signed goal error, not position.
         theta_rad, alpha_rad, omega_rad_s, nu_rad_s = self._state
-        kinetic_energy_j = 0.5 * self.model.pendulum_inertia_kg_m2 * nu_rad_s**2
-        potential_energy_j = self.model.gravity_torque_nm * (1.0 - np.cos(alpha_rad))
-        swing_energy_j = kinetic_energy_j + potential_energy_j
+        kinetic_energy_j, potential_energy_j, total_energy_j = energy_components(
+            self._state, self.config.rotary_pendulum, self.model
+        )
         beta_rad = float(np.arctan2(np.sin(alpha_rad - np.pi), np.cos(alpha_rad - np.pi)))
 
         # Require consecutive complete-state membership before declaring episode success.
@@ -134,7 +135,7 @@ class RotaryPendulumEnvironment:
             and abs(nu_rad_s) <= goal.nu_tolerance_rad_s
         )
         self._goal_hold_count = self._goal_hold_count + 1 if inside_goal else 0
-        energy_j = float(swing_energy_j)
+        energy_j = float(total_energy_j)
         target_energy_j = 2.0 * self.model.gravity_torque_nm
         energy_error_j = energy_j - target_energy_j
         return StateObservation(

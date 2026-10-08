@@ -69,6 +69,9 @@ def write_artifacts(
         "activation_name": experiment["activation_name"],
         "loss_name": experiment["loss_name"],
         "output_meaning": "five direct finite-deadline action returns; base=train; no potentials",
+        "reward_energy_definition": (
+            "hinge-relative swing kinetic plus potential; excludes arm-carried kinetic energy"
+        ),
         "reward_component_order": ["energy", "torque", "time", "arm", "upright"],
         "reward_formula": "dt*(-cE*abs(E/E_star-1)-cu*abs(u)/u_p-ct*(1+t/T)"
         "-ca*(theta/arm_scale)^2+ch*exp(-0.5*sum(((beta,nu,omega)/widths)^2)))",

@@ -1,6 +1,6 @@
 # Decoder revision: brake early and choose the return phase
 
-> **Status: implemented and evaluated.** The user authorized all three changes, including work overrides. The text below preserves the pre-implementation rationale and proposed acceptance criteria; references to “current” or “future” there describe that earlier assessment. The [current contract](machine-scannables/decoder_recovery_contract.md) and [results](interpretation_summary.md) supersede those implementation-status statements. All runs after the GPU allocation correction used physical GPUs 0–3 only. Range control improved; general downward swing-up and guaranteed containment did not pass.
+> **Status: implemented and evaluated.** The user authorized all three changes, including work overrides. The text below preserves the pre-implementation rationale and proposed acceptance criteria; references to “current” or “future” there describe that earlier assessment. The [current contract](formulation/decoder_recovery_contract.md) and [results](../../artifacts/rotary_pendulum/experiment-results/physical-energy-transfer-controller/interpretations/interpretation_summary.md) supersede those implementation-status statements. All runs after the GPU allocation correction used physical GPUs 0–3 only. Range control improved; general downward swing-up and guaranteed containment did not pass.
 
 ## Recommendation and current evidence
 

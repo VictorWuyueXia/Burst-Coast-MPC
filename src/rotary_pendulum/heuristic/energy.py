@@ -31,11 +31,11 @@ def encode(x: Array) -> Array:
     return jnp.stack((arm, pendulum, potential), axis=-1)
 
 
-def policy(energy: Array, work_gain: Array, kinetic_weight: Array) -> Array:
+def policy(energy: Array, work_gain: Array) -> Array:
     """Request bounded signed work from three energies, without physical phase."""
 
-    # Weight one regulates total energy; larger weights discourage arm storage.
-    kinetic = kinetic_weight * energy[..., 0] + energy[..., 1]
-    potential_deficit = TARGET_ENERGY_J - energy[..., 2]
-    requested_work = work_gain * (potential_deficit - kinetic)
+    # The feedback gain scales requested motor work, never the measured body energies.
+    # At the upright-rest total energy, conversion into potential leaves no kinetic budget.
+    total_energy = jnp.sum(energy, axis=-1)
+    requested_work = work_gain * (TARGET_ENERGY_J - total_energy)
     return jnp.clip(requested_work, -WORK_LIMIT_J, WORK_LIMIT_J)

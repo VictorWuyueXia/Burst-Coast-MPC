@@ -90,7 +90,9 @@ def main() -> None:
                 0.5 * MODEL.pendulum_inertia_kg_m2 * nu**2
                 + MODEL.gravity_torque_nm * (1.0 - jnp.cos(alpha))
             ) / target_energy
-            totals = totals.at[:, 0].max(jnp.abs(alpha))
+            totals = totals.at[:, 0].max(
+                jnp.rad2deg(jnp.abs(jnp.arctan2(jnp.sin(alpha), jnp.cos(alpha))))
+            )
             totals = totals.at[:, 1].max(jnp.abs(theta))
             totals = totals.at[:, 2].max(energy_ratio)
             totals = totals.at[:, 3].add(action == 0)
@@ -113,8 +115,8 @@ def main() -> None:
                 "pump_torque_nm": fraction * float(TORQUE_LIMIT_NM),
                 "success_rate": float(values[:, 6].mean()),
                 "arm_violation_rate": float(values[:, 7].mean()),
-                "mean_peak_abs_alpha_rad": float(values[:, 0].mean()),
-                "p95_peak_abs_alpha_rad": float(np.quantile(values[:, 0], 0.95)),
+                "mean_max_departure_from_downward_deg": float(values[:, 0].mean()),
+                "p95_max_departure_from_downward_deg": float(np.quantile(values[:, 0], 0.95)),
                 "mean_peak_energy_ratio": float(values[:, 2].mean()),
                 "mean_pump_actions": float(values[:, 4].mean()),
                 "mean_fine_actions": float(values[:, 5].mean()),
@@ -145,13 +147,13 @@ def main() -> None:
     axes[0].legend()
     axes[1].plot(
         fractions,
-        [row["mean_peak_abs_alpha_rad"] for row in rows],
+        [row["mean_max_departure_from_downward_deg"] for row in rows],
         marker="o",
         label="mean",
     )
     axes[1].plot(
         fractions,
-        [row["p95_peak_abs_alpha_rad"] for row in rows],
+        [row["p95_max_departure_from_downward_deg"] for row in rows],
         marker="o",
         label="95th percentile",
     )
@@ -162,9 +164,9 @@ def main() -> None:
         label="selected 45%",
     )
     axes[1].set(
-        title="Unwrapped pendulum rotation",
+        title="Maximum departure from downward",
         xlabel="Pump torque [% of physical limit]",
-        ylabel="Peak |alpha| [rad]",
+        ylabel="Maximum angular distance from downward [deg]",
         yscale="log",
     )
     axes[1].grid(alpha=0.25)

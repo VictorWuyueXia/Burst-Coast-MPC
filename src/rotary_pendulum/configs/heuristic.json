@@ -1,0 +1,15 @@
+{
+  "seed": 20261008,
+  "episodes_per_stratum": 64,
+  "decisions": 200,
+  "chunk_decisions": 10,
+  "mode": "energy",
+  "trials": [
+    {
+      "name": "single_action_100ms",
+      "work_gain": 0.004,
+      "work_weight": 0.02,
+      "arm_limit_weight": 10000.0
+    }
+  ]
+}

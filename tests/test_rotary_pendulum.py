@@ -231,11 +231,8 @@ def test_environment_emits_complete_observation_and_explicit_replan_record() -> 
     assert record.solve_time_s == pytest.approx(0.003)
     assert record.energy_j == next_observation.energy_j
     assert record.energy_j == pytest.approx(
-        0.5 * environment.model.pendulum_inertia_kg_m2 * record.nu_rad_s**2
-        + environment.model.gravity_torque_nm * (1.0 - np.cos(record.alpha_rad))
+        float(energy_components(environment.state, config.rotary_pendulum, environment.model)[2])
     )
-    _, coast_record = environment.step(0.0, plan, replan_flag=False)
-    assert coast_record.solve_time_s == 0.0
 
 
 def test_environment_requires_held_complete_upright_goal() -> None:

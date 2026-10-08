@@ -69,10 +69,16 @@ def _create_states_figure(plt: Any, data: dict[str, np.ndarray]) -> Any:
     """Plot both generalized coordinates and angular velocities over time."""
 
     figure, axes = plt.subplots(2, 1, figsize=(9, 6), sharex=True, layout="constrained")
-    axes[0].plot(data["t_sec"], data["theta_rad"], label="theta arm")
-    axes[0].plot(data["t_sec"], data["alpha_rad"], label="alpha pendulum")
-    axes[0].axhline(np.pi, linestyle=":", color="0.3", label="pendulum upright")
-    axes[0].set_ylabel("angle rad")
+    axes[0].plot(data["t_sec"], np.rad2deg(data["theta_rad"]), label="Arm (signed)")
+    angle_deg = np.rad2deg(data["alpha_rad"] % (2 * np.pi)) % 360
+    angle_deg[np.abs(np.diff(angle_deg, prepend=angle_deg[0])) > 180] = np.nan
+    axes[0].plot(data["t_sec"], angle_deg, label="Pendulum (0–360°)")
+    axes[0].set_ylim(
+        min(-180, np.rad2deg(data["theta_rad"]).min()),
+        max(360, np.rad2deg(data["theta_rad"]).max()),
+    )
+    axes[0].axhline(180, linestyle=":", color="0.3", label="pendulum upright")
+    axes[0].set_ylabel("Angle [deg; pendulum 0 down, 180 up]")
     axes[1].plot(data["t_sec"], data["omega_rad_s"], label="omega arm")
     axes[1].plot(data["t_sec"], data["nu_rad_s"], label="nu pendulum")
     axes[1].set_xlabel("time s")
@@ -89,22 +95,22 @@ def _create_energy_figure(
     data: dict[str, np.ndarray],
     target_energy_j: float,
 ) -> Any:
-    """Plot pendulum-relative swing energy and its upright-target error."""
+    """Plot physical mechanical energy and its upright-target error."""
 
     figure, axes = plt.subplots(2, 1, figsize=(9, 6), sharex=True, layout="constrained")
-    axes[0].plot(data["t_sec"], data["kinetic_energy_j"], label="swing kinetic")
-    axes[0].plot(data["t_sec"], data["potential_energy_j"], label="swing potential")
-    axes[0].plot(data["t_sec"], data["energy_j"], linewidth=2.0, label="swing total")
+    axes[0].plot(data["t_sec"], data["kinetic_energy_j"], label="total kinetic")
+    axes[0].plot(data["t_sec"], data["potential_energy_j"], label="pendulum potential")
+    axes[0].plot(data["t_sec"], data["energy_j"], linewidth=2.0, label="mechanical total")
     axes[0].axhline(target_energy_j, linestyle=":", color="0.3", label="upright target")
     axes[0].set_ylabel("energy J")
-    axes[1].plot(data["t_sec"], data["energy_error_j"], label="swing total minus target")
+    axes[1].plot(data["t_sec"], data["energy_error_j"], label="mechanical total minus target")
     axes[1].axhline(0.0, linestyle=":", color="0.3", label="target")
     axes[1].set_xlabel("time s")
     axes[1].set_ylabel("raw energy error J")
     for axis in axes:
         axis.grid(True, alpha=0.25)
         axis.legend(loc="best")
-    figure.suptitle("Pendulum-Relative Swing Energy")
+    figure.suptitle("Physical Mechanical Energy")
     return figure
 
 
