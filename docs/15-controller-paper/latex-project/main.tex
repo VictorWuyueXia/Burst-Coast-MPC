@@ -1,0 +1,312 @@
+\documentclass[letterpaper,10pt,conference]{ieeeconf}
+\overrideIEEEmargins
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false]{subfig}
+\usepackage{tabularx}
+\usepackage{colortbl}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{multirow}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{cite}
+\usepackage{flushend}
+\usepackage{diagbox}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{empheq}
+\usepackage{makecell}
+\usepackage{url}
+\usepackage{soul}
+\usepackage{tikz}
+\let\labelindent\relax
+\usepackage{enumitem}
+\usepackage{gensymb}
+\usepackage{amssymb}
+\usepackage[colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue]{hyperref}
+\urlstyle{same} % makes the URL use the normal text font (not typewriter)
+\definecolor{redvw}{HTML}{F36B9C}
+\definecolor{bluevw}{HTML}{1E88E5}
+\definecolor{greenvw}{HTML}{005648}
+\definecolor{navyblue}{RGB}{0, 83, 137}
+
+\newcommand{\victor}[1]{{\color{navyblue}#1}}
+\newcommand{\victornote}[1]{{\color{orange}#1}}
+\newcommand{\rp}[1]{{\color{blue}#1}}
+
+\input{figures/setup}
+\newcommand{\Estar}{E_{\star}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ind}{\mathbf{1}}
+
+
+
+\title{\bfseries Hierarchical Energy-Work Control for Rotary-Pendulum Capture}
+\author{}
+
+
+
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+\section{Introduction}
+% Research objective and the role of intervention timing and prediction horizon.
+Spacecraft and marine navigation motivate path-planning and control strategies that use natural dynamical flows to passively coast an agent toward its goal, maneuvered by occasional control interventions. The research goal is a act--coast controller that completes a navigation task with a limited number of short actuation periods separated by longer un-actuated motion. Each intervention must shape the subsequent coasting trajectory, so its timing matters alongside the applied control~\cite{heemels2012}. The project aim to jointly select the control sequence, the actuation and coasting durations, and a state-dependent prediction horizon. This horizon determines how far ahead the controller predicts motion to assess an intervention, driven by limited computational cost.
+
+% Energy-based nominal actions and the need for phase-dependent torque selection.
+We use a simulated rotary pendulum as a benchmark, where a motor-driven horizontal arm must swing an free-hinged pendulum at the arm's tip to upright. Building on energy-based swing-up~\cite{astrom2000}, we derive a heuristic from the mechanical dynamics to propose nominal control actions. It represents the physical state by a reduced order energy state: the arm kinetic energy, pendulum kinetic energy, and gravitational potential energy. Their sum determines the energy deficit or surplus relative to upright rest and hence the requested motor work. Matching the energy state alone does not lead to correct motion, since multiple physical states can have the same energy state. The controller therefore uses the phase information to derive the correct torque to deliver requested work. This heuristic provides a starting prior for act--coast development, with its proposed nominal actions guide the later MPC prediction and reinforcement learning training.
+
+\section{Problem Formulation}
+% Geometry, angular conventions, and indirect pendulum actuation.
+A rotary pendulum system contains a motor-driven horizontal arm carring an unactuated pendulum hinged at its tip, which swings in the vertical plane perpendicular to the arm. The unwrapped arm angle $\theta\in\mathbb R$ measures rotation about the vertical axis from a fixed horizontal reference, retaining complete revolutions. The pendulum angle $\alpha\in[-\pi,\pi)$ is zeroed from downward, with upright represented by $\pm\pi$. Their signed angular velocities are $\omega=\dot\theta$ and $\nu=\dot\alpha$, with derivatives taken before angular wrapping. Motor torque $u$ is positive toward increasing $\theta$.
+
+% Observed state, admissible input, initial conditions, and task objective.
+At each decision time $t_k$, for $k\in\mathbb{N}$, the controller observes the physical state $x$ and holds torque $u_k$ for state transition $x_k\rightarrow x_{k+1}$, with
+\begin{equation}
+\begin{aligned}
+ x&=(\theta,\alpha,\omega,\nu)^{\mathsf T},\qquad |u(t)|\le U,\\
+ x(0)&\in\mathcal X_0\subset\mathbb R\times[-\pi,\pi)\times\mathbb R^2,
+\end{aligned}
+\label{eq:state}
+\end{equation}
+where $t$ denotes time, $U>0$ bounds torque, and the bounded initial set $\mathcal X_0$ is sampled according to Table~\ref{tab:initial}. Define the upright error and target as
+\begin{equation}
+\begin{aligned}
+ \beta&=\operatorname{wrap}(\alpha-\pi),\\
+ \mathcal X_\star&=\{x:\beta=0,\ \omega=\nu=0,\ |\theta|<\theta_{\max}\}.
+\end{aligned}
+\label{eq:target}
+\end{equation}
+Here $\operatorname{wrap}$ selects the equivalent angle in $[-\pi,\pi)$, and $\theta_{\max}>0$ prescribes the tracking envelope. The task is swing the pendulum up to an upright rest, with constraints of torque bound and arm angle range.
+
+% Acquisition, continued motion, and the cost of control interventions.
+The upright goal requires $|\beta|\le\varepsilon_\alpha$ at consecutive time steps with positive tolerance $\varepsilon_\alpha$. The controller's performance is evaluated by success possibility within limited time. The trajectories are also evaluated within the time limit $\mathcal I=[t_0,t_0+T], T>0$ to compute
+\begin{equation}
+\begin{aligned}
+ \beta_{\mathrm{rms}}&=\left(\frac{1}{T}\int_{\mathcal I}\beta(t)^2\,\dd t\right)^{1/2},\\
+ \rho_\alpha&=\frac{1}{T}\int_{\mathcal I}\ind_{\{|\beta(t)|\leq\varepsilon_\alpha\}}\,\dd t.
+\end{aligned}
+\label{eq:holdingmetrics}
+\end{equation}
+
+Here $\ind$ equals one when its condition holds and zero otherwise. These two metrics measure root-mean-square (RMS) angular deviation of the pendulum from the goal, and the arm's deviation from neutral position while holding the pendulum upright. They assess the controller's ability to converge fast, hold upright steadily, and stay within operation envelope. We also define
+\begin{equation}
+\begin{aligned}
+ W_{\mathrm{abs}}&=\int_{\mathcal I}|u(t)\omega(t)|\,\dd t,\\
+ T_{\mathrm{act}}&=\int_{\mathcal I}\ind_{\{u(t)\neq0\}}\,\dd t.
+\end{aligned}
+\label{eq:resourcemetrics}
+\end{equation}
+where absolute shaft work $W_{\mathrm{abs}}$ integrates energy injected and removed, and $T_{\mathrm{act}}$ measures nonzero-actuation duration. Total computation time is also recorded to reflect planning cost. \victor{And later act--coast evaluation additionally counts times of interventions and measures zero-torque coast durations.} These metrics collectively form a systematic way to assess the performance of controllers on this rotary pendulum system.
+
+\section{Method}
+% Work selection and torque realization use complementary state information.
+The controller requests a change in total mechanical energy, then uses the observed physical state to select a torque that promotes this change. Configuration and velocity remain necessary because energy alone does not determine subsequent motion. The relations derived in Section~III-A support the work selection and torque computation in Section~III-B.
+
+\subsection{Rotary-pendulum dynamics and energy representation}
+% The mechanical energy determines the coupled equations of motion.
+Both links are uniform rigid rods with ideal joints, zero damping, and negligible pendulum axial inertia. Let $m_a,r$ denote arm mass and length, $m_p,l$ pendulum mass and length, and $g$ gravitational acceleration, all positive. The pendulum center of mass is at $c=l/2$ from its hinge. The arm inertia about the motor axis is $I_a=m_ar^2/3$. The pendulum inertia about a transverse axis through its center of mass is $I_c=m_pl^2/12$. The parallel-axis theorem gives $J=I_c+m_pc^2=m_pl^2/3$, its inertia about the hinge axis. Thus $J$ measures resistance to angular acceleration about that axis. Define the coupling coefficient $b=m_prc$ and gravitational energy scale $G=m_pgc$. For generalized coordinates $q=(\theta,\alpha)^{\mathsf T}$, the kinetic energy $K$, potential energy $V$, and Lagrangian $\mathcal L$ are
+\begin{equation}
+\begin{aligned}
+ A(\alpha)&=I_a+m_pr^2+J\sin^2\alpha,\\
+ C(\alpha)&=b\cos\alpha,\\
+ K(q,\dot q)&=\tfrac12A\omega^2+C\omega\nu+\tfrac12J\nu^2,\\
+ V(\alpha)&=G(1-\cos\alpha),\qquad \mathcal L=K-V.
+\end{aligned}
+\label{eq:lagrangian}
+\end{equation}
+Here $A$ is the inertia associated with arm rotation, and $C\omega\nu$ is the kinetic-energy coupling term. The term $J\nu^2/2$ accounts for pendulum rotation about its hinge, while $J\sin^2\alpha$ contributes to the inertia about the vertical motor axis. Potential energy $V$ is referenced to downward. The forced Euler--Lagrange relation $\frac{\dd}{\dd t}(\partial\mathcal L/\partial\dot q)-\partial\mathcal L/\partial q=(u,0)^{\mathsf T}$ yields
+\begin{equation}
+\begin{aligned}
+ M(\alpha)&=\begin{bmatrix}A&C\\C&J\end{bmatrix},\\
+ A\dot\omega+C\dot\nu
+ &=u-2J\sin\alpha\cos\alpha\,\omega\nu\\
+ &\quad+b\sin\alpha\,\nu^2,\\
+ C\dot\omega+J\dot\nu
+ &=J\sin\alpha\cos\alpha\,\omega^2-G\sin\alpha.
+\end{aligned}
+\label{eq:dynamics}
+\end{equation}
+When $C\ne0$, pendulum acceleration contributes $C\dot\nu$ to the arm equation, and arm acceleration contributes $C\dot\omega$ to the pendulum equation. These terms allow arm torque to influence the unactuated pendulum. Positive definiteness of $M$ ensures that the two equations determine unique accelerations for each state and input. The terms $2J\sin\alpha\cos\alpha\,\omega\nu$ and $J\sin\alpha\cos\alpha\,\omega^2$ arise from the configuration dependence of $A$. They describe velocity-dependent inertial torques. Define $f(x,u)=(\omega,\nu,\dot\omega,\dot\nu)^{\mathsf T}$, with the accelerations obtained from Eq.~\eqref{eq:dynamics}. Thus $\dot x=f(x,u)$ gives the instantaneous rate of change of all four physical-state components.
+
+% The physical energy partition separates motion from elevation.
+To distinguish motion from elevation, define the energy representation and its upright-rest target by
+\begin{equation}
+\begin{aligned}
+ K_a&=\tfrac12I_a\omega^2,\qquad K_p=K-K_a,\\
+ e=H(x)&=(K_a,K_p,V)^{\mathsf T},\qquad E=K_a+K_p+V,\\
+ e_\star&=(0,0,\Estar)^{\mathsf T},\qquad \Estar=2G.
+\end{aligned}
+\label{eq:encoder}
+\end{equation}
+Here $K_a$ is arm kinetic energy, while $K_p$ includes the pendulum motion induced by the moving hinge and the coupling term. Total energy $E$ equals $\Estar$ at upright rest, as determined by $V$. Differentiating along Eq.~\eqref{eq:dynamics} gives
+\begin{equation}
+\begin{aligned}
+ \dot K_a&=I_a\omega\dot\omega,\\
+ \dot K_p&=u\omega-I_a\omega\dot\omega-G\sin\alpha\,\nu,\\
+ \dot V&=G\sin\alpha\,\nu,\qquad \dot E=u\omega.
+\end{aligned}
+\label{eq:powers}
+\end{equation}
+Motor power changes total energy; transfers into arm motion and gravitational potential reduce pendulum kinetic energy. Regulating $E$ alone leaves its distribution undetermined. If both $E$ and $V$ approach $\Estar$, their difference $K_a+K_p$ approaches zero.
+
+% The energy-map Jacobian relates physical motion to energy rates.
+The chain rule expresses the same energy dynamics through the $3\times4$ Jacobian $DH(x)=\partial H/\partial x$,
+\begingroup
+\setlength{\arraycolsep}{4pt}
+\begin{equation}
+\begin{aligned}
+ \dot e&=DH(x)f(x,u),\\
+ DH(x)&=
+ \begin{bmatrix}
+ 0&0&I_a\omega&0\\[3pt]
+ 0&\begin{gathered}\tfrac12A'\omega^2\\{}+C'\omega\nu\end{gathered}
+ &\begin{gathered}(A-I_a)\omega\\{}+C\nu\end{gathered}&C\omega+J\nu\\[3pt]
+ 0&V'&0&0
+ \end{bmatrix}.
+\end{aligned}
+\label{eq:energy-jacobian}
+\end{equation}
+\endgroup
+Rows correspond to $(K_a,K_p,V)$ and columns to $(\theta,\alpha,\omega,\nu)$; each entry is an energy derivative with respect to one state component. Primes denote derivatives with respect to $\alpha$: $A'=2J\sin\alpha\cos\alpha$, $C'=-b\sin\alpha$, and $V'=G\sin\alpha$. The zero first column reflects independence from absolute arm position, which remains necessary for constraint evaluation. With velocities fixed, replacing $\alpha$ by $-\alpha$ preserves $e$ but reverses $\dot V$ when $\sin\alpha\,\nu\ne0$. Thus $H$ has no unique inverse, and the energy dynamics cannot generally be expressed in terms of $(e,u)$ alone. Zero instantaneous energy rates at rest also do not preclude finite-time energy transfer.
+
+% Physical realizability is distinct from reachability under input and state constraints.
+Completing the square in $K_p$ gives the physical realizability conditions
+\begin{equation}
+\begin{aligned}
+ K_a&\ge0,\qquad 0\le V\le2G,\\
+ K_p&\ge\frac{A-I_a-C^2/J}{I_a}\,K_a.
+\end{aligned}
+\label{eq:energy-feasibility}
+\end{equation}
+Here $A,C$ are evaluated at $\cos\alpha=1-V/G$; the coefficient is independent of the angle's sign. These conditions are necessary and sufficient with unrestricted velocities: arm motion necessarily contributes to pendulum kinetic energy. Reachability additionally depends on the input and duration. Let $\Delta=t_{k+1}-t_k>0$ denote the duration for which the selected torque is held constant. The state-transition map $F_\Delta(x,u)$ is obtained by integrating $\dot x=f(x,u)$ for this duration, starting from $x$. It returns the resulting state rather than its instantaneous derivative. Integrating motor power over the same interval gives the signed work $W_\Delta$, so
+\begin{equation}
+\begin{aligned}
+ x_{k+1}&=F_\Delta(x_k,u_k),\\
+ W_\Delta(x,u)&=u\bigl[\theta(F_\Delta(x,u))-\theta(x)\bigr],\\
+ E(F_\Delta(x,u))&=E(x)+W_\Delta(x,u),
+\end{aligned}
+\label{eq:work}
+\end{equation}
+where $\theta(\cdot)$ extracts the unwrapped arm angle. Positive work adds energy and negative work removes it. A requested work value need not admit a solution satisfying $|u|\le U$. Arm-position constraints require evaluation along the entire trajectory; the finite penalty in Section~III-B does not guarantee satisfaction. Zero torque preserves total energy while permitting internal exchange, whereas zero net work does not require zero torque.
+
+\subsection{Hierarchical work selection and phase-dependent torque decoding}
+% B1: Upper-layer work policy.
+The upper layer receives only energy state $e_k$ and requests signed work
+\begin{equation}
+\begin{aligned}
+ w_k&=\operatorname{clip}\!\bigl(\kappa(\Estar-\boldsymbol{1}^{\mathsf T}e_k),\\
+    &\hspace{5em}-W_{\max},W_{\max}\bigr).
+\end{aligned}
+\label{eq:workpolicy}
+\end{equation}
+The clipping operation restricts its first argument to the feasible interval. The dimensionless feedback gain $\kappa$ is a design choice. A positive request asks for energy injection and a negative request for removal. This layer is effectively a proportional control in energy state.
+
+% B2: Work-budget surface in three-component energy space.
+Let $\mathcal E=\{H(x):x\text{ is a physical state}\}$ denote the physically realizable energy image. For a current energy $e$ and requested work $w$, candidate endpoint energies $z=(z_a,z_p,z_V)^{\mathsf T}$ satisfying the budget lie in
+\begin{equation}
+ \mathcal S(e,w)=\{z\in\mathcal E:\boldsymbol{1}^{\mathsf T}z
+       =\boldsymbol{1}^{\mathsf T}e+w\}.
+ \label{eq:surface}
+\end{equation}
+Its axes are arm-body kinetic energy, pendulum-body kinetic energy, and gravitational potential. One scalar equality defines an affine plane in this three-dimensional space; its intersection with $\mathcal E$ is generally a two-dimensional surface, but may degenerate or be empty. Torque is not an additional coordinate. The surface expresses the requested energy budget without asserting reachability from the current phase.
+
+% B3: Finite-horizon torque-response curve conditioned on physical phase.
+The lower layer fixes the observed physical state $x$ and action duration $\Delta$, then varies the single held torque over its usable interval. The corresponding endpoint energies form the parameterized response curve
+\begin{equation}
+ \mathcal C_x=\{H(F_\Delta(x,u)):u\in[-U,U]\}.
+ \label{eq:curve}
+\end{equation}
+The predictor uses pendulum phase and both signed angular velocities to determine this curve. Absolute arm position enters the excursion assessment below; rotational symmetry makes the energy curve independent of a shift in $\theta$ alone. The curve can fold or self-intersect and need not meet the work surface. Even when $\omega=0$ initially, a nonzero torque can accelerate the arm and deliver work over the finite action. Figure~\ref{fig:method} illustrates the construction at a recorded controller state.
+
+% B4: Intersections and the actual finite candidate search.
+In the exact lossless model, intersections of $\mathcal C_x$ and $\mathcal S(H(x),w)$ correspond to torques satisfying $W_\Delta(x,u)=w$. There may be multiple solutions, none, or degenerate intersections. The implementation approximates $F_\Delta$ by five fourth-order Runge--Kutta steps of length $h$, denoted $\widehat F_\Delta$, and computes $\widehat W_\Delta=u(\theta(\widehat F_\Delta(x,u))-\theta(x))$. It evaluates 33 equally spaced torques and refines every adjacent bracket whose work errors have opposite signs or include zero. Ten bisection iterations add at most 32 candidate torques. We call these resolved work-matching candidates; finite sampling does not find every possible root. Numerical energy-balance error also means that work matching places a predicted endpoint only approximately on the exact work plane.
+
+% B5: Joint candidate ranking, including soft feasibility treatment.
+Let $\mathcal U_{\mathrm{test}}(x,w)$ contain the original grid and the bracket-derived candidates with finite predictions. For each candidate, let $\widehat V^+(x,u)$ be predicted endpoint potential and $\widehat\Theta(x,u)$ the largest absolute arm angle among the initial state and five predicted samples. The selected action minimizes the dimensionless score
+\begin{equation}
+\begin{aligned}
+ u^\star(x,w)&\in\underset{u\in\mathcal U_{\mathrm{test}}(x,w)}{\arg\min}\ \mathcal J(x,u;w),\\
+ \mathcal J(x,u;w)&=\left(\frac{\Estar-\widehat V^+(x,u)}{\Estar}\right)^2\\
+ &\quad+\lambda_W\left(\frac{\widehat W_\Delta(x,u)-w}{W_{\max}}\right)^2\\
+ &\quad+\lambda_\theta\left(\frac{\max\{\widehat\Theta(x,u)-\theta_{\max},0\}}{\theta_{\max}}\right)^2.
+\end{aligned}
+\label{eq:score}
+\end{equation}
+with $\lambda_W=0.02$ and $\lambda_\theta=10{,}000$. The terms favor elevation, requested-work agreement, and limited arm excursion, respectively; their weights are tunable penalties, not physical energies. Work-matching candidates and original grid torques are scored together. The selected action can therefore depart from the work surface or cross the soft arm boundary, even when tested alternatives remain inside. The torque bound is enforced directly. Arm containment has neither a hard feasibility guarantee nor a continuous-time guarantee from the sampled check.
+
+% B6: Execution and implementation details.
+The controller applies $u_k=u^\star(x_k,w_k)$ for $\Delta=0.1$ s, observes the resulting state, and repeats the encode--request--decode sequence. The experiment may terminate within an action when capture occurs. Equal scores are resolved by choosing the smallest torque magnitude, then a nonnegative torque if the remaining candidates tie. Nonfinite candidates are excluded; if none remain, the decoder reports an invalid action rather than switching controllers. The present schedule uses fixed-duration actions, with no angular-speed constraint, planned braking sequence, learned terminal value, or suspended-update interval. These choices define the implemented baseline for subsequent holding and burst-coast studies.
+
+
+\begin{figure*}[p]
+\input{figures/results}
+\caption{\textbf{Recorded capture behavior and constraint outcomes.} (A--B) Complete final-validation tables; probes are excluded from the distributions. Near and tight upright starts have overlapping distributions near 0.1 s, reflecting the angle-only endpoint. (C--D) Seed 20261022, lane 118, selected by upper-median capture time among noncrossing downward captures: 11.12 s. The shaded band is $165$--$195^\circ$; pendulum traces break at angular wraps. Torque is the value applied during the preceding integration interval. Energies are unweighted physical measurements. (E) The slowest downward capture in that seed, lane 177: 16.92 s. Colors match (C). (F) The committed boundary examples, aligned to their first sampled crossings at 3.20 s and 8.62 s. The preceding decision audits found 16 and zero bounded tested actions, respectively. Their full-replay peak excursions were $184.58^\circ$ and $189.03^\circ$. Panels C--F are selected illustrations; only A--B summarize the full randomized population. Trajectories terminate at capture and provide no subsequent holding record.}
+\label{fig:atlas}
+\end{figure*}
+
+
+
+\section{Experiments and Results}
+% R1: Single results paragraph; tables and atlas carry protocol and diagnostics.
+We evaluated the selected controller in the nominal lossless simulator using four randomized initial-state classes (Table~\ref{tab:initial}). Parameter development used seeds 20261020 and 20261021. The reported setting was then evaluated on seeds 20261022 and 20261023, each supplying 512 starts per class. All 4,096 randomized episodes captured within 20 s (Fig.~\ref{fig:atlas}). The 1,024 downward starts remained inside the arm envelope and had a median capture time of 11.13 s. Six of the 1,024 moving starts crossed the arm boundary; the near-upright and tight-upright classes had no crossings. Eight fixed-probe episodes, counted separately, also captured without crossings. The replay traces show repeated energy exchange during swing-up and two observed crossing conditions. In one, the finite penalty permits a crossing despite bounded tested alternatives. In the other, no tested torque keeps the next action inside the envelope. These results support capture on the specified nominal distributions. Sustained holding, robustness to model error, and intervention savings require continued trajectories and a comparison study.
+
+
+% \begin{table*}[t]
+% \centering\small
+% \caption{Physical inputs and selected controller settings. Physical values are configured model inputs; feedback and penalty values are design choices. The upright energy is derived from the model.}
+% \label{tab:parameters}
+% \begin{tabular}{lll}
+% \toprule Quantity & Symbol & Value \\
+% \midrule Arm mass; length & $m_a;\ r$ & $0.095$ kg; $0.085$ m \\
+% Pendulum mass; length & $m_p;\ l$ & $0.024$ kg; $0.129$ m \\
+% Gravity; viscous damping & $g$; both joints & $9.81$ m\,s$^{-2}$; zero \\
+% Physical; usable torque limits & $u_{\mathrm{phys}};\ U$ & $0.0204$; $0.01836$ N\,m \\
+% Desired arm envelope & $\theta_{\max}$ & $\pi$ rad \\
+% Upright-rest energy & $\Estar=2G$ & $0.03037176$ J \\
+% Held action; prediction step & $\Delta;\ h$ & $0.1$; $0.02$ s \\
+% Work gain; request bound & $\kappa;\ W_{\max}$ & $0.004$; $0.04\Estar$ \\
+% Work; arm penalty weights & $\lambda_W;\lambda_\theta$ & $0.02$; $10{,}000$ \\
+% Torque grid; bisection steps & --- & $33$ points; $10$ steps \\
+% \bottomrule
+% \end{tabular}
+% \end{table*}
+
+\begin{table*}[t]
+\centering\small
+\caption{Validation initial states. Coordinates are sampled independently and uniformly within each stated interval; angles are in rad and velocities in rad\,s$^{-1}$. The moving pendulum angle receives an independent equiprobable sign. Angles are then wrapped to $[0,2\pi)$. Each randomized class contains 1,024 episodes across two seeds. The same four deterministic probes are repeated once per seed. Plant and controller predictions use 20 ms integration steps in these reported records.}
+\label{tab:initial}
+\begin{tabular}{lrrrr}
+\toprule Class & $\theta$ & $\alpha$ & $\omega$ & $\nu$ \\
+\midrule Downward & $[-0.20,0.20]$ & $[-0.20,0.20]$ & $[-0.5,0.5]$ & $[-0.5,0.5]$ \\
+Moving & $[-0.50,0.50]$ & $\pm[0.40,2.60]$ & $[-2,2]$ & $[-6,6]$ \\
+Near upright & $[-0.25,0.25]$ & $\pi+[-0.25,0.25]$ & $[-1,1]$ & $[-1,1]$ \\
+Tight upright & $[-0.08,0.08]$ & $\pi+[-0.12,0.12]$ & $[-0.15,0.15]$ & $[-0.30,0.30]$ \\
+\midrule
+\multicolumn{5}{l}{Fixed probes: $(0,0,0,0)$, $(0,\pi,0,0)$, $(1.45,0.4,2,0)$, $(-1.45,-0.4,-2,0)$.}\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{thebibliography}{9}
+\bibitem{heemels2012}
+W. P. M. H. Heemels, K. H. Johansson, and P. Tabuada,
+``An introduction to event-triggered and self-triggered control,''
+in \emph{Proceedings of the 51st IEEE Conference on Decision and Control},
+2012, pp. 3270--3285. \href{https://doi.org/10.1109/CDC.2012.6425820}{doi:10.1109/CDC.2012.6425820}.
+\bibitem{astrom2000}
+K. J. \AA str\"om and K. Furuta,
+``Swinging up a pendulum by energy control,''
+\emph{Automatica}, vol. 36, no. 2, 2000.
+\href{https://doi.org/10.1016/S0005-1098(99)00140-5}{doi:10.1016/S0005-1098(99)00140-5}.
+\end{thebibliography}
+\end{document}
