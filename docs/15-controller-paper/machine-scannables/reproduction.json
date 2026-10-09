@@ -1,0 +1,19 @@
+{
+  "command": "PYTHONPATH=src .venv/bin/python scripts/prepare_controller_paper.py",
+  "working_directory": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC",
+  "python": "3.12.14",
+  "packages": {
+    "numpy": "2.4.6",
+    "omegaconf": "2.3.0",
+    "pydantic": "2.13.4"
+  },
+  "data_source": "Committed portable replay records; no new controller performance experiments",
+  "diagnostic": "One recorded state; NumPy batched dynamics; five 20 ms RK4 steps; selected endpoint checked against committed prediction",
+  "generator_sha256": "b7122cf72f3dd554d225c12d6e0d48e1ea4879b4a76bca95e7ea7f55db7d3a21",
+  "latex": "Overleaf project: main.tex imports sibling ieeeconf.cls and figures/*.tex. Native single-file compilation cannot resolve these dependencies.",
+  "companion": "main-CN.tex translates the prose and captions, retaining identical displayed mathematics and figure data; ignored by existing *-CN.* rule",
+  "figure_data_columns": "Replay tables use plotted x and y in the units stated on each corresponding axis; NaN rows break pendulum angle wraps. Decoder curve columns are named explicitly.",
+  "validation": "Outcome assertions, input CSV SHA256 checks, recorded duration checks, selected decoder endpoint comparison with rtol=0 and atol=1e-12 J; no data smoothing",
+  "editorial": "writing_audit.json records the skill sequence, claim evidence, bibliography checks and the audit before the humanizer revision",
+  "overleaf_bundle": "machine-scannables/overleaf-project.zip"
+}

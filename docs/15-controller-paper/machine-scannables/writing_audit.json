@@ -1,0 +1,207 @@
+{
+  "document_type": "Advisor-facing algorithmic research manuscript",
+  "central_argument": "An energy-only work request specifies a budget surface; phase-dependent physical prediction supplies torque candidates, which are ranked jointly under input bounds and a soft arm penalty.",
+  "reference_style": {
+    "source": "/Users/vic/Downloads/Efficient_Volume_Resection_Paper-2.pdf",
+    "scope": "Introduction, problem setup, and method only",
+    "features": [
+      "Task before notation",
+      "Metrics before controller construction",
+      "Short method roadmap",
+      "Equations adjacent to physical interpretation"
+    ]
+  },
+  "skill_sequence": [
+    "nature-writing and control-academic-writing: argument, notation, mechanics, evidence",
+    "nature-polishing: flow, consistent terms, concise claims",
+    "academic-humanizer: audit followed by conservative prose revision"
+  ],
+  "terminology": {
+    "capture": "Five consecutive sampled angles in the configured upright band; current endpoint",
+    "holding": "Prospective sustained proximity to upright rest over a declared interval",
+    "requested work": "Signed desired change in total mechanical energy, in joules",
+    "torque decoder": "Physical-state prediction and joint candidate ranking",
+    "work surface": "Energy budget plane intersected with the physical energy image",
+    "response curve": "One held torque parameter mapped to endpoint energy coordinates",
+    "arm containment": "Desired state property treated by a finite penalty, not guaranteed"
+  },
+  "nature_polishing_changes": [
+    "Separated absolute arm position in the constraint assessment from phase in the energy-response curve",
+    "Renamed the resource evaluation interval to avoid reusing the candidate score symbol",
+    "Removed an unsupported causal attribution of boundary failure to horizon length",
+    "Placed validation populations and representative selections in captions and a protocol table",
+    "Excluded shading from trace legends"
+  ],
+  "humanizer_before_sha256": "033fef5555283fda47cc6d88fcc108f5dcdf7863a237af5edb4e214165f9e143",
+  "humanizer_audit": [
+    {
+      "location": "I1",
+      "pattern": "Abstract final clause",
+      "before": "makes the relationship between energy demand and physical actuation explicit",
+      "after": "relates requested motor work to shaft torque"
+    },
+    {
+      "location": "I3",
+      "pattern": "Evidence verb stronger than needed",
+      "before": "These results establish the observed finite-time capture behavior under the tested conditions; post-capture holding remains to be evaluated.",
+      "after": "These records document finite-time capture under the tested conditions. Post-capture holding remains to be evaluated."
+    },
+    {
+      "location": "P4",
+      "pattern": "Clause-heavy explanation",
+      "before": "Here $W_{\\mathrm{abs}}$ is in joules and counts both energy injection and removal; signed net work can cancel these contributions.",
+      "after": "The absolute work $W_{\\mathrm{abs}}$ is in joules and counts both energy injection and removal. Signed net work can cancel these contributions."
+    },
+    {
+      "location": "A3",
+      "pattern": "Unneeded emphasis",
+      "before": "In particular, $K_p$ is the full pendulum-body kinetic energy: it includes motion carried by the arm and the cross term.",
+      "after": "The full pendulum-body kinetic energy $K_p$ includes motion carried by the arm and the cross term."
+    },
+    {
+      "location": "B5",
+      "pattern": "Metaphorical verb and repeated explanation",
+      "before": "Roots enrich the candidate set, after which all candidates are scored together.",
+      "after": "Work-matching candidates and original grid torques are scored together."
+    },
+    {
+      "location": "R1",
+      "pattern": "Stacked protocol sentence",
+      "before": "Parameter development used seeds 20261020 and 20261021; the reported setting was then evaluated on seeds 20261022 and 20261023, each supplying 512 starts per class.",
+      "after": "Parameter development used seeds 20261020 and 20261021. The reported setting was then evaluated on seeds 20261022 and 20261023, each supplying 512 starts per class."
+    }
+  ],
+  "empirical_claims": [
+    {
+      "claim": "4096/4096 randomized captures, 1024/1024 downward without crossing, six moving crossings",
+      "location": "I3,R1,atlas A",
+      "evidence": "Complete committed validation CSVs from seeds 20261022 and 20261023",
+      "status": "Recomputed"
+    },
+    {
+      "claim": "Downward median capture time 11.13 s",
+      "location": "R1",
+      "evidence": "Combined 1024 downward episode durations",
+      "status": "Recomputed"
+    },
+    {
+      "claim": "Eight fixed probes capture without crossing",
+      "location": "R1,atlas A",
+      "evidence": "Four probe rows per committed validation CSV",
+      "status": "Recomputed"
+    },
+    {
+      "claim": "Selected replay durations, peaks, first crossings and bounded candidate counts",
+      "location": "Atlas C-F caption",
+      "evidence": "Committed manifest, CSVs and decision audits",
+      "status": "Verified; selected illustrations only"
+    },
+    {
+      "claim": "Model and controller equations match current implementation",
+      "location": "Method",
+      "evidence": "environment/dynamics.py, heuristic/energy.py, heuristic/decoder.py",
+      "status": "Source checked; diagnostic endpoint reproduced"
+    },
+    {
+      "claim": "Energy swing-up and resource-aware update scheduling are established background topics",
+      "location": "I1,I2",
+      "evidence": "Two verified primary-source publication records; no comparative claim",
+      "status": "Bibliographic metadata and topical abstracts checked"
+    },
+    {
+      "claim": "Sustained holding, stability, robustness, low computational cost, or intervention superiority",
+      "location": "Excluded from claimed results",
+      "evidence": "None in the presented capture records",
+      "status": "Not claimed"
+    }
+  ],
+  "bibliography": [
+    {
+      "key": "heemels2012",
+      "verification": "https://heemels.tue.nl/publications",
+      "context": "https://heemels.tue.nl/research/event-triggered-and-self-triggered-control",
+      "doi": "10.1109/CDC.2012.6425820"
+    },
+    {
+      "key": "astrom2000",
+      "verification": "https://portal.research.lu.se/en/publications/swinging-up-a-pendulum-by-energy-control-2/",
+      "doi": "10.1016/S0005-1098(99)00140-5",
+      "note": "Page numbers omitted because author-repository metadata and indexed journal header disagree; title, authors, year, volume, issue and DOI agree."
+    }
+  ],
+  "render_status": {
+    "native_compilation": "Earlier standalone versions compiled; the current project-based English source is unverified because the native compiler cannot load sibling files",
+    "visual_page_inspection": "Blocked: computer-use access to Codex is disallowed; native compiler does not export a PDF",
+    "pdf_export": "Not available through the compilation tool",
+    "checks": {
+      "ruff": "passed",
+      "git_diff_check": "passed",
+      "code_structure": "232 lines; two functions of 80 and 90 lines; no new classes, helpers, CLI options or controller settings",
+      "chinese_companion": "21 paragraph roles and all 13 displayed equations match; source ignored by existing rule"
+    }
+  },
+  "humanizer_verification": {
+    "numbers": {
+      "unchanged": true,
+      "count": 14874,
+      "sha256": "6d8a628a3c23309cc75a05cad5abb56d7aa85e2b67c9728bcb0c383bb80c1fed"
+    },
+    "citations": {
+      "unchanged": true,
+      "count": 2,
+      "sha256": "4418b291621a1140691c48ba90c9aad915603cdc959e20520a7ae2dd6feadd5e"
+    },
+    "display_equations": {
+      "unchanged": true,
+      "count": 13,
+      "sha256": "db7ddd1ef76943c2e143bbdf4a4520226c0cf9b5fceb338014dce0162310a088"
+    },
+    "paragraph_ids": {
+      "unchanged": true,
+      "count": 21,
+      "sha256": "4a5402063b655e67bdbc15889687c61bc0e6b389171f7ccf07d23a88adfbe20f"
+    }
+  },
+  "humanizer_after_sha256": "2d90ca721eda6ca967774523e804f8c33765d8bcbdfa72aa2acb82dc73143a1e",
+  "final_sources_sha256": {
+    "main.tex": "9f7362705c3dd912995c73c041c8b41f9a8ae66fb3f509cd29b71f9166d0c609",
+    "main-CN.tex": "532057d565a9d7b7885ba7c46db6710999c11a82ee37ecd15022cc9525e1082e"
+  },
+  "ieeeconf_formatting": {
+    "template_directory": "/Users/vic/Downloads/ieeeconf",
+    "class_source_sha256": "4befef671c2a996889d325f5170d3387bf42aac9a37dcaa93724ad49816e4ec2",
+    "class_embedding": "Original class with normalized line endings embedded via filecontents for standalone native compilation",
+    "format": "US Letter, 10 pt, conference, two columns, template margins and fonts",
+    "content_check": "Prose, figure data, captions and equation labels preserved; ten display blocks reflowed",
+    "equation_width_check": "All 13 displays fit columnwidth minus 20 pt in the native compiler",
+    "figures_tables": "Two full-width figures and two full-width tables",
+    "visual_review": "Not available: Codex computer-use access is blocked; no exported PDF supplied",
+    "six_page_limit": "Not verified; no content compression performed",
+    "companion_scope": "Only the requested open English manuscript was reformatted"
+  },
+  "overleaf_structure": {
+    "main_tex_lines": 257,
+    "class": "Existing project ieeeconf.cls, unchanged; no embedded class",
+    "figure_files": [
+      "figures/setup.tex",
+      "figures/data.tex",
+      "figures/method.tex",
+      "figures/results.tex"
+    ],
+    "content_check": "Manuscript body including equations and captions is byte-identical after expanding figure inputs; numerical data unchanged",
+    "native_compilation": "Cannot verify: the native single-file compiler reports ieeeconf.cls missing; the class is present in the project and ZIP",
+    "regeneration_check": "Generator leaves main.tex unchanged and reproduces figures/data.tex byte-for-byte",
+    "bundle": {
+      "path": "machine-scannables/overleaf-project.zip",
+      "files": [
+        "main.tex",
+        "ieeeconf.cls",
+        "figures/setup.tex",
+        "figures/data.tex",
+        "figures/method.tex",
+        "figures/results.tex"
+      ],
+      "integrity": "ZIP member names and CRC checks passed"
+    }
+  }
+}

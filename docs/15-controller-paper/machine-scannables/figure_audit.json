@@ -1,0 +1,71 @@
+{
+  "outcomes": {
+    "downward": {
+      "episodes": 1024,
+      "captured": 1024,
+      "arm_crossings": 0,
+      "median_capture_s": 11.13
+    },
+    "moving": {
+      "episodes": 1024,
+      "captured": 1024,
+      "arm_crossings": 6,
+      "median_capture_s": 9.2
+    },
+    "near": {
+      "episodes": 1024,
+      "captured": 1024,
+      "arm_crossings": 0,
+      "median_capture_s": 0.1
+    },
+    "tight": {
+      "episodes": 1024,
+      "captured": 1024,
+      "arm_crossings": 0,
+      "median_capture_s": 0.1
+    }
+  },
+  "source_sha256": {
+    "provenance/validation_seed_20261022/full_validation_episodes.csv": "e98d6c5b06bda6207174d9533bffb0c1187604786013897f133a6130ebb23778",
+    "provenance/validation_seed_20261023/full_validation_episodes.csv": "b77ba89b5c2f70d5f10475f61597b47bb4847db556179c527b3dacc72bf428b8",
+    "downward_median_capture_time.csv": "dec09f929edcc26f481a6cd116fe3d4faa456b4253aac252d1b59e6d3bddb629",
+    "downward_slowest_capture.csv": "9b1de67437eb3910af7051c42039d0e23c53e77a4eba0db6097dc5c57ae3b078",
+    "arm_crossing_despite_bounded_tested_torques.csv": "6a065b39ddc0ae5ba309a01bb5ee205e3f48b2af8a25d70c95ce33315c503208",
+    "arm_crossing_without_bounded_tested_torque.csv": "4a592acb976e6c8f70f14cfc8d71a075c59e2422829c899808b854ed0026d0dc"
+  },
+  "fixed_probes": {
+    "episodes": 8,
+    "captured": 8,
+    "arm_crossings": 0
+  },
+  "CrossBounded": {
+    "first_crossing_s": 3.2,
+    "source_case": "arm_crossing_despite_bounded_tested_torques"
+  },
+  "CrossUnbounded": {
+    "first_crossing_s": 8.620000000000001,
+    "source_case": "arm_crossing_without_bounded_tested_torque"
+  },
+  "decoder_diagnostic": {
+    "source_case": "downward_median_capture_time.npz",
+    "decision_index": 20,
+    "time_s": 2.0,
+    "physical_state": [
+      0.5977745685987798,
+      4.911121884063728,
+      0.16749673381025248,
+      -6.998617225737357
+    ],
+    "requested_work_j": 5.9786623223715487e-05,
+    "selected_torque_nm": 0.0057374999999999995,
+    "bracket_roots_nm": [
+      -0.0019212780761718737,
+      0.003326517333984376
+    ],
+    "plane_total_over_target": 0.5098450276603937,
+    "maximum_predicted_arm_rad": 0.7563323645123986,
+    "selected_endpoint_match_atol_j": 1e-12,
+    "curve_total_energy_balance_max_j": 5.1442604263179925e-08,
+    "source_sha256": "a2494d9e95a1e03c6d7eddaecd40f0f9e7c37970d78d4de4a2f03edbffba3931"
+  }
+}

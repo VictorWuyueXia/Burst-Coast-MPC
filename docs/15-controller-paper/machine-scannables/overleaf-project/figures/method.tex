@@ -1,0 +1,36 @@
+\centering
+\begin{minipage}[t]{0.43\textwidth}
+\centering\textbf{A\quad Mechanism and coordinates}\par\medskip
+\begin{tikzpicture}[scale=1.1,>=Latex]
+\coordinate (o) at (0,0);\coordinate (p) at (2.1,0.65);
+\coordinate (tip) at (1.05,-1.4);
+\draw[->,gray] (o)--(3,0) node[right]{$x$};
+\draw[->,gray] (o)--(-0.8,1) node[above]{$y$};
+\draw[->,gray] (o)--(0,2) node[above]{$z$};
+\draw[very thick,armblue] (o)--(p) node[midway,above]{$r,\ m_a$};
+\draw[very thick,pendorange] (p)--(tip) node[midway,right]{$l,\ m_p$};
+\fill (o) circle(2pt) node[below left]{motor};
+\fill (p) circle(2pt) node[above right]{hinge};
+\draw[dashed] (p)--++(0,-2.4) node[below]{downward};
+\draw[->] (0.8,0) arc[start angle=0,end angle=17,radius=0.8] node[right]{$\theta,\ u$};
+\draw[->] (2.1,-0.25) arc[start angle=-90,end angle=-117,radius=0.9] node[below left]{$\alpha$};
+\node[align=center,font=\small] at (1.3,-2.6) {$\alpha=0$: down\qquad $\alpha=\pi$: up\\$\omega=\dot\theta$,\quad $\nu=\dot\alpha$};
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.55\textwidth}
+\centering\textbf{B\quad Work plane and torque response}\par
+\begin{tikzpicture}
+\begin{axis}[width=\linewidth,height=6.3cm,view={130}{25},
+ xlabel={$K_a/\Estar$},ylabel={$K_p/\Estar$},zlabel={$V/\Estar$},
+ scaled ticks=false, tick label style={font=\tiny,/pgf/number format/fixed},
+ colormap/viridis,colorbar,
+ colorbar style={title={$u$ (mN\,m)},tick label style={font=\tiny}},
+ point meta min=-18.36,point meta max=18.36]
+\addplot3[fill=energygreen!25,draw=energygreen,opacity=0.35] coordinates {\PlaneData}--cycle;
+\addplot3[gray,thin] coordinates {\CurveData};
+\addplot3[only marks,scatter,scatter src=explicit,mark size=0.8pt] table[meta=u] {\CurveTable};
+\addplot3[only marks,mark=o,mark size=3pt,black,very thick] coordinates {\RootData};
+\addplot3[only marks,mark=star,mark size=4pt,black] coordinates {\SelectedData};
+\end{axis}
+\end{tikzpicture}
+\end{minipage}
