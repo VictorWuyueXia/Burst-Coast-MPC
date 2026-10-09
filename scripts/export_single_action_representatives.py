@@ -29,6 +29,13 @@ def main() -> None:
         episodes = list(csv.DictReader((source / "episodes.csv").open()))
         initial = np.load(campaign / "machine-scannables/initial_states.npz")["x"]
         traces = np.load(source / "trajectories.npz")
+        initial[:, 1] = (initial[:, 1] + np.pi) % (2 * np.pi) - np.pi
+        archive = traces
+        traces = {key: archive[key] for key in archive.files}
+        archive.close()
+        for key in ("start_x", "x", "physics_x"):
+            traces[key][..., 1] = (traces[key][..., 1] + np.pi) % (2 * np.pi) - np.pi
+        traces["pendulum_angle_deg"] = np.rad2deg(traces["physics_x"][..., 1])
         selection = []
         if seed == 20261022:
             for group, label in (
@@ -142,7 +149,7 @@ def main() -> None:
             np.savez_compressed(
                 output / f"{name}.npz",
                 initial_x=initial[lane],
-                **{key: traces[key][:, lane] for key in traces.files},
+                **{key: traces[key][:, lane] for key in traces},
             )
             np.testing.assert_array_equal(
                 np.loadtxt(output / f"{name}.csv", delimiter=",", skiprows=1), table
@@ -155,7 +162,7 @@ def main() -> None:
                 rtol=0,
             )
             assert np.isfinite(table).all() and np.all(
-                (state[:, 1] >= 0) & (state[:, 1] < 2 * np.pi)
+                (state[:, 1] >= -np.pi) & (state[:, 1] < np.pi)
             )
             np.testing.assert_allclose(
                 np.linalg.norm(geometry[:, 1] - geometry[:, 0], axis=1),
@@ -167,7 +174,7 @@ def main() -> None:
                 physical.pendulum_length_m,
                 atol=1e-14,
             )
-            inside = np.abs(state[1:, 1] - np.pi) <= np.deg2rad(15)
+            inside = (np.pi - np.abs(state[1:, 1])) <= np.deg2rad(15)
             capture = np.flatnonzero(np.convolve(inside.astype(int), np.ones(5, int), "valid") == 5)
             assert len(capture) and capture[0] + 5 == len(state) - 1
             crossing = bool(np.any(np.abs(state[:, 0]) >= np.pi))
@@ -196,17 +203,20 @@ def main() -> None:
                     ],
                 }
             )
-        traces.close()
     assert len(sessions) == 8
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "coordinate_conversion": (
+            "Original source archives retained; exported positions wrapped "
+            "to [-pi, pi). No simulation rerun."
+        ),
         "export_repository_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=root, text=True
         ).strip(),
         "export_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "physics_sample_interval_s": 0.02,
         "decision_interval_s": 0.1,
-        "pendulum_angle_convention": "[0, 2*pi) radians: 0 downward, pi upright",
+        "pendulum_angle_convention": "[-pi, pi) radians: 0 downward, ±pi upright",
         "selection_rule": "Seed 20261022: upper median duration among noncrossing captures in "
         "each of four groups (ties by lane); slowest downward (ties highest lane); exact downward "
         "rest; largest arm peak among audited crossings with bounded tested options. Seed "

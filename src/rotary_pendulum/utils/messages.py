@@ -43,7 +43,7 @@ class ActionPlan:
 
 @dataclass(frozen=True)
 class StateObservation:
-    """Alpha is in [0, 2π); beta is upright error; energies cover both physical bodies."""
+    """Alpha is in [-π, π); beta is upright error; energies cover both physical bodies."""
 
     t_index: int
     t_sec: float

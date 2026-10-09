@@ -77,7 +77,7 @@ class RotaryPendulumAnimation:
         self.axis.set_title(
             "3D Mechanism\n"
             f"arm={np.rad2deg(observation.theta_rad):+.1f}°, "
-            f"pendulum={np.rad2deg(observation.alpha_rad % (2 * np.pi)) % 360:.1f}°, "
+            f"pendulum={np.rad2deg((observation.alpha_rad + np.pi) % (2 * np.pi) - np.pi):.1f}°, "
             f"tau={applied_torque_nm:+.4f} N m"
         )
 

@@ -49,7 +49,7 @@ def reset(key: Array, stratum: ArrayLike) -> EnvState:
     )
     moving_sign = jnp.where(jax.random.bernoulli(sign_key), 1.0, -1.0)
     state = state.at[1].set(jnp.where(stratum_index == 1, moving_sign * state[1], state[1]))
-    state = state.at[1].set(state[1] % (2 * jnp.pi) % (2 * jnp.pi))
+    state = state.at[1].set((state[1] + jnp.pi) % (2 * jnp.pi) - jnp.pi)
     return EnvState(
         x=state,
         physics_steps=jnp.array(0, dtype=jnp.int32),

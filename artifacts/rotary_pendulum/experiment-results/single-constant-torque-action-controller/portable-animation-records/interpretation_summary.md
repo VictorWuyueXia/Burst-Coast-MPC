@@ -17,13 +17,15 @@ These eight complete episodes illustrate behavior and failure mechanisms; they a
 
 The arm peaks shown here include the initial pose; the original episodes.csv peak_arm_rad includes only active post-integration samples. Both definitions are retained explicitly. Near-upright and tight-upright examples last only 0.1 seconds: they illustrate immediate capture, not sustained balancing.
 
+Schema version 2 uses pendulum position in [−180°, 180°), with 0 downward and ±180 upright. These are coordinate-converted records of the original simulations. Non-angle NumPy trace fields are unchanged; source archives retain their original coordinates. The manifest checksums describe this converted bundle.
+
 ## Make animations on another machine
 
 CSV playback needs no simulator rerun, GPU or original full archive. Every row includes time_s (seconds), four state fields (radians and radians per second), interval torque (newton metres), decision index, four physical energy columns (joules), and origin/pivot/center/tip x/y/z coordinates (metres). CSV files contain no terminal padding.
 
 1. Play by time_s, one original sample every 0.02 seconds (50 frames per second). Draw the arm from origin to pivot and the pendulum from pivot to tip, with equal 3D axis scales.
 2. The first row is the initial state; torque 0 and decision index −1 mean no preceding interval. On later rows, preceding_interval_torque_nm is the torque applied over the integration interval ending at that row, not a newly selected next action. One decision normally spans five rows; the final action can end early.
-3. Display pendulum position in 0–360 degrees, 0 downward and 180 upright. Keep arm angle and velocities signed. Do not linearly interpolate across the pendulum-angle wrap; use the saved coordinates and native frames.
+3. Display pendulum position in −180–180 degrees, 0 downward and ±180 upright. Keep arm angle and velocities signed. Do not linearly interpolate across the pendulum-angle wrap; use the saved coordinates and native frames.
 4. Display time, torque, pendulum position, arm angle and whether the arm crosses ±180 degrees. First-crossing records and bounded-tested-torque counts are in the manifest. A count of zero refers to the finite tested action set, not a proof about every continuous torque.
 5. End each clip at capture. If a multi-panel animation holds an ended clip on its final frame, label it “recording ended”; it is not continuing simulated balance. Convert all energy components from joules to millijoules consistently if desired, without separate display weights.
 
@@ -33,4 +35,4 @@ NPZ files retain 200 original decision slots plus initial_x. physics_x has shape
 
 The median downward case demonstrates a useful starting controller; the slow case shows room to reduce capture time; the two crossings preserve its weaknesses. Those final cases are soft-limit violations, not capture failures. See the [RL assessment and plan](../../../../../docs/14-reinforcement-learning-prior/assessment_and_next_step_plan.md).
 
-This directory is a user-requested exception to artifact exclusion: only portable data, provenance and this English interpretation are force-added to the index. The Chinese companion still follows the -CN ignore rule. Full original runs remain ignored. Transferring the bundle through Git requires committing and pushing these staged files later.
+This directory is a user-requested exception to artifact exclusion: only portable data, provenance and this English interpretation are force-added to the index. The Chinese companion still follows the -CN ignore rule. Full original runs remain ignored. The bundle was committed in `1cc16ce`; the signed-coordinate update is currently an uncommitted change and must be committed and pushed before another machine can fetch it.

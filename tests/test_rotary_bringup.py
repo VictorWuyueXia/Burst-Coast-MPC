@@ -109,8 +109,8 @@ def test_rotary_bringup_rolls_out_each_complete_plan_and_writes_artifacts(
     step_file = (run_dir / "steps.csv").open(encoding="utf-8", newline="")
     step_rows = list(csv.DictReader(step_file))
     step_file.close()
-    assert all(0 <= float(row["alpha_rad"]) < 2 * np.pi for row in step_rows)
-    assert all(0 <= float(row["pendulum_angle_deg"]) < 360 for row in step_rows)
+    assert all(-np.pi <= float(row["alpha_rad"]) < np.pi for row in step_rows)
+    assert all(-180 <= float(row["pendulum_angle_deg"]) < 180 for row in step_rows)
     np.testing.assert_allclose(
         [float(row["pendulum_angle_deg"]) for row in step_rows],
         np.rad2deg([float(row["alpha_rad"]) for row in step_rows]),

@@ -105,7 +105,8 @@ def residual_action(
     x = jnp.stack(
         (
             observation[..., 0] * ARM_LIMIT_RAD,
-            jnp.arctan2(observation[..., 1], observation[..., 2]) % (2 * jnp.pi) % (2 * jnp.pi),
+            (jnp.arctan2(observation[..., 1], observation[..., 2]) + jnp.pi) % (2 * jnp.pi)
+            - jnp.pi,
             observation[..., 3] * ARM_SPEED_SCALE,
             observation[..., 4] * PENDULUM_SPEED_SCALE,
         ),

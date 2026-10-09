@@ -139,14 +139,21 @@ def main() -> None:
         samples = data["physics_x"][data["physics_active"]]
         times = 0.02 * np.arange(1, len(samples) + 1)
         decision_time = data["time_s"][active]
-        angle_deg = np.rad2deg(samples[:, 1] % (2 * np.pi)) % 360
+        angle_deg = np.rad2deg((samples[:, 1] + np.pi) % (2 * np.pi) - np.pi)
         angle_deg[np.abs(np.diff(angle_deg, prepend=angle_deg[0])) > 180] = np.nan
         figure, axes = plt.subplots(3, 2, figsize=(13, 10), layout="constrained")
         axes[0, 0].plot(times, angle_deg, color="#376b91")
-        axes[0, 0].axhspan(165, 195, color="#27866c", alpha=0.2, label="Goal: 165–195°")
-        axes[0, 0].set_ylabel("Pendulum angle [deg; 0 down, 180 up]")
-        axes[0, 0].set_ylim(0, 360)
-        axes[0, 0].set_yticks([0, 90, 180, 270, 360])
+        for edge in (-180, 180):
+            axes[0, 0].axhspan(
+                max(-180, edge - 15),
+                min(180, edge + 15),
+                color="#27866c",
+                alpha=0.2,
+                label="Goal near ±180°",
+            )
+        axes[0, 0].set_ylabel("Pendulum angle [deg; 0 down, ±180 up]")
+        axes[0, 0].set_ylim(-180, 180)
+        axes[0, 0].set_yticks([-180, -90, 0, 90, 180])
         energy = data["energy_j"][active] / 0.03037176
         for index, label in enumerate(("Arm kinetic", "Pendulum body kinetic", "Potential")):
             axes[0, 1].plot(decision_time, energy[:, index], label=label)

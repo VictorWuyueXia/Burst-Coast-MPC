@@ -56,7 +56,7 @@ def generate_validation_cases() -> tuple[np.ndarray, np.ndarray]:
             [-1.4, np.pi + 0.25, -2.0, 6.0],
         ]
     )
-    states[:, 1] = states[:, 1] % (2 * np.pi) % (2 * np.pi)
+    states[:, 1] = (states[:, 1] + np.pi) % (2 * np.pi) - np.pi
     return np.repeat(states, 3, axis=0), np.tile(
         [-TORQUE_LIMIT_NM, 0.0, TORQUE_LIMIT_NM], len(states)
     )
@@ -244,12 +244,12 @@ def measure_accuracy_and_rollouts(backend_dir: Path) -> None:
     axes[0].legend()
     for stratum in range(3):
         axes[1].hist(
-            np.rad2deg(reset_array[stratum, :, 1]) % 360,
+            np.rad2deg((reset_array[stratum, :, 1] + np.pi) % (2 * np.pi) - np.pi),
             bins=50,
             alpha=0.5,
             label=f"stratum {stratum}",
         )
-    axes[1].set_xlabel("Initial pendulum angle [deg; 0 down, 180 up]")
+    axes[1].set_xlabel("Initial pendulum angle [deg; 0 down, ±180 up]")
     axes[1].set_ylabel("Samples")
     axes[1].legend()
     representatives = (0, 1, 2, 30, 31, 32)

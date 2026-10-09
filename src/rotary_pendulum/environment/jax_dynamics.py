@@ -57,5 +57,5 @@ def rk4_step(x: ArrayLike, u: ArrayLike) -> Array:
     k4 = state_derivative(state + PHYSICS_DT_S * k3, u)
     following = state + PHYSICS_DT_S * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
     # Normalize only the completed RK4 step; angular velocity remains signed.
-    # The second remainder maps a rounded upper endpoint back to zero.
-    return following.at[..., 1].set(following[..., 1] % (2 * jnp.pi) % (2 * jnp.pi))
+    # Exact upright uses -pi; crossing it preserves the direction of motion.
+    return following.at[..., 1].set((following[..., 1] + jnp.pi) % (2 * jnp.pi) - jnp.pi)

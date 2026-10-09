@@ -136,7 +136,7 @@ def test_reset_support_variance_signs_and_seed_replay(stratum: int) -> None:
 
     np.testing.assert_array_equal(states, replay)
     assert np.all(np.var(states, axis=0) > 0.0)
-    assert np.all((states[:, 1] >= 0) & (states[:, 1] < 2 * np.pi))
+    assert np.all((states[:, 1] >= -np.pi) & (states[:, 1] < np.pi))
     if stratum != 2:
         states[:, 1] = np.arctan2(np.sin(states[:, 1]), np.cos(states[:, 1]))
     if stratum == 0:
@@ -148,6 +148,7 @@ def test_reset_support_variance_signs_and_seed_replay(stratum: int) -> None:
         assert np.all((np.abs(states[:, 1]) >= 0.40) & (np.abs(states[:, 1]) <= 2.60))
         assert np.any(states[:, 1] < 0.0) and np.any(states[:, 1] > 0.0)
     else:
+        states[:, 1] %= 2 * np.pi  # Unwrap locally only to check the sampling box.
         assert np.all(states >= [-0.25, np.pi - 0.25, -1.0, -1.0])
         assert np.all(states <= [0.25, np.pi + 0.25, 1.0, 1.0])
 

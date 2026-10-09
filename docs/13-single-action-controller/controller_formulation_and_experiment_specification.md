@@ -2,7 +2,7 @@
 
 ## State and primitive physical parameters
 
-State order is `[theta, alpha, omega, nu]`: arm angle θ in unwrapped radians, pendulum position α in [0, 2π) radians, arm angular velocity ω and pendulum angular velocity ν in signed rad/s. Downward is α = 0; upright is α = π. Human pendulum plots use [0°, 360°).
+State order is `[theta, alpha, omega, nu]`: arm angle θ in unwrapped radians, pendulum position α in [−π, π) radians, arm angular velocity ω and pendulum angular velocity ν in signed rad/s. Downward is α = 0; upright is α = −π (equivalently +π). Human pendulum plots use [−180°, 180°).
 
 The configured model parameters are arm mass mₐ = 0.095 kg, arm length r = 0.085 m, pendulum mass mₚ = 0.024 kg, pendulum length l = 0.129 m, and gravity g = 9.81 m/s². These are defined simulation inputs in `src/rotary_pendulum/configs/physics.yaml`, not fitted values from these experiments. Both damping coefficients are zero. Links are modeled as uniform rods.
 
@@ -47,7 +47,7 @@ $$
 W=u\Delta\theta,\qquad \dot E=u\omega.
 $$
 
-`energy_components` independently checks total kinetic, potential and total energy. `encode` returns `[K_a, K_p, V]`. The NumPy observation fields `kinetic_energy_j` and `energy_j` now mean total kinetic and total mechanical energy respectively. NumPy artifact format version 3 records that definition. Older MPC/RL hinge-relative swing energy remains a named control quantity, not full body energy; historical archives are unchanged.
+`energy_components` independently checks total kinetic, potential and total energy. `encode` returns `[K_a, K_p, V]`. The NumPy observation fields `kinetic_energy_j` and `energy_j` now mean total kinetic and total mechanical energy respectively. NumPy artifact format version 4 records that definition. Older MPC/RL hinge-relative swing energy remains a named control quantity, not full body energy; historical archives are unchanged.
 
 ## Work request and exactly one action prediction
 
@@ -99,11 +99,11 @@ Each parameter comparison reuses identical initial arrays. Uniform draws are in 
 | near | ±0.25 | π ± 0.25 | ±1 | ±1 |
 | tight | ±0.08 | π ± 0.12 | ±0.15 | ±0.30 |
 
-Fixed states `[theta, alpha, omega, nu]` are `[0,0,0,0]`, `[0,π,0,0]`, `[1.45,0.4,2,0]` and `[-1.45,-0.4,-2,0]`, with the last pendulum angle wrapped into [0,2π). They are not extra random samples or tests of arbitrary wide-arm initial states.
+Fixed states `[theta, alpha, omega, nu]` are `[0,0,0,0]`, `[0,π,0,0]`, `[1.45,0.4,2,0]` and `[-1.45,-0.4,-2,0]`, with the last pendulum angle wrapped into [−π,π). They are not extra random samples or tests of arbitrary wide-arm initial states.
 
 Five development stages each test four settings on the same 256 random states plus four fixed states, seed 20261020. `confirmation.json` compares four settings on 2,048 random states plus four fixed states, seed 20261021; this stage still informed selection. `validation_20261022.json` and `validation_20261023.json` each compare the two selected neighboring settings on another 2,048 random states plus four fixed states. Those two seeds are final validation, not gain selection. The fine plant repeats the selected setting on seed 20261022. This gives 23,668 evaluations on 6,400 distinct random states plus repeated fixed checks. A separate 260-case default-command check is outside this comparison count.
 
-A capture is five consecutive post-integration samples in 165–195°; elapsed samples are 20 ms apart. No speed or arm-position condition enters capture. Failed samples reset the count. Episodes stop at capture or 20 s. A crossing flag records any active sample at or beyond ±180° and does not terminate the episode. Equality at the boundary is flagged even though the soft overshoot penalty is zero there.
+A capture is five consecutive post-integration samples in [−180°, −165°] or [165°, 180°); elapsed samples are 20 ms apart. No speed or arm-position condition enters capture. Failed samples reset the count. Episodes stop at capture or 20 s. A crossing flag records any active sample at or beyond ±180° and does not terminate the episode. Equality at the boundary is flagged even though the soft overshoot penalty is zero there.
 
 ## Records and schemas
 
@@ -114,7 +114,7 @@ All current state arrays use `[theta_rad, alpha_rad, omega_rad_s, nu_rad_s]`. Le
 | `start_x`, `x` | D × N × 4 | Before/after applied action; angles rad, velocities rad/s |
 | `physics_x` | D × N × S × 4 | Every 20 ms sampled state |
 | `physics_active` | D × N × S | True only for executed samples |
-| `pendulum_angle_deg` | D × N × S | Actual pendulum position in [0,360) |
+| `pendulum_angle_deg` | D × N × S | Actual pendulum position in [−180,180) |
 | `energy_j`, `predicted_energy_j` | D × N × 3 | Actual end / predicted full-100 ms `[K_a,K_p,V]` in J |
 | `torque_nm` | D × N | Applied torque; zero in completed padding |
 | `requested_work_j`, `predicted_work_j`, `work_j` | D × N | Requested, full-action predicted, actually delivered motor work |

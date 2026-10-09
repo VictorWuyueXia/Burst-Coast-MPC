@@ -20,7 +20,7 @@ def evaluate(
     if mode not in ("energy", "zero"):
         raise ValueError(f"Unknown heuristic evaluation mode: {mode}")
     initial = initial._replace(
-        x=initial.x.at[..., 1].set(initial.x[..., 1] % (2 * jnp.pi) % (2 * jnp.pi))
+        x=initial.x.at[..., 1].set((initial.x[..., 1] + jnp.pi) % (2 * jnp.pi) - jnp.pi)
     )
 
     def advance(state: EnvState, unused: None) -> tuple[EnvState, dict[str, Array]]:
@@ -51,7 +51,7 @@ def evaluate(
             "start_x": state.x,
             "x": following.x,
             "physics_x": jnp.moveaxis(samples, 0, -2),
-            "pendulum_angle_deg": jnp.rad2deg(jnp.moveaxis(samples[..., 1], 0, -1)) % 360,
+            "pendulum_angle_deg": jnp.rad2deg(jnp.moveaxis(samples[..., 1], 0, -1)),
             "physics_active": jnp.moveaxis(active, 0, -1),
             "energy_j": encode(following.x),
             "torque_nm": jnp.where(active_duration > 0.0, torque, 0.0),

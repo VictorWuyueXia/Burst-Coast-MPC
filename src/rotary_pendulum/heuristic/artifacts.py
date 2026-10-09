@@ -24,6 +24,10 @@ def write_artifacts(
 ) -> list[dict[str, Any]]:
     """Audit every lane, save complete traces, and plot representative physical paths."""
 
+    traces = {key: value.copy() for key, value in traces.items()}
+    for key in ("start_x", "x", "physics_x"):
+        traces[key][..., 1] = (traces[key][..., 1] + np.pi) % (2 * np.pi) - np.pi
+    traces["pendulum_angle_deg"] = np.rad2deg(traces["physics_x"][..., 1])
     machine, human = output / "machine-scannables", output / "human-readables"
     machine.mkdir(parents=True, exist_ok=False)
     human.mkdir(parents=True, exist_ok=False)
@@ -33,7 +37,7 @@ def write_artifacts(
             {
                 **settings,
                 "pendulum_angle_convention": (
-                    "[0, 360) degrees; 0 down, 180 up; state arrays use radians in [0, 2*pi)"
+                    "[-180, 180) degrees; 0 down, ±180 up; state arrays use radians in [-pi, pi)"
                 ),
             },
             indent=2,
@@ -158,18 +162,19 @@ def write_artifacts(
         )
         flattened_time = sample_time[sample_active]
         physical = samples[sample_active]
-        angle_deg = np.rad2deg(physical[:, 1] % (2 * np.pi)) % 360
+        angle_deg = np.rad2deg((physical[:, 1] + np.pi) % (2 * np.pi) - np.pi)
         angle_deg[np.abs(np.diff(angle_deg, prepend=angle_deg[0])) > 180] = np.nan
         axes[0, column].plot(flattened_time, angle_deg, marker=".", markersize=2)
-        axes[0, column].axhspan(
-            180 - np.rad2deg(GOAL.beta_tolerance_rad),
-            180 + np.rad2deg(GOAL.beta_tolerance_rad),
-            color="green",
-            alpha=0.15,
-            label="Upright goal band",
-        )
-        axes[0, column].set_ylim(0, 360)
-        axes[0, column].set_yticks([0, 90, 180, 270, 360])
+        for edge in (-180, 180):
+            axes[0, column].axhspan(
+                max(-180, edge - np.rad2deg(GOAL.beta_tolerance_rad)),
+                min(180, edge + np.rad2deg(GOAL.beta_tolerance_rad)),
+                color="green",
+                alpha=0.15,
+                label="Upright goal band" if edge == -180 else None,
+            )
+        axes[0, column].set_ylim(-180, 180)
+        axes[0, column].set_yticks([-180, -90, 0, 90, 180])
         axes[0, column].set_title(f"{label}: lane {lane}; capture={rows[lane]['success']}")
         axes[1, column].plot(flattened_time, physical[:, 2], label="Arm speed")
         axes[1, column].plot(flattened_time, physical[:, 3], label="Pendulum speed")
@@ -200,7 +205,7 @@ def write_artifacts(
             axes[row, column].grid(alpha=0.25)
     for row, label in enumerate(
         (
-            "Pendulum angle [deg; 0 down, 180 up]",
+            "Pendulum angle [deg; 0 down, ±180 up]",
             "Signed speed [rad/s]",
             "Physical energy [mJ]",
             "Arm angle [deg]",

@@ -216,6 +216,7 @@ def collect(
             dtype=jnp.float32,
         )
         tight_x = tight_sample.at[:, 1].add(jnp.asarray(jnp.pi, dtype=jnp.float32))
+        tight_x = tight_x.at[:, 1].set((tight_x[:, 1] + jnp.pi) % (2 * jnp.pi) - jnp.pi)
         tight_mask = (stage == 0) & (uniforms < experiment["stage_zero_tight_fraction"])
         reset_state = reset_state._replace(x=jnp.where(tight_mask[:, None], tight_x, reset_state.x))
         continued_state = jax.tree.map(

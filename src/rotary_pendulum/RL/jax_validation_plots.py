@@ -37,7 +37,7 @@ def plot_validation(human_dir: Path, trajectories: Mapping[str, NDArray[Any]]) -
             color = "#2A9D46" if success[episode] else "#777777"
             label = outcome if outcome not in outcome_seen else None
             outcome_seen.add(outcome)
-            angle_deg = np.rad2deg(x[:, 1] % (2 * np.pi)) % 360
+            angle_deg = np.rad2deg((x[:, 1] + np.pi) % (2 * np.pi) - np.pi)
             angle_deg[np.abs(np.diff(angle_deg, prepend=angle_deg[0])) > 180] = np.nan
             for column, values in enumerate((x[:, 0], beta, angle_deg, x[:, 2], x[:, 3])):
                 state_axes[row, column].plot(elapsed, values, color=color, alpha=0.8, label=label)
@@ -64,13 +64,14 @@ def plot_validation(human_dir: Path, trajectories: Mapping[str, NDArray[Any]]) -
                     markersize=3,
                     zorder=3 if success[episode] else 2,
                 )
-        state_axes[row, 2].set_ylim(0, 360)
-        state_axes[row, 2].axhspan(
-            180 - np.rad2deg(GOAL.beta_tolerance_rad),
-            180 + np.rad2deg(GOAL.beta_tolerance_rad),
-            color="#2A9D46",
-            alpha=0.08,
-        )
+        state_axes[row, 2].set_ylim(-180, 180)
+        for edge in (-180, 180):
+            state_axes[row, 2].axhspan(
+                max(-180, edge - np.rad2deg(GOAL.beta_tolerance_rad)),
+                min(180, edge + np.rad2deg(GOAL.beta_tolerance_rad)),
+                color="#2A9D46",
+                alpha=0.08,
+            )
         for column, limit in (
             (0, GOAL.theta_tolerance_rad),
             (1, GOAL.beta_tolerance_rad),
@@ -92,7 +93,7 @@ def plot_validation(human_dir: Path, trajectories: Mapping[str, NDArray[Any]]) -
             (
                 "arm θ [rad]",
                 "upright error β [rad]",
-                "Pendulum [deg; 0 down, 180 up]",
+                "Pendulum [deg; 0 down, ±180 up]",
                 "arm ω [rad/s]",
                 "pendulum ν [rad/s]",
                 "torque [N m]",

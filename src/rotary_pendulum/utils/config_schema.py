@@ -58,7 +58,7 @@ class RotaryPendulumConfig(ConfigBase):
 
 
 class InitialStateConfig(ConfigBase):
-    """Initial coordinates in radians; resets normalize pendulum position to [0, 2π)."""
+    """Initial coordinates in radians; resets normalize pendulum position to [-π, π)."""
 
     theta_rad: float = Field(alias="theta-rad")
     alpha_rad: float = Field(alias="alpha-rad")

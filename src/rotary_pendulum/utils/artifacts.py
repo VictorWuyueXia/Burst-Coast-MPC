@@ -19,7 +19,7 @@ from bringup import __version__
 from rotary_pendulum.utils.config_schema import EpisodeConfig, VisualizationConfig
 from rotary_pendulum.utils.messages import ActionPlan, EpisodeSummary, StepRecord
 
-ARTIFACT_FORMAT_VERSION = 3
+ARTIFACT_FORMAT_VERSION = 4
 REPO_ROOT = Path(__file__).resolve().parents[3]
 STEP_CSV_HEADERS = (*[field.name for field in fields(StepRecord)], "pendulum_angle_deg")
 PLAN_CSV_HEADERS = (
@@ -111,7 +111,12 @@ class RotaryArtifactWriter:
         step_writer.writeheader()
         for record in records:
             step_writer.writerow(
-                {**asdict(record), "pendulum_angle_deg": float(np.rad2deg(record.alpha_rad) % 360)}
+                {
+                    **asdict(record),
+                    "pendulum_angle_deg": float(
+                        np.rad2deg((record.alpha_rad + np.pi) % (2 * np.pi) - np.pi)
+                    ),
+                }
             )
         step_file.close()
         self.step_count = len(records)
@@ -219,7 +224,7 @@ class RotaryArtifactWriter:
                 "cli_args": self.cli_args,
                 "package_version": __version__,
                 "pendulum_angle_convention": (
-                    "alpha_rad in [0, 2*pi); degrees in [0, 360); 0 down, 180 up"
+                    "alpha_rad in [-pi, pi); degrees in [-180, 180); 0 down, ±180 up"
                 ),
                 "energy_convention": (
                     "kinetic_energy_j is both bodies; energy_j is total mechanical energy"

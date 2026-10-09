@@ -67,7 +67,7 @@ class RealtimeRotaryPendulumPlot:
         self.animation.start(observation)
         arm_deg = np.rad2deg(observation.theta_rad)
         self.axes["angles"].set_ylim(
-            min(0, float(arm_deg.min())) - 5, max(360, float(arm_deg.max())) + 5
+            min(-180, float(arm_deg.min())) - 5, max(180, float(arm_deg.max())) + 5
         )
         self.figure.canvas.draw_idle()
         self._plt.pause(0.001)
@@ -127,7 +127,7 @@ class RealtimeRotaryPendulumPlot:
         )
 
         # Plot the complete pendulum orientation, breaking lines at the circular boundary.
-        angle_deg = np.rad2deg(np.asarray(self.series["alpha_rad"]) % (2 * np.pi)) % 360
+        angle_deg = np.rad2deg((np.asarray(self.series["alpha_rad"]) + np.pi) % (2 * np.pi) - np.pi)
         angle_deg[np.abs(np.diff(angle_deg, prepend=angle_deg[0])) > 180] = np.nan
 
         # Update dense signals through one aligned mapping to keep display semantics auditable.
@@ -169,7 +169,7 @@ class RealtimeRotaryPendulumPlot:
                 axis.autoscale_view()
         arm_deg = np.rad2deg(self.series["theta_rad"])
         self.axes["angles"].set_ylim(
-            min(0, float(arm_deg.min())) - 5, max(360, float(arm_deg.max())) + 5
+            min(-180, float(arm_deg.min())) - 5, max(180, float(arm_deg.max())) + 5
         )
         self.figure.canvas.draw_idle()
         self._plt.pause(0.001)
@@ -210,7 +210,7 @@ class RealtimeRotaryPendulumPlot:
         # Command and reference styles match the established inverted-pendulum artifacts.
         lines = {
             "theta": self.axes["angles"].plot([], [], label="Arm (signed)")[0],
-            "alpha": self.axes["angles"].plot([], [], label="Pendulum (0–360°)")[0],
+            "alpha": self.axes["angles"].plot([], [], label="Pendulum (−180–180°)")[0],
             "omega": self.axes["velocities"].plot([], [], label="omega arm")[0],
             "nu": self.axes["velocities"].plot([], [], label="nu pendulum")[0],
             "commanded": self.axes["torque"].plot([], [], linestyle="--", label="commanded")[0],
@@ -241,7 +241,8 @@ class RealtimeRotaryPendulumPlot:
                 0
             ],
         }
-        self.axes["angles"].axhline(np.pi, linestyle=":", color="0.3", label="upright")
+        self.axes["angles"].axhline(-180, linestyle=":", color="0.3", label="upright ±180°")
+        self.axes["angles"].axhline(180, linestyle=":", color="0.3")
         self.axes["energy"].axhline(
             2.0 * self.model.gravity_torque_nm,
             linestyle=":",
@@ -256,7 +257,7 @@ class RealtimeRotaryPendulumPlot:
 
         # Labels distinguish arm and pendulum states and define normalized action coordinates.
         labels = {
-            "angles": ("Angles: pendulum 0 down, 180 up", "t s", "angle deg"),
+            "angles": ("Angles: pendulum 0 down, ±180 up", "t s", "angle deg"),
             "velocities": ("Angular Velocities", "t s", "rad/s"),
             "torque": ("Torque", "t s", "N m"),
             "energy": ("Physical Mechanical Energy", "t s", "J"),

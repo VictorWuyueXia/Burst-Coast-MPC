@@ -43,7 +43,7 @@ def main() -> None:
             state = rng.uniform(*boxes[label], (count, 4))
             if label == "moving":
                 state[:, 1] *= rng.choice([-1.0, 1.0], count)
-            state[:, 1] = state[:, 1] % (2 * np.pi) % (2 * np.pi)
+            state[:, 1] = (state[:, 1] + np.pi) % (2 * np.pi) - np.pi
             states.append(state)
             labels.extend([label] * count)
         states.append(
