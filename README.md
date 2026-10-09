@@ -18,10 +18,11 @@ with a soft penalty beginning at the actual ±180° arm limit. There is no braki
 continuation, arm-speed cap or inward margin.
 See the [method and validation](docs/13-single-action-controller/controller_analysis.md).
 
-Pendulum position uses **0–360°**, with 0° downward and 180° upright; 360° wraps
-to 0°. Stored state angles use the equivalent range in radians. The goal band
-is 165–195°. Angular velocities and arm positions remain signed. See the
-[angle convention and validation](artifacts/rotary_pendulum/experiment-results/full-turn-pendulum-angle-representation/interpretations/interpretation_summary.md).
+Pendulum position uses **[−180°, 180°)**: 0° is downward and ±180° is upright.
+Stored state angles use [−π, π) radians, with exact +180° represented as −180°.
+The goal bands are [−180°, −165°] and [165°, 180°). Arm position and angular
+velocities remain signed. See the
+[signed-angle convention and validation](docs/15-signed-pendulum-angle/representation_and_validation.md).
 
 Run the default validation campaign with the existing Linux virtual environment:
 

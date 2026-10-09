@@ -45,8 +45,14 @@ for stage in (
         source = root / stage / name / "machine-scannables"
         print("Audit", stage, name, flush=True)
         data = np.load(source / "trajectories.npz")
+        archive = data
+        data = {key: archive[key] for key in archive.files if key != "allow_pickle"}
+        archive.close()
+        for key in ("start_x", "x", "physics_x"):
+            data[key][..., 1] = (data[key][..., 1] + np.pi) % (2 * np.pi) - np.pi
+        data["pendulum_angle_deg"] = np.rad2deg(data["physics_x"][..., 1])
         x, active = data["physics_x"], data["physics_active"]
-        inside = active & (data["pendulum_angle_deg"] >= 165) & (data["pendulum_angle_deg"] <= 195)
+        inside = active & (np.abs(data["pendulum_angle_deg"]) >= 165)
         inside = inside.transpose(0, 2, 1).reshape(-1, len(labels))
         ticks = np.arange(1, len(inside) + 1)[:, None]
         streak = ticks - np.maximum.accumulate(np.where(inside, 0, ticks), axis=0)
@@ -54,7 +60,7 @@ for stage in (
         np.testing.assert_array_equal(
             ((abs(x[..., 0]) >= np.pi) & active).any(axis=(0, 2)), data["arm_violation"][-1]
         )
-        assert np.all((x[..., 1] >= 0) & (x[..., 1] < 2 * np.pi))
+        assert np.all((x[..., 1] >= -np.pi) & (x[..., 1] < np.pi))
         complete = np.isclose(data["elapsed_s"], 0.1)
         checks.append(
             {
@@ -149,15 +155,21 @@ for stage in (
             lanes = sorted(set(chosen.values()) | set(crossings))
             np.savez_compressed(
                 target / "representatives.npz",
-                initial_x=initial["x"][lanes],
+                initial_x=np.column_stack(
+                    (
+                        initial["x"][lanes, 0],
+                        (initial["x"][lanes, 1] + np.pi) % (2 * np.pi) - np.pi,
+                        initial["x"][lanes, 2:],
+                    )
+                ),
                 labels=labels[lanes],
                 lanes=np.array(lanes),
-                **{key: data[key][:, lanes] for key in data.files if key != "allow_pickle"},
+                **{key: data[key][:, lanes] for key in data if key != "allow_pickle"},
             )
             temporary = Path(tempfile.mkdtemp(prefix="single-action-plots-"))
             write_artifacts(
                 temporary / "session",
-                {key: data[key] for key in data.files if key != "allow_pickle"},
+                {key: data[key] for key in data if key != "allow_pickle"},
                 labels.tolist(),
                 {**campaign, **trial},
             )
@@ -171,7 +183,6 @@ for stage in (
                 ),
             )
             shutil.rmtree(temporary)
-        data.close()
     initial.close()
 
 for filename, data in (("summary.csv", rows), ("episodes.csv", episodes)):

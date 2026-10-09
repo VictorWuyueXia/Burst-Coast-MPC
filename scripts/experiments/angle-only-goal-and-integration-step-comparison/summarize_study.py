@@ -106,14 +106,19 @@ def main() -> None:
                         times = np.arange(1, selected.sum() + 1) * dt / 1000
                         physical = state[selected, lane]
                         applied = np.repeat(data["torque_nm"][:, lane], round(100 / dt))[selected]
-                        angle_deg = np.rad2deg(physical[:, 1] % (2 * np.pi)) % 360
+                        angle_deg = np.rad2deg((physical[:, 1] + np.pi) % (2 * np.pi) - np.pi)
                         angle_deg[np.abs(np.diff(angle_deg, prepend=angle_deg[0])) > 180] = np.nan
                         axes[0, col].plot(times, angle_deg)
-                        axes[0, col].axhspan(
-                            165, 195, color="green", alpha=0.15, label="Goal 165–195°"
-                        )
-                        axes[0, col].set_ylim(0, 360)
-                        axes[0, col].set_yticks([0, 90, 180, 270, 360])
+                        for edge in (-180, 180):
+                            axes[0, col].axhspan(
+                                max(-180, edge - 15),
+                                min(180, edge + 15),
+                                color="green",
+                                alpha=0.15,
+                                label="Goal near ±180°",
+                            )
+                        axes[0, col].set_ylim(-180, 180)
+                        axes[0, col].set_yticks([-180, -90, 0, 90, 180])
                         axes[0, col].set_title(f"{label}; capture={bool(captured[lane])}")
                         axes[1, col].plot(times, physical[:, 2], label="Arm")
                         axes[1, col].plot(times, physical[:, 3], label="Pendulum")
@@ -132,7 +137,7 @@ def main() -> None:
                             axes[row, col].grid(alpha=0.2)
                     for row, label in enumerate(
                         (
-                            "Pendulum [deg; 0 down, 180 up]",
+                            "Pendulum [deg; 0 down, ±180 up]",
                             "Speed [rad/s]",
                             "Arm angle [deg]",
                             "Torque [mN m]",

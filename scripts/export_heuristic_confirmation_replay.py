@@ -65,9 +65,10 @@ def main() -> None:
         selection = json.loads((source / "plot_selection.json").read_text())
     initial = np.load(campaign / "machine-scannables/initial_states.npz")["x"]
     traces = dict(np.load(source / "trajectories.npz"))
-    initial[:, 1] = initial[:, 1] % (2 * np.pi) % (2 * np.pi)
+    initial[:, 1] = (initial[:, 1] + np.pi) % (2 * np.pi) - np.pi
     for key in ("start_x", "x", "physics_x"):
-        traces[key][..., 1] = traces[key][..., 1] % (2 * np.pi) % (2 * np.pi)
+        traces[key][..., 1] = (traces[key][..., 1] + np.pi) % (2 * np.pi) - np.pi
+    traces["pendulum_angle_deg"] = np.rad2deg(traces["physics_x"][..., 1])
     snapshot = campaign / "machine-scannables/source_snapshot"
     physics = snapshot / "src/rotary_pendulum/configs/physics.yaml"
     physical = RotaryPendulumConfig.model_validate(
@@ -159,7 +160,7 @@ def main() -> None:
             "arm_length": physical.arm_length_m,
             "pendulum_length": physical.pendulum_length_m,
         },
-        "pendulum_angle_convention": "alpha_rad in [0, 2*pi); 0 downward, pi upright",
+        "pendulum_angle_convention": "alpha_rad in [-pi, pi); 0 downward, ±pi upright",
         "state_order": ["theta_rad", "alpha_rad", "omega_rad_s", "nu_rad_s"],
         "torque_convention": (
             "Row i > 0 torque applies on (time[i-1], time[i]]; initial row zero is a sentinel"

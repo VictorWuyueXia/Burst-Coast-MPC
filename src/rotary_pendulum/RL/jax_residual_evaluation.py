@@ -50,7 +50,7 @@ def validation_resets(
         dtype=jnp.float32,
     )
     state = state._replace(x=state.x.at[3 * count : 4 * count].set(tight).at[-4:].set(probes))
-    state = state._replace(x=state.x.at[:, 1].set(state.x[:, 1] % (2 * jnp.pi) % (2 * jnp.pi)))
+    state = state._replace(x=state.x.at[:, 1].set((state.x[:, 1] + jnp.pi) % (2 * jnp.pi) - jnp.pi))
     lanes = 4 * count + 4
     repeated = jax.tree.map(
         lambda value: jnp.tile(value, (len(deadlines_s),) + (1,) * (value.ndim - 1)), state
@@ -219,21 +219,22 @@ def write_validation(
             # Include all 20 ms physics samples for state traces; torque stays at 100 ms.
             fine_time = (time[:, None] + 0.02 * np.arange(1, 6)).reshape(-1)
             state = x[active, lane].reshape(-1, 4)
-            angle = np.rad2deg(state[:, 1] % (2 * np.pi)) % 360
+            angle = np.rad2deg((state[:, 1] + np.pi) % (2 * np.pi) - np.pi)
             angle[np.abs(np.diff(angle, prepend=angle[0])) > 180] = np.nan
             axes[0, column].plot(fine_time, state[:, 0], label="arm θ")
             for bound in (-float(ARM_LIMIT_RAD), float(ARM_LIMIT_RAD)):
                 axes[0, column].axhline(bound, color="red", ls=":")
             axes[0, column].set_ylabel("Arm position (rad)")
             axes[1, column].plot(fine_time, angle, label="Pendulum position")
-            axes[1, column].axhspan(
-                180 - np.rad2deg(GOAL.beta_tolerance_rad),
-                180 + np.rad2deg(GOAL.beta_tolerance_rad),
-                color="green",
-                alpha=0.15,
-            )
-            axes[1, column].set_ylim(0, 360)
-            axes[1, column].set_ylabel("Pendulum [deg; 0 down, 180 up]")
+            for edge in (-180, 180):
+                axes[1, column].axhspan(
+                    max(-180, edge - np.rad2deg(GOAL.beta_tolerance_rad)),
+                    min(180, edge + np.rad2deg(GOAL.beta_tolerance_rad)),
+                    color="green",
+                    alpha=0.15,
+                )
+            axes[1, column].set_ylim(-180, 180)
+            axes[1, column].set_ylabel("Pendulum [deg; 0 down, ±180 up]")
             axes[2, column].plot(fine_time, state[:, 2], label="arm ω")
             axes[2, column].plot(fine_time, state[:, 3], label="pendulum ν")
             axes[2, column].set_ylabel("Velocity (rad/s)")
@@ -276,14 +277,14 @@ def write_validation(
     (human / "interpretation_summary.md").write_text(
         "# Validation plots\n\n"
         "Angles: θ is the unwrapped arm position; "
-        "α is pendulum position in 0–360 degrees, measured from downward; "
+        "α is pendulum position in −180–180 degrees, measured from downward; "
         "β is wrapped angle from upright. Velocities ω and ν belong to arm and pendulum. "
         "E/E* uses hinge-relative swing energy, excluding arm-carried kinetic energy; "
         "it is a control quantity, not the pendulum body's full physical energy.\n\n"
         "Filter modes: 0 accept, 1 coast, 2 brake, 3 least predicted excursion when no "
         "candidate stays inside the arm bounds. Red lines show the configured arm bounds. "
         "Hold fraction 1 means five consecutive 20 ms goal samples and early success. "
-        "The goal checks only pendulum angle within 165–195 degrees.\n\n"
+        "The goal checks only pendulum angle within [-180, -165] or [165, 180) degrees.\n\n"
         "Each random stratum shows median-return and best-return longest-deadline cases. "
         "Probe plots show all deterministic probes. Complete traces, selections and "
         "episode outcomes are in ../machine-scannables/. Campaign interpretation is "

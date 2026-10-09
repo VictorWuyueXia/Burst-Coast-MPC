@@ -42,7 +42,7 @@ class RotaryPendulumEnvironment:
         return self._t_index * self.config.simulation.timestep_s
 
     def reset(self) -> StateObservation:
-        """Reset with pendulum position in [0, 2π) and signed arm position and speeds."""
+        """Reset with pendulum position in [-π, π) and signed arm position and speeds."""
 
         # Store the complete minimal state in governing-equation coordinate order.
         initial = self.config.experiment.initial_state
@@ -50,7 +50,7 @@ class RotaryPendulumEnvironment:
             [initial.theta_rad, initial.alpha_rad, initial.omega_rad_s, initial.nu_rad_s],
             dtype=np.float64,
         )
-        self._state[1] = self._state[1] % (2 * np.pi) % (2 * np.pi)
+        self._state[1] = (self._state[1] + np.pi) % (2 * np.pi) - np.pi
         self._t_index = 0
         self._goal_hold_count = 0
         return self._make_observation()

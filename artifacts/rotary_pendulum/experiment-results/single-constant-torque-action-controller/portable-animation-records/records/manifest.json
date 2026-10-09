@@ -1,10 +1,11 @@
 {
-  "schema_version": 1,
-  "export_repository_commit": "831f37ed71945d64cf113128dee29cf655c986a8",
-  "export_script_sha256": "585afa65308615eb01a0bbceb4623a2eb6c8d78538cd93d2078f64b450033107",
+  "schema_version": 2,
+  "coordinate_conversion": "Original source archives retained; exported positions wrapped to [-pi, pi). No simulation rerun.",
+  "export_repository_commit": "1cc16cebbacd4961633e2f8c5a6e9ddb39eff490",
+  "export_script_sha256": "34c6a791eba4781c949d32f98e1402b25affa7e229cccdba65f2075ebc95629e",
   "physics_sample_interval_s": 0.02,
   "decision_interval_s": 0.1,
-  "pendulum_angle_convention": "[0, 2*pi) radians: 0 downward, pi upright",
+  "pendulum_angle_convention": "[-pi, pi) radians: 0 downward, \u00b1pi upright",
   "selection_rule": "Seed 20261022: upper median duration among noncrossing captures in each of four groups (ties by lane); slowest downward (ties highest lane); exact downward rest; largest arm peak among audited crossings with bounded tested options. Seed 20261023: largest arm peak among audited crossings without bounded tested options.",
   "csv_columns": [
     "time_s",
@@ -81,7 +82,7 @@
       "peak_arm_degrees": 78.34041723259563,
       "initial_state": [
         0.18744836482844057,
-        0.08447104489989499,
+        0.0844710448998951,
         -0.37443564568257726,
         -0.4320115931619093
       ],
@@ -124,7 +125,7 @@
       "peak_arm_degrees": 59.33485325506662,
       "initial_state": [
         -0.11653198162841348,
-        6.091673101167941,
+        -0.19151220601164454,
         0.3052474651014139,
         0.1329628387214612
       ],
@@ -167,7 +168,7 @@
       "peak_arm_degrees": 97.45739707190467,
       "initial_state": [
         0.26882279198843007,
-        1.656197773901376,
+        1.6561977739013756,
         0.3403992212188687,
         0.8246696312318509
       ],
@@ -210,7 +211,7 @@
       "peak_arm_degrees": 7.85034255251473,
       "initial_state": [
         0.1370143249507979,
-        3.169581584856622,
+        -3.1136037223229645,
         -0.6889088075389274,
         0.5568044379731698
       ],
@@ -253,7 +254,7 @@
       "peak_arm_degrees": 2.7671744429489236,
       "initial_state": [
         -0.0482963050064987,
-        3.0269591232726962,
+        3.0269591232726967,
         0.07999681432702635,
         -0.20020381721041874
       ],
@@ -393,7 +394,7 @@
       "peak_arm_degrees": 189.02830389794485,
       "initial_state": [
         -0.33225816011162923,
-        4.690236025920971,
+        -1.5929492812586155,
         0.23488507670989645,
         -4.676352797568494
       ],
@@ -412,20 +413,20 @@
     }
   ],
   "sha256": {
-    "arm_crossing_despite_bounded_tested_torques.csv": "6a065b39ddc0ae5ba309a01bb5ee205e3f48b2af8a25d70c95ce33315c503208",
-    "arm_crossing_despite_bounded_tested_torques.npz": "bc1af4c74ccaf23ca6747989c538ea96d3ace64794578790b52a31f1e33e2d16",
-    "arm_crossing_without_bounded_tested_torque.csv": "4a592acb976e6c8f70f14cfc8d71a075c59e2422829c899808b854ed0026d0dc",
-    "arm_crossing_without_bounded_tested_torque.npz": "17d49d1f0d552f430f6bc8182de0b9797be9477b474bbb80d5fb4323d953fd96",
-    "downward_median_capture_time.csv": "dec09f929edcc26f481a6cd116fe3d4faa456b4253aac252d1b59e6d3bddb629",
-    "downward_median_capture_time.npz": "a2494d9e95a1e03c6d7eddaecd40f0f9e7c37970d78d4de4a2f03edbffba3931",
-    "downward_slowest_capture.csv": "9b1de67437eb3910af7051c42039d0e23c53e77a4eba0db6097dc5c57ae3b078",
-    "downward_slowest_capture.npz": "fb4ca8d114e21125a0c603f82a18b20915364270a439283ec78ec326334efb4b",
-    "exact_downward_rest.csv": "82296213461d839d378ecebeffa28d53739ef8fea7783df9ccf1de7485efc8c6",
-    "exact_downward_rest.npz": "60c207cf6414635300418978f9d24199e05cdcac3f5f96f8cbd38a38c24281b9",
-    "moving_median_capture_time_without_arm_crossing.csv": "dfdf576fecf6037f6b07b9bc52952144cea3326c65fcb5b955fd3da0c7041160",
-    "moving_median_capture_time_without_arm_crossing.npz": "3d9f99488fc90d111f36284547f8b054b289ad7fce3c932e9a1c65f0853244d6",
-    "near_upright_median_capture_time.csv": "fee6f876a554aa402f83485aec6da9d7ccefbf4e5dfc6b64330977d3b4e4f2e4",
-    "near_upright_median_capture_time.npz": "e99ec861d1a209a382c6797e633b517e9b9a9ea5bcfac08b081d77230a43524b",
+    "arm_crossing_despite_bounded_tested_torques.csv": "7731957a0c2c121cd901879a40a0e99a2ca724e1455697da10b821deef2e983c",
+    "arm_crossing_despite_bounded_tested_torques.npz": "12749f9e44e5c3912596eaa5cb6a9db7c9d7a2632e7775bd58c6c1dac7ce3beb",
+    "arm_crossing_without_bounded_tested_torque.csv": "90c8a21332d9639e9fd5c0469eb4a3df18cc54e7c5825dd10da961c371c9960f",
+    "arm_crossing_without_bounded_tested_torque.npz": "bb8d14463ec10f3d79c34b1421aa760eda7b051946ad1fd2ea065135d82bba76",
+    "downward_median_capture_time.csv": "4b1e87ba223f83bda36bd974298b62d4edc70c56dfc4310b21e24fa4464dd7b6",
+    "downward_median_capture_time.npz": "316b1db958e1ec1871f0f3859947ab08dde457bf0907ee6f882fe7b2d8fd301b",
+    "downward_slowest_capture.csv": "246487f70970e475d961745d31f0896b8955ea4a4fd721b49fa03c8fb27af4d2",
+    "downward_slowest_capture.npz": "7cfb2ad4457cf7e1fce3fb515e55a9f87978ec354e72e74569ea0e8b25d9891b",
+    "exact_downward_rest.csv": "f66e2613acddc8ee4357d75298d3789d3c217f296f8de1c54df99a62faccebd6",
+    "exact_downward_rest.npz": "df6b6cb448fff21e974df4fed141153e08e916a7b8b65c8b416de74382e110ac",
+    "moving_median_capture_time_without_arm_crossing.csv": "e74c9188f08d24af031411d731b06bb8e0e39ea5ca74f9360b4597dee57e4733",
+    "moving_median_capture_time_without_arm_crossing.npz": "08573026c4eef2559ed403f1fe428c5f3b5a8d8a4e6ce8f04e5b24015ab07d11",
+    "near_upright_median_capture_time.csv": "053d6cf42fc1099b50ad46f056acbbec74cbcb4d309dbe9c829a4ebd40520a30",
+    "near_upright_median_capture_time.npz": "4fb3cc4ba9f3a5b085c1e7a396252198b42f306d06590fa86f403b32e611543b",
     "provenance/validation_seed_20261022/campaign.json": "8fb396cc07b1f40510a0f09fc9f334dd29ce4e0a2a3c4e9a51c3f56f14b4974c",
     "provenance/validation_seed_20261022/controller_settings.json": "9d5470ee0ba18db74d4563df9d17c46bea959810eb4f67f1468335a643d2e635",
     "provenance/validation_seed_20261022/full_validation_episodes.csv": "e98d6c5b06bda6207174d9533bffb0c1187604786013897f133a6130ebb23778",
@@ -438,7 +439,7 @@
     "provenance/validation_seed_20261023/integration_audit.json": "135051bc0d9d28681b1385d8a8e1c0008fb4aa176446ef738e97c1a7990a917c",
     "provenance/validation_seed_20261023/physics.yaml": "4909036f2e6600283088ecfb67e6cc6cdca3e3d26db42ca9d9e1cfd882342401",
     "provenance/validation_seed_20261023/source_provenance.json": "b6dd54b72d669cbfa23b4f470ffcbe76ce9f89da5f533a8cb5b657ce23f01857",
-    "tight_upright_median_capture_time.csv": "54d1943ef83a3a4bb1c767a72fcbb2a5dec19d102b64be4f2570708bb64ef5cd",
-    "tight_upright_median_capture_time.npz": "60bdfe36749bd9a1f5cac4ccaf181ba782c09221e20fad327930928b6e0e3f41"
+    "tight_upright_median_capture_time.csv": "af6073a5c8fa8796431e9b1936f64ea9f34f0205040488b2e61bfb9e0708a14c",
+    "tight_upright_median_capture_time.npz": "1d2755862ecf696d7bbf701baa898c34b8d3352e7be16680b96b7985c261cbd0"
   }
 }
