@@ -1,0 +1,127 @@
+{
+  "date": "2026-10-12",
+  "task": "Plan a dynamics-led major narrative revision of III.B and clarify Quanser actuation",
+  "delivery": {
+    "outline": "dynamics-outline.md",
+    "translation": "dynamics-outline-CN.md",
+    "paragraph_count": 7,
+    "retained_numbered_equation_groups": 8,
+    "new_controller_parameters": 0,
+    "new_runtime_objects": 0,
+    "manuscript_edited": false
+  },
+  "skills_pipeline": [
+    {
+      "name": "nature-writing",
+      "role": "Rebuilt the reader sequence from model and control objective to energy geometry, realizability, and input selection."
+    },
+    {
+      "name": "control-academic-writing",
+      "role": "Connected f, H, DH, the exact flow, work balance, root search, and constraint handling while preserving their distinct meanings."
+    },
+    {
+      "name": "nature-polishing",
+      "role": "Replaced layer language and disconnected additions with seven paragraphs; preserved the mathematical construction and existing labels."
+    },
+    {
+      "name": "academic-humanizer",
+      "role": "Checked definitions, neutral control terminology, direct grammar, claim strength, and prohibited wording."
+    }
+  ],
+  "narrative_changes": [
+    "Remove Hierarchical from the subsection title and use functional controller descriptions.",
+    "Introduce three energy axes and the linear total-energy plane before discussing intersection.",
+    "Distinguish the whole plane, its physically realizable part, and the curve of dynamically generated endpoints.",
+    "Use the integrated chain rule to connect III.A energy rates with finite-action prediction.",
+    "Explain that the curve parameter is torque, not time, and the curve generally leaves the requested plane.",
+    "Derive curve-plane intersection as the scalar work-matching equation and explain numerical bracketing.",
+    "Preserve common candidate scoring, torque bounds, and the soft sampled arm penalty."
+  ],
+  "source_semantics": {
+    "energy_policy": "Computes clipped gain times total-energy error; it requests work, not instantaneous power.",
+    "mechanical_actuation": "Predictor input is held shaft torque; usable candidate interval is bounded.",
+    "jacobian": "Analytical energy-rate transformation; implementation does not explicitly compute or invert DH.",
+    "prediction": "Integrate physical f using RK4, then evaluate energy map H; exact flow identities are used for interpretation.",
+    "candidate_generation": "Uniform bounded torque grid plus bisection refinements where work-error brackets include zero.",
+    "candidate_ranking": "All finite grid and eligible refined candidates share one potential/work/arm score.",
+    "arm_constraint": "Finite penalty evaluated at initial state and integration step endpoints, not a hard continuous-time guarantee.",
+    "energy_feasibility": "Physical image is characterized analytically; no separate energy-state sampling/filtering is implemented."
+  },
+  "mathematical_checks": [
+    {
+      "identity": "z_a+z_p+z_V=E+w",
+      "interpretation": "An affine plane in R^3. Its physical part is S(e,w). The full plane includes nonphysical triples."
+    },
+    {
+      "identity": "H(F_Delta(x,u))-H(x)=integral_0^Delta DH(x(s))*f(x(s),u) ds",
+      "conditions": "Exact flow of the smooth mechanical dynamics along the predicted trajectory; wrapped angle representations are interpreted through their continuous physical motion."
+    },
+    {
+      "identity": "W_Delta(x,u)=u*(theta(F_Delta(x,u))-theta(x))",
+      "conditions": "Constant torque and unwrapped arm angle."
+    },
+    {
+      "identity": "E(F_Delta(x,u))=E(x)+W_Delta(x,u)",
+      "conditions": "Lossless mechanical model; not an exact conservation identity of finite-step RK4."
+    },
+    {
+      "identity": "H(F_Delta(x,u)) in S(H(x),w) iff W_Delta(x,u)=w",
+      "conditions": "Bounded held torque and exact lossless prediction; no-root statement concerns this input family and duration."
+    },
+    {
+      "identity": "abs(P_mech)<=U*abs(omega)",
+      "conditions": "P_mech=u*omega and abs(u)<=U; this is not a state-independent power bound."
+    },
+    {
+      "identity": "K_p = J/2*(nu+C*omega/J)^2+(A-I_a-C^2/J)/I_a*K_a",
+      "interpretation": "Retained square-completion argument gives physical energy existence, not finite-time input reachability."
+    }
+  ],
+  "hardware_review": {
+    "exact_model": "Not specified by author; optional clarification pending. Discussion is explicitly scoped to QUBE-Servo 2 and 3.",
+    "verified_interface": "Motor voltage command; QUBE-Servo 3 additionally supports a PWM command.",
+    "motor_model": "Ideal direct-drive relation u approximately k_t*i and v_m approximately R*i+k_e*omega when electrical transients and motor mechanical losses are neglected.",
+    "inferred_admissibility": "With prescribed allowed current I_max and voltage v_max, the quasi-static model requires abs(u)<=k_t*I_max and abs((R/k_t)*u+k_e*omega)<=v_max along the action. These are explanatory constraints, not an implemented model.",
+    "rating_boundary": "No nominal voltage, no-load speed, sensor range, or product power label is treated as a complete actuator limit; no device-specific maximum is asserted.",
+    "efficiency_boundary": "Existing model has no motor voltage, current, winding resistance, electrical storage, or drive loss state. Shaft power equals the modeled total-energy rate. Electrical-to-mechanical efficiency requires additional modeling or measurement.",
+    "energy_redistribution_boundary": "Potential-energy increase can use stored kinetic energy; potential-energy rate divided by shaft power is not a motor efficiency and can be undefined at zero power.",
+    "extension_boundary": "A voltage-driven model or speed-dependent torque admissibility changes prediction and the curve; the work-request law and energy-plane construction can remain. Constant voltage does not mean constant torque."
+  },
+  "official_sources": [
+    {
+      "url": "https://docs.quanser.com/quarc/documentation/qube_servo2_usb.html",
+      "supports": "Voltage command, current measurement, diagnostic fault and stall conditions; not a maximum-current rating."
+    },
+    {
+      "url": "https://docs.quanser.com/quarc/documentation/qube_servo3_usb.html",
+      "supports": "Voltage and PWM command modes, internal voltage limitation, current measurement and protection diagnostics."
+    },
+    {
+      "url": "https://www.quanser.com/wp-content/uploads/2017/03/Quarc-Matlab-Simulink-Primer.pdf",
+      "pages": "40-41 (zero-based PDF pages)",
+      "supports": "Current/back-emf/voltage relation and current-to-torque relation in a DC motor model; general model source, not a QUBE-specific rating."
+    },
+    {
+      "url": "https://www.quanser.com/products/qube-servo-3/",
+      "supports": "Direct-drive brushed DC motor and built-in stall/thermal protection."
+    }
+  ],
+  "validation": {
+    "protected_file_hashes_unchanged": true,
+    "markdown_math_delimiters_balanced": true,
+    "seven_numbered_paragraph_blocks": true,
+    "retained_equation_labels_present": true,
+    "forbidden_word_matches": [],
+    "compile_run": false,
+    "controller_run": false,
+    "reason": "Planning-only artifacts; manuscript and runtime sources unchanged."
+  },
+  "protected_file_sha256": {
+    "docs/15-controller-paper/latex-project/main.tex": "2f251ea9d8535cd9fa0802c8285b2fa150f9a9d16e325fc30feba10ae8947d61",
+    "docs/15-controller-paper/latex-project/prompts.md": "1f9fe81455a397a381155fec9c5e0585ca1203a41058dc69c0dc7772e0823eac",
+    "src/rotary_pendulum/heuristic/energy.py": "227c8ffe148ee68f938da270677d6159fbe517a9ab43eccb370c8d457602d67e",
+    "src/rotary_pendulum/heuristic/decoder.py": "f12994dbfb13b6ea9e241950f9fbf3ae1856621e946ff9830441e8bc8cdebda0",
+    "src/rotary_pendulum/environment/jax_dynamics.py": "f54f64c0d54a1244f336eb097661b5650b06a0d610c72bb6447c9e74a14f0efc",
+    "src/rotary_pendulum/configs/physics.yaml": "4909036f2e6600283088ecfb67e6cc6cdca3e3d26db42ca9d9e1cfd882342401"
+  }
+}

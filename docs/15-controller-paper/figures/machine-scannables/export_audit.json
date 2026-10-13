@@ -1,0 +1,59 @@
+{
+  "font": "DejaVu Sans",
+  "base_font_pt": 9,
+  "colors": {
+    "ink": "#35434B",
+    "blue": "#4D7C91",
+    "sage": "#9DADA8",
+    "accent": "#C27B45"
+  },
+  "exports": {
+    "01-rotary-pendulum": {
+      "width_in": 7.0,
+      "height_in": 3.35
+    },
+    "02-energy-plane": {
+      "width_in": 3.4,
+      "height_in": 3.65
+    },
+    "03-torque-solutions": {
+      "width_in": 7.0,
+      "height_in": 3.3
+    }
+  },
+  "line_semantics": "Solid physical curves and boundaries; no decorative dotted lines.",
+  "background_semantics": "Horizontal arm plane; vertical pendulum plane; pale coordinate walls and solid grids in energy space.",
+  "mechanism_semantics": "Charcoal arm; blue pendulum; faded alternate poses; right-angle mark identifies the arm-normal swing plane.",
+  "energy_views": {
+    "axis_bound": 1.05,
+    "current_state_shown": false,
+    "request_over_target": 0.0008684041926308493,
+    "plane_total_over_target": 0.7837673560349184,
+    "selection": "Shared Figure 3 record; broad plane with visible curved compatibility boundary and separated upright target."
+  },
+  "view_degrees": {
+    "arm": {
+      "elevation": 38,
+      "azimuth": -50
+    },
+    "pendulum": {
+      "elevation": 26,
+      "azimuth": 55
+    },
+    "energy_plane": {
+      "elevation": 28,
+      "azimuth": 35
+    },
+    "torque_curve": {
+      "elevation": 28,
+      "azimuth": -145
+    }
+  },
+  "marker_semantics": "Open circle: work match; open diamond: upright energy target; star: selected torque.",
+  "source_sha256": {
+    "src/rotary_pendulum/visualization/controller_figures/energy_figures.py": "823a9c866657c24c92899d607a611472641c454520e43b36286aca9aa01ff13f",
+    "src/rotary_pendulum/visualization/controller_figures/render.py": "21736d3d2f26b2f76b6c6cf7703817b3d8872d03e2b7c3c9e56293254a650f09",
+    "src/rotary_pendulum/visualization/controller_figures/mechanism.py": "e6ac94bdfbc25fea77e7fea07e5513821ac56130a876f78fc1291554a4df0ca2",
+    "src/rotary_pendulum/visualization/controller_figures/data.py": "c366a21f9a8f73f34aba5d6fcfc7468bffcf7f1db78918a0fdfa70573ec34bea"
+  }
+}

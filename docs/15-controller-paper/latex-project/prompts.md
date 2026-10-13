@@ -15,6 +15,8 @@ We expect the new section to be same or less the current length.
 - Avoid stating actual values or units as we want to keep the paper mathematical and transferrable to other tasks. Only include the actual values if they are a design choice which would stay true across tasks.
 - Fully define the equations with intuitions following them immediately. Explain the intuition of the intermediate formulas. The current dynamics is already too complicated for most people to understand, but we still have to present with details and absolute rigor. So by thoughtful and walk the readers through the derivations.
 - Use math wisely. Show all necessary accurate concepts that they need to know, but avoid swarming the readers with dense math, and only include in a simpler clearer easy to understand form. (hint: omit parts like 100 or normalization by only "normalize()" would help, other similar applies, also avoid too many similar variables with different subscribs (O_tau O_H,tau O_C,tau, etc.)
+- Do not use words like "capture" "window". Keep the writing in universal control theory terminologies -- if some terms are named specifically for this task and cannot be transferred to other controllers, it is very likely badly named.
+- Only state the something if it is true, avoid saying something "is not ..." or something "should not be considered as ..." or any similar
 - Avoid "somebody et al" style reference throughout the project.
 
 
@@ -31,7 +33,6 @@ No hastily committing to writings yet, use the skills to write down bullet point
 
 
 
-Do not use words like "capture" "window". Keep the writing in universal control theory terminologies -- if some terms are named specifically for this task and cannot be transferred to other controllers, it is very likely badly named.
 
 # Now
 updated main.tex now contains my polished version of section I and II. Read them as well as section III.A (including the independent section III paragraph), we will now rewrite the section III.A to bring it up to a good academic writing quality and standards 
@@ -51,6 +52,8 @@ We expect the new section to be roughly the same of the current length or slight
 - Avoid stating actual values or units as we want to keep the paper mathematical and transferrable to other tasks or configurations. Only include the actual values if they would stay true across tasks.
 - Fully define the equations with intuitions following them immediately. Explain the intuition of the intermediate formulas. The current dynamics is already too complicated for most people to understand, but we still have to present with details and absolute rigor. So by thoughtful and walk the readers through the derivations.
 - Use math wisely. Show all necessary accurate concepts that they need to know, but avoid swarming the readers with dense math, and only include in a simpler clearer easy to understand form. (hint: omit terms like 100 for computing percentage, express normalization by only "normalize()" would help, other similar applies, also avoid too many similar variables with different subscribs (O_tau O_H,tau O_C,tau, etc.)
+- Do not use words like "capture" "window". Keep the writing in universal control theory terminologies -- if some terms are named specifically for this task and cannot be transferred to other controllers, it is very likely badly named.
+- Only state the something if it is true, avoid saying something "is not ..." or something "should not be considered as ..." or any similar
 - Avoid "somebody et al" style reference throughout the project.
 # This step:
 No hastily committing to writings yet, use the skills pipeline to write down bullet points structures, including what to talk about and what/where to present math equations.

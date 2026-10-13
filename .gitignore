@@ -44,6 +44,11 @@ env/
 # --- Experiment outputs and research logs ------------------------------------
 artifacts/inverted_pendulum/
 artifacts/rotary_pendulum/
+*.mp4
+*.mov
+*.webm
+*.mkv
+*.avi
 artifacts/experiments/
 artifacts/cmp-time-fitting/
 artifacts/MonteCarloData/

@@ -1,0 +1,151 @@
+{
+  "task": "III.B structure and equation plan only",
+  "date": "2026-10-10",
+  "skills": [
+    "nature-writing",
+    "control-academic-writing",
+    "nature-polishing",
+    "academic-humanizer"
+  ],
+  "route": {
+    "task": "manuscript planning",
+    "paper_type": "algorithmic",
+    "section": "method",
+    "language": "en",
+    "journal": "generic skill route adapted to IEEE L-CSS"
+  },
+  "structure": {
+    "components": 3,
+    "paragraphs": 6,
+    "existing_equation_groups": 8,
+    "existing_labels": [
+      "eq:workpolicy",
+      "eq:surface",
+      "eq:energy-feasibility",
+      "eq:energy-inertias",
+      "eq:energy-realization",
+      "eq:work",
+      "eq:curve",
+      "eq:score"
+    ],
+    "new_runtime_objects": 0,
+    "new_tunable_parameters": 0
+  },
+  "sources": [
+    {
+      "path": "src/rotary_pendulum/heuristic/energy.py",
+      "functions": [
+        {
+          "name": "encode",
+          "start_line": 14,
+          "end_line": 31
+        },
+        {
+          "name": "policy",
+          "start_line": 34,
+          "end_line": 41
+        }
+      ]
+    },
+    {
+      "path": "src/rotary_pendulum/heuristic/decoder.py",
+      "functions": [
+        {
+          "name": "decode",
+          "start_line": 18,
+          "end_line": 101
+        },
+        {
+          "name": "predict",
+          "start_line": 23,
+          "end_line": 35
+        },
+        {
+          "name": "bisect",
+          "start_line": 45,
+          "end_line": 55
+        },
+        {
+          "name": "advance",
+          "start_line": 26,
+          "end_line": 29
+        }
+      ]
+    },
+    {
+      "path": "src/rotary_pendulum/environment/jax_dynamics.py",
+      "functions": [
+        {
+          "name": "state_derivative",
+          "start_line": 21,
+          "end_line": 47
+        },
+        {
+          "name": "rk4_step",
+          "start_line": 50,
+          "end_line": 61
+        }
+      ]
+    }
+  ],
+  "observed_implementation": {
+    "upper_layer": "Clipped proportional feedback on the sum of the three physical energies.",
+    "candidate_generation": "Uniform bounded grid plus bisection refinements of adjacent work-error brackets.",
+    "grid_points": 33,
+    "bisection_iterations": 10,
+    "prediction_steps": 5,
+    "grid_and_root_candidates_ranked_together": true,
+    "score_terms": [
+      "normalized endpoint potential error squared",
+      "weighted normalized work error squared",
+      "weighted normalized sampled arm-excess squared"
+    ],
+    "torque_bound_enforced": true,
+    "arm_violating_candidates_removed": false,
+    "arm_measurement": "Maximum absolute arm angle among initial state and predicted samples.",
+    "tie_break": "Smallest magnitude, then nonnegative sign.",
+    "all_candidates_invalid": "NaN action and invalid diagnostic; no fallback controller.",
+    "exact_work_matching_guaranteed": false,
+    "all_roots_found_guaranteed": false,
+    "continuous_arm_containment_guaranteed": false,
+    "configuration": "src/rotary_pendulum/configs/heuristic.json"
+  },
+  "mathematical_checks": [
+    {
+      "claim": "Work and total-energy change have identical dimensions under the lossless model.",
+      "basis": "Time integration of dE/dt = u*omega; constant input gives torque times angular displacement."
+    },
+    {
+      "claim": "Physical energy bounds describe possible states but not dynamic reachability.",
+      "basis": "Square-completion identity and constructive angle/velocity realization, without a trajectory constraint."
+    },
+    {
+      "claim": "An intersection of exact response curve and work-budget surface is equivalent to W_Delta(x,u)=w.",
+      "basis": "Both use the same exact flow and lossless energy balance."
+    },
+    {
+      "claim": "Numerical work matching implies only approximate membership on the exact energy-budget plane.",
+      "basis": "RK4 does not impose exact energy conservation."
+    },
+    {
+      "claim": "Dimensionless score scales are already defined physical or design quantities.",
+      "basis": "Energy residual/E_star, work residual/W_max, arm excess/theta_max."
+    },
+    {
+      "claim": "Conditional ideal proportional error relation: E_star-E_next=(1-kappa)*(E_star-E_current).",
+      "basis": "Requires inactive clipping and exact delivery of requested work. It is not a convergence result for the implemented decoder; retain only in supporting audit."
+    }
+  ],
+  "preserved_files": {
+    "docs/15-controller-paper/latex-project/main.tex": "f132128df17b82e53cf4d675b0031c18c46cf87709602ed923c718e7ff75ae3a",
+    "docs/15-controller-paper/latex-project/prompts.md": "1f9fe81455a397a381155fec9c5e0585ca1203a41058dc69c0dc7772e0823eac"
+  },
+  "validation": {
+    "main_tex_unchanged": true,
+    "prompts_md_unchanged": true,
+    "source_semantics_reviewed": true,
+    "runtime_tests_run": false,
+    "latex_compilation_run": false,
+    "reason": "Planning-only document task; source unchanged."
+  }
+}

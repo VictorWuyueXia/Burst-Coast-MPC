@@ -1,0 +1,302 @@
+{
+  "source_preflight": {
+    "source": "/tmp/controller_figures_audit_source.py",
+    "backend": "python",
+    "summary": {
+      "ready": true,
+      "strict": false,
+      "counts": {
+        "PASS": 17,
+        "WARN": 3,
+        "FAIL": 0
+      }
+    },
+    "findings": [
+      {
+        "check_id": "SOURCE-SYNTAX",
+        "level": "PASS",
+        "message": "Python source parses successfully",
+        "evidence": []
+      },
+      {
+        "check_id": "FONT-FAMILY",
+        "level": "PASS",
+        "message": "A publication-safe sans-serif family is configured",
+        "evidence": [
+          "sans-serif"
+        ]
+      },
+      {
+        "check_id": "FONT-SIZE",
+        "level": "PASS",
+        "message": "All detected text sizes are at least 5 pt (minimum 9 pt)",
+        "evidence": []
+      },
+      {
+        "check_id": "FONT-GLYPH-FLOOR",
+        "level": "PASS",
+        "message": "Detected mathtext parent sizes imply script glyphs of about 6.30 pt or larger; confirm in the PDF",
+        "evidence": [
+          "$K_a/E_\\star$"
+        ]
+      },
+      {
+        "check_id": "LEGEND-LABEL-CASE",
+        "level": "PASS",
+        "message": "No auditable literal legend labels detected",
+        "evidence": []
+      },
+      {
+        "check_id": "COLOR-MAP",
+        "level": "PASS",
+        "message": "No rainbow/jet/hsv color mapping detected",
+        "evidence": []
+      },
+      {
+        "check_id": "EDITABLE-TEXT",
+        "level": "PASS",
+        "message": "SVG and PDF editable-text settings are configured",
+        "evidence": []
+      },
+      {
+        "check_id": "EXPORT-VECTOR",
+        "level": "PASS",
+        "message": "Both SVG and PDF exports are present",
+        "evidence": []
+      },
+      {
+        "check_id": "EXPORT-RASTER",
+        "level": "WARN",
+        "message": "PNG preview is present but no TIFF submission raster was found",
+        "evidence": []
+      },
+      {
+        "check_id": "RASTER-DPI",
+        "level": "WARN",
+        "message": "Raster export meets the 300 dpi floor but not the 600 dpi default",
+        "evidence": [
+          "300"
+        ]
+      },
+      {
+        "check_id": "FINAL-WIDTH",
+        "level": "PASS",
+        "message": "Detected width 86.4 mm matches a common journal column width",
+        "evidence": []
+      },
+      {
+        "check_id": "DATA-SAMPLING",
+        "level": "PASS",
+        "message": "No high-confidence row-sampling operation detected",
+        "evidence": []
+      },
+      {
+        "check_id": "DATA-EXCLUSION",
+        "level": "PASS",
+        "message": "No high-confidence missing-data exclusion detected",
+        "evidence": []
+      },
+      {
+        "check_id": "DEMO-DATA",
+        "level": "PASS",
+        "message": "No obvious simulated-data generator detected",
+        "evidence": []
+      },
+      {
+        "check_id": "LOG-GUARD",
+        "level": "PASS",
+        "message": "No logarithmic transform or axis detected",
+        "evidence": []
+      },
+      {
+        "check_id": "INTERP-MONOTONIC",
+        "level": "PASS",
+        "message": "No NumPy interpolation requiring an increasing x-grid detected",
+        "evidence": []
+      },
+      {
+        "check_id": "UNCERTAINTY-ENCODING",
+        "level": "WARN",
+        "message": "Seed/fold/split aggregates are present without an obvious error bar or uncertainty band",
+        "evidence": [
+          "seed",
+          "mean"
+        ]
+      },
+      {
+        "check_id": "ROTATION-ANCHOR",
+        "level": "PASS",
+        "message": "No rotated Matplotlib text detected",
+        "evidence": []
+      },
+      {
+        "check_id": "ANNOTATION-WORKAROUND",
+        "level": "PASS",
+        "message": "No high-risk hard-coded label height or opaque white text mask detected",
+        "evidence": []
+      },
+      {
+        "check_id": "BACKEND-EXCLUSIVE",
+        "level": "PASS",
+        "message": "No obvious cross-backend plotting reference found for python",
+        "evidence": []
+      }
+    ]
+  },
+  "pdf_text": [
+    {
+      "pdf": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/docs/15-controller-paper/figures/human-readables/01-rotary-pendulum.pdf",
+      "auditable": true,
+      "minimum_required_pt": 5.0,
+      "minimum_found_pt": 6.3,
+      "text_run_count": 18,
+      "below_minimum_count": 0,
+      "below_minimum": [],
+      "warnings": []
+    },
+    {
+      "pdf": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/docs/15-controller-paper/figures/human-readables/02-energy-plane.pdf",
+      "auditable": true,
+      "minimum_required_pt": 5.0,
+      "minimum_found_pt": 6.3,
+      "text_run_count": 25,
+      "below_minimum_count": 0,
+      "below_minimum": [],
+      "warnings": []
+    },
+    {
+      "pdf": "/Users/vic/Documents/GitRepo/Burst-Coast-MPC/Burst-Coast-MPC/docs/15-controller-paper/figures/human-readables/03-torque-solutions.pdf",
+      "auditable": true,
+      "minimum_required_pt": 5.0,
+      "minimum_found_pt": 6.3,
+      "text_run_count": 51,
+      "below_minimum_count": 0,
+      "below_minimum": [],
+      "warnings": []
+    }
+  ],
+  "structure": {
+    "data.py": {
+      "lines": 248,
+      "functions": {
+        "predict": 20,
+        "select_examples": 90,
+        "physical_energy_plane": 20,
+        "prepare_example": 90
+      }
+    },
+    "energy_figures.py": {
+      "lines": 125,
+      "functions": {
+        "draw_energy_plane": 46,
+        "draw_torque_response": 65
+      }
+    },
+    "mechanism.py": {
+      "lines": 111,
+      "functions": {
+        "draw_configuration": 100
+      }
+    },
+    "render.py": {
+      "lines": 95,
+      "functions": {
+        "render": 67
+      }
+    }
+  },
+  "interior_points": 1000,
+  "interior_reconstruction_max_j": 1.0115828175116804e-17,
+  "curve_min_physical_slack_j": 0.004443932806642302,
+  "visual_checks": {
+    "configuration": "Pass: unchanged body legend, arm-normal moving swing plane, and separate rotation views.",
+    "energy_plane": "Pass: one equal-scale view; upright target separated from requested plane; curved physical boundary emphasized; compact two-item legend; no current-state marker or inset.",
+    "torque_geometry": "Pass: oblique view separates the two work matches and selected action; coordinate walls establish depth.",
+    "work_error": "Pass: roots and selected action readable on the unchanged signed residual curve."
+  },
+  "reviewed_warnings": {
+    "PNG/TIFF and DPI": "Vector PDF/SVG are primary; 300 dpi PNG files are previews.",
+    "uncertainty": "No population aggregates; deterministic predictions at one recorded state."
+  },
+  "candidate_visual_comparison": [
+    "downward_slowest_capture at 12.1 s",
+    "downward_slowest_capture at 12.5 s",
+    "moving_median_capture_time_without_arm_crossing at 5.6 s"
+  ],
+  "camera_comparison_degrees": [
+    {
+      "elevation": 28,
+      "azimuth": -110
+    },
+    {
+      "elevation": 28,
+      "azimuth": -145
+    },
+    {
+      "elevation": 22,
+      "azimuth": -160
+    },
+    {
+      "elevation": 22,
+      "azimuth": -70
+    },
+    {
+      "elevation": 28,
+      "azimuth": 35
+    },
+    {
+      "elevation": 40,
+      "azimuth": -135
+    }
+  ],
+  "mechanism_camera_comparison_degrees": [
+    {
+      "elevation": 16,
+      "azimuth": 30
+    },
+    {
+      "elevation": 26,
+      "azimuth": -55
+    },
+    {
+      "elevation": 26,
+      "azimuth": 55
+    }
+  ],
+  "plane_case_validation": {
+    "case": "downward_slowest_capture",
+    "decision": 121,
+    "requested_total_over_target": 0.7837673560349184,
+    "upright_energy_gap_over_target": 0.21623264396508157,
+    "current_state_shown": false,
+    "single_equal_scale_view": true,
+    "target_projects_outside_plane_outline": true,
+    "physical_boundary_max_error_j": 1.0115828175116804e-17
+  },
+  "plane_camera_comparison_degrees": [
+    {
+      "elevation": 24,
+      "azimuth": 35
+    },
+    {
+      "elevation": 24,
+      "azimuth": -35
+    },
+    {
+      "elevation": 24,
+      "azimuth": -50
+    },
+    {
+      "elevation": 24,
+      "azimuth": -60
+    },
+    {
+      "elevation": 24,
+      "azimuth": -145
+    },
+    {
+      "elevation": 24,
+      "azimuth": -160
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "case": "downward_slowest_capture",
+  "seed": 20261022,
+  "lane": 177,
+  "decision": 121,
+  "time_s": 12.100000000000001,
+  "sha256": "7cfb2ad4457cf7e1fce3fb515e55a9f87978ec354e72e74569ea0e8b25d9891b",
+  "state": [
+    -0.43386164625395574,
+    2.1070612004281326,
+    1.7291291749009456,
+    2.300836297133365
+  ],
+  "current_energy_j": [
+    0.00034203069541423954,
+    0.0004912054998883577,
+    0.02294478287430292
+  ],
+  "requested_work_j": 2.6374963721577925e-05,
+  "selected_torque_nm": 0.003442500000000001,
+  "root_torques_nm": [
+    -0.011365740966796876,
+    0.00023140502929687483
+  ],
+  "root_work_error_j": [
+    -4.025525360570019e-08,
+    3.619873580565532e-09
+  ],
+  "plane_total_over_target": 0.7837673560349184,
+  "energy_balance_max_j": 1.4802979636345526e-07,
+  "selected_endpoint_max_error_j": 2.0816681711721685e-17,
+  "region_reconstruction_max_error_j": 1.0115828175116804e-17,
+  "physical_inputs": {
+    "gravity_m_s2": 9.81,
+    "arm_mass_kg": 0.095,
+    "arm_length_m": 0.085,
+    "pendulum_mass_kg": 0.024,
+    "pendulum_length_m": 0.129,
+    "rotary_damping_nms": 0.0,
+    "pendulum_damping_nms": 0.0,
+    "torque_limit_nm": 0.0204
+  },
+  "controller_settings": {
+    "name": "single_action_100ms",
+    "work_gain": 0.004,
+    "work_weight": 0.02,
+    "arm_limit_weight": 10000.0
+  },
+  "action_s": 0.1,
+  "step_s": 0.02
+}

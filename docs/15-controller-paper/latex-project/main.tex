@@ -40,7 +40,6 @@
 \newcommand{\victornote}[1]{{\color{orange}#1}}
 \newcommand{\rp}[1]{{\color{blue}#1}}
 
-\input{figures/setup}
 \newcommand{\Estar}{E_{\star}}
 \newcommand{\dd}{\mathrm{d}}
 \newcommand{\ind}{\mathbf{1}}
@@ -70,7 +69,7 @@ We use a simulated rotary pendulum as a benchmark, where a motor-driven horizont
 A rotary pendulum system contains a motor-driven horizontal arm carring an unactuated pendulum hinged at its tip, which swings in the vertical plane perpendicular to the arm. The unwrapped arm angle $\theta\in\mathbb R$ measures rotation about the vertical axis from a fixed horizontal reference, retaining complete revolutions. The pendulum angle $\alpha\in[-\pi,\pi)$ is zeroed from downward, with upright represented by $\pm\pi$. Their signed angular velocities are $\omega=\dot\theta$ and $\nu=\dot\alpha$, with derivatives taken before angular wrapping. Motor torque $u$ is positive toward increasing $\theta$.
 
 % Observed state, admissible input, initial conditions, and task objective.
-At each decision time $t_k$, for $k\in\mathbb{N}$, the controller observes the physical state $x$ and holds torque $u_k$ for state transition $x_k\rightarrow x_{k+1}$, with
+At each control update $t_k$, for $k\in\mathbb{N}$, the controller observes the physical state $x$ and holds torque $u_k$ for state transition $x_k\rightarrow x_{k+1}$, with
 \begin{equation}
 \begin{aligned}
  x&=(\theta,\alpha,\omega,\nu)^{\mathsf T},\qquad |u(t)|\le U,\\
@@ -108,13 +107,23 @@ Here $\ind$ equals one when its condition holds and zero otherwise. These two me
 \end{equation}
 where absolute shaft work $W_{\mathrm{abs}}$ integrates energy injected and removed, and $T_{\mathrm{act}}$ measures nonzero-actuation duration. Total computation time is also recorded to reflect planning cost. \victor{And later act--coast evaluation additionally counts times of interventions and measures zero-torque coast durations.} These metrics collectively form a systematic way to assess the performance of controllers on this rotary pendulum system.
 
+
+
+
+
+
+
+
+
+
 \section{Method}
 % Work selection and torque realization use complementary state information.
-The controller requests a change in total mechanical energy, then uses the observed physical state to select a torque that promotes this change. Configuration and velocity remain necessary because energy alone does not determine subsequent motion. The relations derived in Section~III-A support the work selection and torque computation in Section~III-B.
+With bounded torque and arm travel, the rotary pendulum must raise an unactuated pendulum through configuration-dependent coupled swing-ups. The swing-ups require successive oscillations, so pursuing monotonically decreasing angular error is not suitable. We therefore propose a method to compute a desired energy change, then use the physical state to determine the energy distribution and the corresponding torque realization. Section~\ref{sec:dynamics} derives this energy representation; Section~\ref{sec:contorller} gives the work-selection and torque-decoding scheme.
 
 \subsection{Rotary-pendulum dynamics and energy representation}
+\label{sec:dynamics}
 % The mechanical energy determines the coupled equations of motion.
-Both links are uniform rigid rods with ideal joints, zero damping, and negligible pendulum axial inertia. Let $m_a,r$ denote arm mass and length, $m_p,l$ pendulum mass and length, and $g$ gravitational acceleration, all positive. The pendulum center of mass is at $c=l/2$ from its hinge. The arm inertia about the motor axis is $I_a=m_ar^2/3$. The pendulum inertia about a transverse axis through its center of mass is $I_c=m_pl^2/12$. The parallel-axis theorem gives $J=I_c+m_pc^2=m_pl^2/3$, its inertia about the hinge axis. Thus $J$ measures resistance to angular acceleration about that axis. Define the coupling coefficient $b=m_prc$ and gravitational energy scale $G=m_pgc$. For generalized coordinates $q=(\theta,\alpha)^{\mathsf T}$, the kinetic energy $K$, potential energy $V$, and Lagrangian $\mathcal L$ are
+Both arm and pendulum are modeled as uniform rigid rods with ideal joints, zero damping, and negligible pendulum axial inertia. Let $m_a,r$ denote arm mass and length, $m_p,l$ pendulum mass and length, and $g$ gravitational acceleration, all positive. The arm inertia about the motor axis is $I_a=m_ar^2/3$. The pendulum center-of-mass distance from the hinge is $c=l/2$, and the transverse inertia about its center of mass is $I_c=m_pl^2/12$. The parallel-axis theorem gives the pendulum's hinge inertia $J=I_c+m_pc^2$. Define the coupling coefficient $b=m_prc$ and gravitational energy scale $G=m_pgc$. For generalized coordinates $q=(\theta,\alpha)^{\mathsf T}$, the kinetic energy $K$, potential energy $V$, and Lagrangian $\mathcal L$ are
 \begin{equation}
 \begin{aligned}
  A(\alpha)&=I_a+m_pr^2+J\sin^2\alpha,\\
@@ -124,31 +133,38 @@ Both links are uniform rigid rods with ideal joints, zero damping, and negligibl
 \end{aligned}
 \label{eq:lagrangian}
 \end{equation}
-Here $A$ is the inertia associated with arm rotation, and $C\omega\nu$ is the kinetic-energy coupling term. The term $J\nu^2/2$ accounts for pendulum rotation about its hinge, while $J\sin^2\alpha$ contributes to the inertia about the vertical motor axis. Potential energy $V$ is referenced to downward. The forced Euler--Lagrange relation $\frac{\dd}{\dd t}(\partial\mathcal L/\partial\dot q)-\partial\mathcal L/\partial q=(u,0)^{\mathsf T}$ yields
+Here $A$ is the inertia associated with arm rotation, including the pendulum contribution $J\sin^2\alpha$ about the motor axis. The term $C\omega\nu$ couples both motions, while $\frac{1}{2}J\nu^2$ describes pendulum rotation about its hinge. Potential energy is zero at downward rest. Applying the forced Euler--Lagrange relation $\frac{\dd}{\dd t}(\partial\mathcal L/\partial\dot q)-\partial\mathcal L/\partial q=(u,0)^{\mathsf T}$ and solving for both accelerations gives the following governing equation of the dynamics. Let primes denote differentiation with respect to $\alpha$, giving $A'=2J\sin\alpha\cos\alpha$, $C'=-b\sin\alpha$, and $V'=G\sin\alpha$, we have 
 \begin{equation}
 \begin{aligned}
  M(\alpha)&=\begin{bmatrix}A&C\\C&J\end{bmatrix},\\
- A\dot\omega+C\dot\nu
- &=u-2J\sin\alpha\cos\alpha\,\omega\nu\\
- &\quad+b\sin\alpha\,\nu^2,\\
- C\dot\omega+J\dot\nu
- &=J\sin\alpha\cos\alpha\,\omega^2-G\sin\alpha.
+ \dot x=f(x,u)&=
+ \begin{bmatrix}
+ \omega\\
+ \nu\\
+ M(\alpha)^{-1}\!
+ \begin{bmatrix}
+ u-A'\omega\nu-C'\nu^2\\
+ \tfrac12A'\omega^2-V'
+ \end{bmatrix}
+ \end{bmatrix}.
 \end{aligned}
 \label{eq:dynamics}
 \end{equation}
-When $C\ne0$, pendulum acceleration contributes $C\dot\nu$ to the arm equation, and arm acceleration contributes $C\dot\omega$ to the pendulum equation. These terms allow arm torque to influence the unactuated pendulum. Positive definiteness of $M$ ensures that the two equations determine unique accelerations for each state and input. The terms $2J\sin\alpha\cos\alpha\,\omega\nu$ and $J\sin\alpha\cos\alpha\,\omega^2$ arise from the configuration dependence of $A$. They describe velocity-dependent inertial torques. Define $f(x,u)=(\omega,\nu,\dot\omega,\dot\nu)^{\mathsf T}$, with the accelerations obtained from Eq.~\eqref{eq:dynamics}. Thus $\dot x=f(x,u)$ gives the instantaneous rate of change of all four physical-state components.
+The zero pendulum component of the generalized input $(u,0)^{\mathsf T}$ expresses the absence of direct pendulum actuation. The positive-definite inertia matrix $M$ couples the two acceleration equations; its inverse determines $(\dot\omega,\dot\nu)^{\mathsf T}$, the last two components of $f$. The remaining terms account for velocity-dependent inertial torques and gravity. Integrating $f$ predicts the physical actuated trajectory of the rotary pendulum.
 
 % The physical energy partition separates motion from elevation.
-To distinguish motion from elevation, define the energy representation and its upright-rest target by
+The physical state describes the oscillatory motion, but angular error alone does not provide suitable input to reach upright. Therefore, we use a reduced-order energy state $e$ to separate arm motion, pendulum motion, and elevation, and use its total-energy error to request motor work. Define the energy state $e$ and its goal state $e_\star$
 \begin{equation}
 \begin{aligned}
- K_a&=\tfrac12I_a\omega^2,\qquad K_p=K-K_a,\\
- e=H(x)&=(K_a,K_p,V)^{\mathsf T},\qquad E=K_a+K_p+V,\\
- e_\star&=(0,0,\Estar)^{\mathsf T},\qquad \Estar=2G.
+ e=H(x)&=(K_a,K_p,V)^{\mathsf T},\\
+ e_\star=(0,0&,\Estar)^{\mathsf T},\\
+ \text{s.t.} \quad K_a&=\tfrac12I_a\omega^2,\qquad K_p=K-K_a,\\
+ E&=K_a+K_p+V,\\
+ \Estar&=2G.
 \end{aligned}
 \label{eq:encoder}
 \end{equation}
-Here $K_a$ is arm kinetic energy, while $K_p$ includes the pendulum motion induced by the moving hinge and the coupling term. Total energy $E$ equals $\Estar$ at upright rest, as determined by $V$. Differentiating along Eq.~\eqref{eq:dynamics} gives
+Here $H(x)$ maps the physical state $x$ to the energy state $e$. Arm kinetic energy $K_a$ excludes the pendulum; pendulum kinetic energy $K_p$ includes motion induced by the moving hinge and the coupling term. At the upright-rest target $e_\star$, total energy $E$ consists entirely of potential energy. Differentiating these energies along $x$ gives
 \begin{equation}
 \begin{aligned}
  \dot K_a&=I_a\omega\dot\omega,\\
@@ -157,10 +173,10 @@ Here $K_a$ is arm kinetic energy, while $K_p$ includes the pendulum motion induc
 \end{aligned}
 \label{eq:powers}
 \end{equation}
-Motor power changes total energy; transfers into arm motion and gravitational potential reduce pendulum kinetic energy. Regulating $E$ alone leaves its distribution undetermined. If both $E$ and $V$ approach $\Estar$, their difference $K_a+K_p$ approaches zero.
+Motor power $u\omega$ changes total energy, while the other terms describe its exchange among the three components. Regulating $E$ alone leaves its distribution undetermined, so an ideal approach is to drive both $E$ and $V$ to $\Estar$, the remaining kinetic energy $K_a+K_p=E-V$ then vanishes to zero.
 
 % The energy-map Jacobian relates physical motion to energy rates.
-The chain rule expresses the same energy dynamics through the $3\times4$ Jacobian $DH(x)=\partial H/\partial x$,
+Express the energy dynamics governing equation through the chain rule,
 \begingroup
 \setlength{\arraycolsep}{4pt}
 \begin{equation}
@@ -177,88 +193,174 @@ The chain rule expresses the same energy dynamics through the $3\times4$ Jacobia
 \label{eq:energy-jacobian}
 \end{equation}
 \endgroup
-Rows correspond to $(K_a,K_p,V)$ and columns to $(\theta,\alpha,\omega,\nu)$; each entry is an energy derivative with respect to one state component. Primes denote derivatives with respect to $\alpha$: $A'=2J\sin\alpha\cos\alpha$, $C'=-b\sin\alpha$, and $V'=G\sin\alpha$. The zero first column reflects independence from absolute arm position, which remains necessary for constraint evaluation. With velocities fixed, replacing $\alpha$ by $-\alpha$ preserves $e$ but reverses $\dot V$ when $\sin\alpha\,\nu\ne0$. Thus $H$ has no unique inverse, and the energy dynamics cannot generally be expressed in terms of $(e,u)$ alone. Zero instantaneous energy rates at rest also do not preclude finite-time energy transfer.
+The Jacobian $DH(x)=\partial H/\partial x$ converts physical-state rates into the energy rates in Eq.~\eqref{eq:powers}. Its rows correspond to $(K_a,K_p,V)$ and columns to $(\theta,\alpha,\omega,\nu)$. The zero first column reflects independence from absolute arm position, which remains necessary for constraint evaluation. If $H$ had a unique inverse, we could recover $x$ from $e$ and predict energy transfer using only $(e,u)$. However, with both velocities fixed, the states at $\alpha$ and $-\alpha$ have the same $e$ but opposite $\dot V$ when $\sin\alpha\,\nu\ne0$. Thus $e$ does not uniquely determine $x$, and $H$ has no unique inverse. The differing energy rates show that $(e,u)$ alone cannot determine $\dot e$. Determining the required torque for control therefore requires phase information to distinguish the motions. 
 
-% Physical realizability is distinct from reachability under input and state constraints.
-Completing the square in $K_p$ gives the physical realizability conditions
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Work selection and phase-dependent torque decoding}
+\label{sec:contorller}
+% Energy feedback requests work over a prescribed interval of bounded actuation.
+The energy representation $H(x)$ in Section~\ref{sec:dynamics} specifies the required energy correction, while $\dot x=f(x,u)$ determines the response to bounded torque. At each update $t_k$, the controller observes $x_k=x(t_k)$ and holds $u(t)=u_k$ until $t_{k+1}$, with prescribed duration $\Delta=t_{k+1}-t_k>0$. The current energies $e_k=(K_{a,k},K_{p,k},V_k)^{\mathsf T}=H(x_k)$ give the proportional work request
 \begin{equation}
 \begin{aligned}
+ E_k&=K_{a,k}+K_{p,k}+V_k,\\
+ w_k&=\operatorname{clip}\!\left(\kappa(\Estar-E_k),-W_{\max},W_{\max}\right).
+\end{aligned}
+\label{eq:workpolicy}
+\end{equation}
+Here $E_k$ is current total energy, and $w_k$ is the signed work requested before the next update. The dimensionless gain $\kappa>0$ and request bound $W_{\max}>0$ are design choices. The operator $\operatorname{clip}$ restricts $\kappa(\Estar-E_k)$ to $[-W_{\max},W_{\max}]$. The sign of $w_k$ requests energy addition for $E_k<\Estar$ and removal for $E_k>\Estar$. The torque bound $|u|\le U$ alone does not ensure delivery of $w_k$ over $\Delta$.
+
+% A requested total energy specifies a plane but leaves the energy distribution free.
+Delivering $w_k$ fixes the next-step total energy at $E_k+w_k$ but leaves the energy distribution undetermined. For a candidate energy state $z=(z_a,z_p,z_V)^{\mathsf T}$, the equality $z_a+z_p+z_V=E_k+w_k$ defines a plane in three-dimensional energy space. The components $z_a,z_p,z_V$ denote arm kinetic, pendulum kinetic, and potential energy, respectively. Let $\mathcal E=\{H(x):x\text{ is a physical state}\}$ be the continuous region of physically realizable energies with unrestricted velocities. The mechanical bounds on $\mathcal E$ are given in Eqs.~\eqref{eq:energy-feasibility}--\eqref{eq:energy-inertias}. The physically realizable part of $z_a+z_p+z_V=E_k+w_k$ is
+\begin{equation}
+ \mathcal S(e_k,w_k)=\{z\in\mathcal E:z_a+z_p+z_V=E_k+w_k\}.
+ \label{eq:surface}
+\end{equation}
+For $E_k+w_k>0$, $\mathcal S(e_k,w_k)$ is a continuous planar region. At $E_k+w_k=0$, $\mathcal S(e_k,w_k)$ reduces to the origin; for $E_k+w_k<0$, $\mathcal S(e_k,w_k)$ is empty. Increasing $z_V$ on $\mathcal S(e_k,w_k)$ reduces $z_a+z_p$. Membership in $\mathcal S(e_k,w_k)$ does not establish attainability from $x_k$ under $|u|\le U$.
+
+% One continuous physical prediction determines the next-step energy for each torque.
+Predicting attainability requires $x_k$ because $H(x_k)$ does not uniquely determine the signed motion, as shown in Section~\ref{sec:dynamics}. For a trial torque $u\in[-U,U]$, let $x_u(s)$ denote the predicted physical state after elapsed time $s\in[0,\Delta]$. Holding $u$ constant, $f(x,u)$ and $H(x)$ define
+\begin{equation}
+\begin{aligned}
+ \frac{\dd x_u}{\dd s}(s)&=f(x_u(s),u),\qquad x_u(0)=x_k,\\
+ H_\Delta(x_k,u)&=H\!\left(x_u(\Delta)\right).
+\end{aligned}
+\label{eq:energy-prediction}
+\end{equation}
+The continuous predictor $x_u(s)$ retains configuration and signed velocities, while $H_\Delta(x_k,u)$ expresses the predicted next-step state in energy coordinates. The Jacobian $DH(x)=\partial H/\partial x$ in Eq.~\eqref{eq:energy-jacobian} gives the instantaneous rates $\dot e=DH(x)f(x,u)$. Equation~\eqref{eq:energy-jacobian} therefore justifies computing $H_\Delta(x_k,u)$ from $x_u(\Delta)$ without separately integrating $\dot e$.
+
+% The work balance connects predicted arm displacement to the requested energy change.
+To determine whether $u$ delivers $w_k$, compute the signed work $W_\Delta(x_k,u)$ from $x_u(s)$. Let $\theta_u(s)$ and $\omega_u(s)$ be the unwrapped arm angle and angular velocity in $x_u(s)$. Since $E=K_a+K_p+V$, Eq.~\eqref{eq:powers} gives $\dot E=\dot K_a+\dot K_p+\dot V=u\omega$ at each continuous time. Integrating $u\omega_u(s)$ with respect to elapsed time $s$ yields
+\begin{equation}
+\begin{aligned}
+ W_\Delta(x_k,u)&=\int_0^\Delta u\,\omega_u(s)\,\dd s\\
+ &=u\bigl[\theta_u(\Delta)-\theta_k\bigr],\\
+ E\!\left(x_u(\Delta)\right)&=E_k+W_\Delta(x_k,u).
+\end{aligned}
+\label{eq:work}
+\end{equation}
+Here $E(x)=K_a(x)+K_p(x)+V(x)$ is total energy at $x$, and $\theta_k$ is the observed arm angle. In Eq.~\eqref{eq:work}, $u$ is constant and $\omega_u(s)=\dd\theta_u(s)/\dd s$, giving the displacement $\theta_u(\Delta)-\theta_k$. Changing $u$ also changes $\theta_u(\Delta)$ through Eq.~\eqref{eq:dynamics}, so $W_\Delta(x_k,u)$ depends on coupled motion. At rest, $u\omega_u(0)=0$, although $u$ can initiate motion. Predicting $W_\Delta(x_k,u)$ includes subsequent energy transfer without dividing by $\omega_u(0)$.
+
+% Varying the scalar torque produces a continuous family of attainable energies.
+Each $u\in[-U,U]$ now has a predicted next-step energy $H_\Delta(x_k,u)$. For fixed $x_k$ and $\Delta$, varying $u$ produces
+\begin{equation}
+ \mathcal C_{x_k}=\{H_\Delta(x_k,u):u\in[-U,U]\}.
+ \label{eq:curve}
+\end{equation}
+Smooth dependence of $f(x,u)$ and $H(x)$ on state and input makes $\mathcal C_{x_k}$ a continuous parameterized curve in energy space. Each $H_\Delta(x_k,u)$ belongs to $\mathcal E$ because $H_\Delta(x_k,u)=H(x_u(\Delta))$. Equation~\eqref{eq:work} gives $E(x_u(\Delta))=E_k+W_\Delta(x_k,u)$. Hence $H_\Delta(x_k,u)\in\mathcal S(e_k,w_k)$ if and only if
+\[
+ W_\Delta(x_k,u)=w_k.
+\]
+Solving $W_\Delta(x_k,u)=w_k$ identifies $\mathcal C_{x_k}\cap\mathcal S(e_k,w_k)$ and recovers $u$ directly as the parameter of $\mathcal C_{x_k}$, without inverting $H$. Multiple solutions $u$ can yield different $H_\Delta(x_k,u)$ and arm excursions. If $W_\Delta(x_k,u)=w_k$ has no solution in $[-U,U]$, no admissible constant torque delivers $w_k$ over $\Delta$.
+
+% Numerical integration and scalar root refinement supply the candidate torques.
+A numerical solution of $W_\Delta(x_k,u)=w_k$ requires approximating $x_u(s)$ in Eq.~\eqref{eq:energy-prediction}. Divide $\Delta$ into $N$ equal integration steps of length $h=\Delta/N$, with prescribed integer $N\ge1$. For each $u$, let $\widehat x_j$ approximate $x_u(jh)$, where $j=0,\ldots,N$ indexes integration samples. The angular components of $\widehat x_j$ are $\widehat\theta_j$ and $\widehat\alpha_j$. Using fourth-order Runge--Kutta integration, denoted $\operatorname{RK4}$, the discrete prediction is
+\begin{equation}
+\begin{aligned}
+ \widehat x_0&=x_k,\\
+ \widehat x_{j+1}&=\operatorname{RK4}(\widehat x_j,u;h),\qquad j<N,\\
+ \widehat x_N&\approx x_u(\Delta),\\
+ H(\widehat x_N)&\approx H_\Delta(x_k,u),\\
+ \widehat W_\Delta(x_k,u)&=\sum_{j=0}^{N-1}u(\widehat\theta_{j+1}-\widehat\theta_j)\\
+ &=u(\widehat\theta_N-\theta_k).
+\end{aligned}
+\label{eq:state-prediction}
+\end{equation}
+Hats distinguish numerical predictions from the continuous solution $x_u(s)$. After $N$ integration steps, $H(\widehat x_N)$ approximates $H_\Delta(x_k,u)$ at the next update. The discrete work $\widehat W_\Delta(x_k,u)$ adds work over angular increments; constant $u$ makes the finite sum telescope to $u(\widehat\theta_N-\theta_k)$. Numerical integration introduces error into the energy balance, so $E(\widehat x_N)\approx E_k+\widehat W_\Delta(x_k,u)$.
+
+% Bracketing and bisection approximate intersections without an analytic torque inverse.
+To approximate $W_\Delta(x_k,u)=w_k$, define the numerical work residual $R(u)$ and a uniform grid of $n_u$ torques $u_i$, with integer $n_u\ge2$,
+\begin{equation}
+\begin{aligned}
+ R(u)&=\widehat W_\Delta(x_k,u)-w_k,\\
+ u_i&=-U+\frac{2Ui}{n_u-1},\qquad i=0,\ldots,n_u-1.
+\end{aligned}
+\label{eq:torque-search}
+\end{equation}
+The equation $R(u)=0$ is solved numerically by bisection, without a closed-form inverse for $u$. For $i=0,\ldots,n_u-2$, continuity of $R(u)$ and $R(u_i)R(u_{i+1})\le0$ ensure a root in $[u_i,u_{i+1}]$. At each iteration, compute $R(u)$ at the bracket midpoint and retain a half whose boundary values of $R(u)$ have nonpositive product. After $L$ iterations, with prescribed integer $L\ge0$, the bracket width is $2U/[(n_u-1)2^L]$. Retain the bracket midpoints and grid torques in $\mathcal U_{\mathrm{test}}\subseteq[-U,U]$, excluding nonfinite predictions. Predictions $H(\widehat x_N)$ for $u\in\mathcal U_{\mathrm{test}}$ form a finite collection of points approximating $\mathcal C_{x_k}$. Roots without a sign change in $R(u)$, or multiple roots between adjacent grid torques, can be missed.
+
+% The integration and search counts determine the arithmetic cost per control update.
+For the fixed four-state dynamics $f(x,u)$, computing $R(u)$ requires $N$ Runge--Kutta steps, or $4N$ evaluations of $f(x,u)$. The implementation batches all $n_u-1$ grid intervals during each of $L$ bisection iterations. Including the initial grid and prediction of at most $2n_u-1$ candidate torques gives $\mathcal O(n_uN(L+1))$ arithmetic work per update. Batching evaluates trial torques in parallel; elapsed computation time also depends on hardware.
+
+% Candidate ranking balances energy distribution, work agreement, and arm excursion.
+The condition $R(u)=0$ expresses work agreement but does not rank $u\in\mathcal U_{\mathrm{test}}$ by $H(\widehat x_N)$ or $\widehat\theta_j$. Increasing $V$ toward $\Estar$ complements the feedback $w_k$ because $K_a+K_p=E-V$. Since $H(x)$ omits $\theta$, arm excursion requires checking $\widehat\theta_j$ for all $j=0,\ldots,N$. In particular, $|\widehat\theta_N|\le\theta_{\max}$ does not exclude $|\widehat\theta_j|>\theta_{\max}$ at an earlier sample. Let $\widehat V^+(x_k,u)$ denote predicted next-step potential energy and $\widehat\Theta(x_k,u)$ the largest sampled absolute arm angle. The score $\mathcal J(x_k,u;w_k)$ combines $\widehat V^+(x_k,u)$, $R(u)$, and $\widehat\Theta(x_k,u)$ to select $u_k$ through
+\begin{equation}
+\begin{aligned}
+ \widehat V^+(x_k,u)&=G(1-\cos\widehat\alpha_N),\\
+ \widehat\Theta(x_k,u)&=\max_{0\le j\le N}|\widehat\theta_j|,\\
+ \mathcal J(x_k,u;w_k)&=\left(\frac{\Estar-\widehat V^+(x_k,u)}{\Estar}\right)^2\\
+ &\quad+\lambda_W\left(\frac{R(u)}{W_{\max}}\right)^2\\
+ &\quad+\lambda_\theta\left(\frac{\max\{\widehat\Theta(x_k,u)-\theta_{\max},0\}}{\theta_{\max}}\right)^2,\\
+ u_k&\in\underset{u\in\mathcal U_{\mathrm{test}}}{\arg\min}\ \mathcal J(x_k,u;w_k).
+\end{aligned}
+\label{eq:score}
+\end{equation}
+In $\mathcal J(x_k,u;w_k)$, normalization by $\Estar$, $W_{\max}$, and $\theta_{\max}$ makes the three residuals dimensionless. The positive weights $\lambda_W,\lambda_\theta$ are tunable. Minimizing $\mathcal J(x_k,u;w_k)$ favors $\widehat V^+(x_k,u)=\Estar$, $R(u)=0$, and $\widehat\Theta(x_k,u)\le\theta_{\max}$. All $u\in\mathcal U_{\mathrm{test}}$ compete under $\mathcal J(x_k,u;w_k)$, so $R(u_k)$ need not vanish. After applying $u_k$, the controller observes $x_{k+1}$ and repeats Eqs.~\eqref{eq:workpolicy}--\eqref{eq:score}. Membership in $\mathcal U_{\mathrm{test}}$ enforces $|u_k|\le U$. A finite $\lambda_\theta$ does not guarantee $|\theta(t)|\le\theta_{\max}$, and stability of $\mathcal X_\star$ under minimization of $\mathcal J(x_k,u;w_k)$ is not established.
+
+% Mechanical coupling determines the physical-energy region independently of actuation.
+Mechanical coupling restricts $\mathcal E$ and hence $\mathcal S(e_k,w_k)$. Arm rotation moves the pendulum hinge, so the minimum $K_p$ depends on $K_a$ and $\alpha$. Subtracting $K_a$ from $K$ in Eq.~\eqref{eq:lagrangian} and writing $K_p$ as a nonnegative square in $\nu$ gives
+\begin{equation}
+\begin{aligned}
+ K_a&=\tfrac12I_a\omega^2,\qquad \omega^2=2K_a/I_a,\\
+ K_p&=K-K_a\\
+    &=\tfrac12A\omega^2+C\omega\nu+\tfrac12J\nu^2
+       -\tfrac12I_a\omega^2\\
+    &=\tfrac12(A-I_a)\omega^2-\frac{C^2}{2J}\omega^2\\
+    &\quad+\frac J2\left[\nu^2+\frac{2C}{J}\omega\nu
+                    +\frac{C^2}{J^2}\omega^2\right]\\
+    &=\frac J2\left(\nu+\frac CJ\omega\right)^2
+       +\frac{A-I_a-C^2/J}{I_a}K_a,\\
  K_a&\ge0,\qquad 0\le V\le2G,\\
  K_p&\ge\frac{A-I_a-C^2/J}{I_a}\,K_a.
 \end{aligned}
 \label{eq:energy-feasibility}
 \end{equation}
-Here $A,C$ are evaluated at $\cos\alpha=1-V/G$; the coefficient is independent of the angle's sign. These conditions are necessary and sufficient with unrestricted velocities: arm motion necessarily contributes to pendulum kinetic energy. Reachability additionally depends on the input and duration. Let $\Delta=t_{k+1}-t_k>0$ denote the duration for which the selected torque is held constant. The state-transition map $F_\Delta(x,u)$ is obtained by integrating $\dot x=f(x,u)$ for this duration, starting from $x$. It returns the resulting state rather than its instantaneous derivative. Integrating motor power over the same interval gives the signed work $W_\Delta$, so
+The term $\frac J2(\nu+C\omega/J)^2$ vanishes at $\nu=-C\omega/J$, giving the minimum $K_p$ for prescribed $K_a$ and $V$. Potential energy $V$ ranges from zero at the downward position to $2G$ at upright. Substituting $\cos\alpha=1-V/G$ into $A(\alpha)$ and $C(\alpha)$ expresses Eq.~\eqref{eq:energy-feasibility} entirely in energy coordinates,
 \begin{equation}
 \begin{aligned}
- x_{k+1}&=F_\Delta(x_k,u_k),\\
- W_\Delta(x,u)&=u\bigl[\theta(F_\Delta(x,u))-\theta(x)\bigr],\\
- E(F_\Delta(x,u))&=E(x)+W_\Delta(x,u),
+ C&=b(1-V/G),\\
+ A&=I_a+m_pr^2+J\bigl[1-(1-V/G)^2\bigr].
 \end{aligned}
-\label{eq:work}
+\label{eq:energy-inertias}
 \end{equation}
-where $\theta(\cdot)$ extracts the unwrapped arm angle. Positive work adds energy and negative work removes it. A requested work value need not admit a solution satisfying $|u|\le U$. Arm-position constraints require evaluation along the entire trajectory; the finite penalty in Section~III-B does not guarantee satisfaction. Zero torque preserves total energy while permitting internal exchange, whereas zero net work does not require zero torque.
+Thus the multiplier $(A-I_a-C^2/J)/I_a$ of $K_a$ depends on $V$ without requiring the sign of $\alpha$.
 
-\subsection{Hierarchical work selection and phase-dependent torque decoding}
-% B1: Upper-layer work policy.
-The upper layer receives only energy state $e_k$ and requests signed work
+% Constructing real velocities proves realizability of every triple satisfying the mechanical bounds.
+Every $e=(K_a,K_p,V)^{\mathsf T}$ satisfying Eq.~\eqref{eq:energy-feasibility} also corresponds to a physical state $x$ when velocities are unrestricted. Choose $\alpha$ with $\cos\alpha=1-V/G$, then choose $\omega$ supplying $K_a$. The velocity $\nu$ supplies $K_p$ above the minimum $(A-I_a-C^2/J)K_a/I_a$ through
 \begin{equation}
 \begin{aligned}
- w_k&=\operatorname{clip}\!\bigl(\kappa(\Estar-\boldsymbol{1}^{\mathsf T}e_k),\\
-    &\hspace{5em}-W_{\max},W_{\max}\bigr).
+ \omega&=\pm\sqrt{2K_a/I_a},\\
+ \nu&=-\frac CJ\omega\\
+ &\quad\pm\sqrt{\frac2J\left[K_p-\frac{A-I_a-C^2/J}{I_a}K_a\right]}.
 \end{aligned}
-\label{eq:workpolicy}
+\label{eq:energy-realization}
 \end{equation}
-The clipping operation restricts its first argument to the feasible interval. The dimensionless feedback gain $\kappa$ is a design choice. A positive request asks for energy injection and a negative request for removal. This layer is effectively a proportional control in energy state.
-
-% B2: Work-budget surface in three-component energy space.
-Let $\mathcal E=\{H(x):x\text{ is a physical state}\}$ denote the physically realizable energy image. For a current energy $e$ and requested work $w$, candidate endpoint energies $z=(z_a,z_p,z_V)^{\mathsf T}$ satisfying the budget lie in
-\begin{equation}
- \mathcal S(e,w)=\{z\in\mathcal E:\boldsymbol{1}^{\mathsf T}z
-       =\boldsymbol{1}^{\mathsf T}e+w\}.
- \label{eq:surface}
-\end{equation}
-Its axes are arm-body kinetic energy, pendulum-body kinetic energy, and gravitational potential. One scalar equality defines an affine plane in this three-dimensional space; its intersection with $\mathcal E$ is generally a two-dimensional surface, but may degenerate or be empty. Torque is not an additional coordinate. The surface expresses the requested energy budget without asserting reachability from the current phase.
-
-% B3: Finite-horizon torque-response curve conditioned on physical phase.
-The lower layer fixes the observed physical state $x$ and action duration $\Delta$, then varies the single held torque over its usable interval. The corresponding endpoint energies form the parameterized response curve
-\begin{equation}
- \mathcal C_x=\{H(F_\Delta(x,u)):u\in[-U,U]\}.
- \label{eq:curve}
-\end{equation}
-The predictor uses pendulum phase and both signed angular velocities to determine this curve. Absolute arm position enters the excursion assessment below; rotational symmetry makes the energy curve independent of a shift in $\theta$ alone. The curve can fold or self-intersect and need not meet the work surface. Even when $\omega=0$ initially, a nonzero torque can accelerate the arm and deliver work over the finite action. Figure~\ref{fig:method} illustrates the construction at a recorded controller state.
-
-% B4: Intersections and the actual finite candidate search.
-In the exact lossless model, intersections of $\mathcal C_x$ and $\mathcal S(H(x),w)$ correspond to torques satisfying $W_\Delta(x,u)=w$. There may be multiple solutions, none, or degenerate intersections. The implementation approximates $F_\Delta$ by five fourth-order Runge--Kutta steps of length $h$, denoted $\widehat F_\Delta$, and computes $\widehat W_\Delta=u(\theta(\widehat F_\Delta(x,u))-\theta(x))$. It evaluates 33 equally spaced torques and refines every adjacent bracket whose work errors have opposite signs or include zero. Ten bisection iterations add at most 32 candidate torques. We call these resolved work-matching candidates; finite sampling does not find every possible root. Numerical energy-balance error also means that work matching places a predicted endpoint only approximately on the exact work plane.
-
-% B5: Joint candidate ranking, including soft feasibility treatment.
-Let $\mathcal U_{\mathrm{test}}(x,w)$ contain the original grid and the bracket-derived candidates with finite predictions. For each candidate, let $\widehat V^+(x,u)$ be predicted endpoint potential and $\widehat\Theta(x,u)$ the largest absolute arm angle among the initial state and five predicted samples. The selected action minimizes the dimensionless score
-\begin{equation}
-\begin{aligned}
- u^\star(x,w)&\in\underset{u\in\mathcal U_{\mathrm{test}}(x,w)}{\arg\min}\ \mathcal J(x,u;w),\\
- \mathcal J(x,u;w)&=\left(\frac{\Estar-\widehat V^+(x,u)}{\Estar}\right)^2\\
- &\quad+\lambda_W\left(\frac{\widehat W_\Delta(x,u)-w}{W_{\max}}\right)^2\\
- &\quad+\lambda_\theta\left(\frac{\max\{\widehat\Theta(x,u)-\theta_{\max},0\}}{\theta_{\max}}\right)^2.
-\end{aligned}
-\label{eq:score}
-\end{equation}
-with $\lambda_W=0.02$ and $\lambda_\theta=10{,}000$. The terms favor elevation, requested-work agreement, and limited arm excursion, respectively; their weights are tunable penalties, not physical energies. Work-matching candidates and original grid torques are scored together. The selected action can therefore depart from the work surface or cross the soft arm boundary, even when tested alternatives remain inside. The torque bound is enforced directly. Arm containment has neither a hard feasibility guarantee nor a continuous-time guarantee from the sampled check.
-
-% B6: Execution and implementation details.
-The controller applies $u_k=u^\star(x_k,w_k)$ for $\Delta=0.1$ s, observes the resulting state, and repeats the encode--request--decode sequence. The experiment may terminate within an action when capture occurs. Equal scores are resolved by choosing the smallest torque magnitude, then a nonnegative torque if the remaining candidates tie. Nonfinite candidates are excluded; if none remain, the decoder reports an invalid action rather than switching controllers. The present schedule uses fixed-duration actions, with no angular-speed constraint, planned braking sequence, learned terminal value, or suspended-update interval. These choices define the implemented baseline for subsequent holding and burst-coast studies.
-
-
-\begin{figure*}[p]
-\input{figures/results}
-\caption{\textbf{Recorded capture behavior and constraint outcomes.} (A--B) Complete final-validation tables; probes are excluded from the distributions. Near and tight upright starts have overlapping distributions near 0.1 s, reflecting the angle-only endpoint. (C--D) Seed 20261022, lane 118, selected by upper-median capture time among noncrossing downward captures: 11.12 s. The shaded band is $165$--$195^\circ$; pendulum traces break at angular wraps. Torque is the value applied during the preceding integration interval. Energies are unweighted physical measurements. (E) The slowest downward capture in that seed, lane 177: 16.92 s. Colors match (C). (F) The committed boundary examples, aligned to their first sampled crossings at 3.20 s and 8.62 s. The preceding decision audits found 16 and zero bounded tested actions, respectively. Their full-replay peak excursions were $184.58^\circ$ and $189.03^\circ$. Panels C--F are selected illustrations; only A--B summarize the full randomized population. Trajectories terminate at capture and provide no subsequent holding record.}
-\label{fig:atlas}
-\end{figure*}
-
+Equation~\eqref{eq:energy-feasibility} ensures real $\omega$ and $\nu$ in Eq.~\eqref{eq:energy-realization}, with either sign of $\omega$ permitted. Choose $\theta\in[-\theta_{\max},\theta_{\max}]$ independently because $H(x)$ does not depend on $\theta$. Hence Eqs.~\eqref{eq:energy-feasibility}--\eqref{eq:energy-inertias} characterize $\mathcal E$, but do not establish reachability from $x_k$ over $\Delta$. The inclusion $\mathcal C_{x_k}\subseteq\mathcal E$ holds through physical prediction, so the controller requires no additional filtering by Eq.~\eqref{eq:energy-feasibility}.
 
 
 \section{Experiments and Results}
 % R1: Single results paragraph; tables and atlas carry protocol and diagnostics.
 We evaluated the selected controller in the nominal lossless simulator using four randomized initial-state classes (Table~\ref{tab:initial}). Parameter development used seeds 20261020 and 20261021. The reported setting was then evaluated on seeds 20261022 and 20261023, each supplying 512 starts per class. All 4,096 randomized episodes captured within 20 s (Fig.~\ref{fig:atlas}). The 1,024 downward starts remained inside the arm envelope and had a median capture time of 11.13 s. Six of the 1,024 moving starts crossed the arm boundary; the near-upright and tight-upright classes had no crossings. Eight fixed-probe episodes, counted separately, also captured without crossings. The replay traces show repeated energy exchange during swing-up and two observed crossing conditions. In one, the finite penalty permits a crossing despite bounded tested alternatives. In the other, no tested torque keeps the next action inside the envelope. These results support capture on the specified nominal distributions. Sustained holding, robustness to model error, and intervention savings require continued trajectories and a comparison study.
+
+
+
+
+
+
+
+
+
+
 
 
 % \begin{table*}[t]
