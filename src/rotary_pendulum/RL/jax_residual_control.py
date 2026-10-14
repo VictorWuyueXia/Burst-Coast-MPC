@@ -18,7 +18,7 @@ from rotary_pendulum.environment.jax_dynamics import (
 )
 from rotary_pendulum.environment.jax_environment import ARM_LIMIT_RAD
 
-POLICY_TORQUE_NM = 0.45 * TORQUE_LIMIT_NM
+POLICY_TORQUE_NM = 0.90 * TORQUE_LIMIT_NM
 TARGET_ENERGY_J = 2.0 * MODEL.gravity_torque_nm
 ARM_SPEED_SCALE = float(ARM_LIMIT_RAD) * MODEL.natural_frequency_rad_s
 PENDULUM_SPEED_SCALE = 2.0 * jnp.sqrt(MODEL.gravity_torque_nm / MODEL.pendulum_inertia_kg_m2)
@@ -45,7 +45,9 @@ def heuristic_torque(x: Array, energy_time_s: float, sensitivity_floor_per_s: fl
     return jnp.clip(jnp.where(startup, kick, torque), -POLICY_TORQUE_NM, POLICY_TORQUE_NM)
 
 
-def filter_torque(x: Array, proposed: Array, filter_steps: int) -> tuple[Array, Array]:
+def filter_torque(
+    x: Array, proposed: Array, filter_steps: int, torque_limit_nm: float = POLICY_TORQUE_NM
+) -> tuple[Array, Array]:
     """Predict nominal/coast/brake paths; modes 0/1/2/3 mean accept/coast/brake/best effort."""
 
     horizon = filter_steps * PHYSICS_DT_S
@@ -57,8 +59,8 @@ def filter_torque(x: Array, proposed: Array, filter_steps: int) -> tuple[Array, 
     desired_acceleration = -2.0 * x[..., 2] / horizon - x[..., 0] / horizon**2
     brake = jnp.clip(
         (desired_acceleration - state_derivative(x, 0.0)[..., 2]) / arm_authority,
-        -POLICY_TORQUE_NM,
-        POLICY_TORQUE_NM,
+        -torque_limit_nm,
+        torque_limit_nm,
     )
     candidates = jnp.stack((proposed, jnp.zeros_like(proposed), brake), axis=-1)
     initial = jnp.broadcast_to(x[..., None, :], (*x.shape[:-1], 3, 4))
@@ -73,8 +75,8 @@ def filter_torque(x: Array, proposed: Array, filter_steps: int) -> tuple[Array, 
         acceleration = -2.0 * velocity / horizon - position / horizon**2
         recovery = jnp.clip(
             (acceleration - state_derivative(state[..., :4], 0.0)[..., 2]) / authority,
-            -POLICY_TORQUE_NM,
-            POLICY_TORQUE_NM,
+            -torque_limit_nm,
+            torque_limit_nm,
         )
         held = jnp.where(index == 0, candidates, state[..., 4])
         held = jnp.where((index >= 5) & (index % 5 == 0), recovery, held)
@@ -113,10 +115,18 @@ def residual_action(
         axis=-1,
     )
     heuristic = heuristic_torque(x, settings["energy_time_s"], settings["sensitivity_floor_per_s"])
+    if settings["action_mode"].startswith("direct"):
+        heuristic = jnp.zeros_like(heuristic)
+    residual_scale = 1.0 if settings["action_mode"].startswith("direct") else 2.0
     proposed = jnp.clip(
-        heuristic + POLICY_TORQUE_NM * (2.0 * residual + noise),
-        -POLICY_TORQUE_NM,
-        POLICY_TORQUE_NM,
+        heuristic + settings["torque_limit_nm"] * (residual_scale * residual + noise),
+        -settings["torque_limit_nm"],
+        settings["torque_limit_nm"],
     )
-    applied, mode = filter_torque(x, proposed, settings["filter_steps"])
+    if settings["action_mode"].endswith("unfiltered"):
+        applied, mode = proposed, jnp.zeros(proposed.shape, jnp.int32)
+    else:
+        applied, mode = filter_torque(
+            x, proposed, settings["filter_steps"], settings["torque_limit_nm"]
+        )
     return applied, heuristic, proposed, mode

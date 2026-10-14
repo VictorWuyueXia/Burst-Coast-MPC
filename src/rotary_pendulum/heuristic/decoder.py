@@ -12,11 +12,14 @@ from rotary_pendulum.heuristic.energy import TARGET_ENERGY_J, WORK_LIMIT_J, enco
 
 POLICY_TORQUE_NM = 0.90 * TORQUE_LIMIT_NM
 WORK_TOLERANCE_J = 1e-4 * TARGET_ENERGY_J
-TORQUE_GRID_NM = jnp.linspace(-POLICY_TORQUE_NM, POLICY_TORQUE_NM, 33)
 
 
 def decode(
-    x: Array, requested_work: Array, work_weight: Array, arm_limit_weight: Array
+    x: Array,
+    requested_work: Array,
+    work_weight: Array,
+    arm_limit_weight: Array,
+    torque_limit_nm: float = POLICY_TORQUE_NM,
 ) -> tuple[Array, dict[str, Array]]:
     """Score constant-torque actions; no future control sequence or speed constraint."""
 
@@ -35,7 +38,9 @@ def decode(
         return endpoint, peak, work
 
     # Refine all torque intervals that bracket the requested motor work.
-    grid = jnp.broadcast_to(TORQUE_GRID_NM.astype(x.dtype), (*x.shape[:-1], 33))
+    grid = jnp.broadcast_to(
+        jnp.linspace(-torque_limit_nm, torque_limit_nm, 33, dtype=x.dtype), (*x.shape[:-1], 33)
+    )
     _, _, grid_work = predict(grid)
     error = grid_work - requested_work[..., None]
     bracketed = (error[..., :-1] * error[..., 1:] <= 0.0) & jnp.isfinite(
@@ -64,7 +69,10 @@ def decode(
     work_error = predicted_work - requested_work[..., None]
     potential_cost = ((TARGET_ENERGY_J - energy[..., 2]) / TARGET_ENERGY_J) ** 2
     work_cost = work_weight * (work_error / WORK_LIMIT_J) ** 2
-    arm_cost = arm_limit_weight * (jnp.maximum(peak - ARM_LIMIT_RAD, 0.0) / ARM_LIMIT_RAD) ** 2
+    arm_cost = (
+        arm_limit_weight
+        * (jnp.maximum(peak - 0.8 * ARM_LIMIT_RAD, 0.0) / (0.2 * ARM_LIMIT_RAD)) ** 2
+    )
     # These dimensionless control penalties are not physical energy measurements.
     score = potential_cost + work_cost + arm_cost
     finite = valid & jnp.isfinite(score + jnp.sum(energy, axis=-1))

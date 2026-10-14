@@ -21,10 +21,16 @@ At start of a conversation, briefly scan through the code base and the docs to h
 
 - When training models or making controllers with tunable parameters, proactively train or test out the agent in several iterations. Between iterations, scan through the artifacts and identify any potential improvements that could be achieced by tuning the parameters before the next iteration. Do so until you believe tuning parameters alone cannot significantly improve anymore, and if the agent still fails at this stage, infer a reasong why and suggest a next step fix.
 
+- Do not add in small logics without telling just to make things work to a goal. The goal is not to simply make somthing work or achieve a criteria, but to experiment on if a specific formulation works. And if the formulation does not work, why not, and how to reformulate? The mathematical analysis is the focus, not development of a working product.
+
 # doc rules
 - When writing docs, if your answer include mathematical expressions/formulas/variables, fully define them when they emerge, explain how to get the values (defined, measured, computed, heuristic, tunable, etc.), and give an intuitive interpretations for each of them. Output in .md files with "$$" latex math syntax. Split into human readable parts which is more illustrative and intuitive with major governing formulas, and machine schanning parts with as much rigorous details as you can write. Also make a 中文 version of the same doc file with same name and suffix -CN, and gitignore any files with suffix -CN.
 
 - When formulating a plan, explicitly identify stages and milestones of the dev process, give specific validation procedures for each milestone and their success flags. And always rememver our projects are meant to be show-of-concept, not to deliver a clinic/industry-ready product. So never over engineering the method, but proactively keep the mathematicall elegance (streamline, efficiency, naturally working, etc.) and strigency of our methods.
+
+- Keep only md, tex, and involved figures in docs/, all other experiment related files belong to artifacts/.
+
+- Do not make new enumerated dev stages (i.e. 9-RL), only I can decide which phase we are in. Without me making new one or explicitly instruct so, we are alwasys in the same stage.
 
 # venv
 We are on a ubuntu remote server where conda or sudo is not available, we need to build or see the already built .venv acoording to the encironment or requirement files. But keep and keep updating the encironment or requirement files so we have them available when switching to other machines.

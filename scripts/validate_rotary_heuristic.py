@@ -23,8 +23,8 @@ def main() -> None:
     arguments = parser.parse_args()
     campaign = json.loads(arguments.config.read_text())
     visible = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
-    if any(device not in ("", "0", "1", "2", "3") for device in visible):
-        raise ValueError("Only physical GPUs 0–3 are authorized for this project run")
+    if any(device not in ("", *map(str, range(8))) for device in visible):
+        raise ValueError("Select checked physical GPUs 0–7")
     # Validate resource allocation before imports initialize a JAX device.
     import jax
     import jax.numpy as jnp
@@ -40,12 +40,15 @@ def main() -> None:
         raise ValueError("Energy-work validation requires explicitly zero damping")
     if len(trials) > jax.local_device_count():
         raise ValueError("Provide one visible JAX device per independent trial")
-    if campaign["decisions"] % campaign["chunk_decisions"] or campaign["decisions"] > 200:
-        raise ValueError("Use complete chunks within the existing 20 s episode deadline")
+    if campaign["decisions"] % campaign["chunk_decisions"] or campaign["decisions"] > 400:
+        raise ValueError("Use complete chunks within the 40 s episode deadline")
     if campaign["chunk_decisions"] > 10:
         raise ValueError("Progress chunks must be no longer than one simulated second")
     parameters = np.asarray(
-        [[t["work_gain"], t["work_weight"], t["arm_limit_weight"]] for t in trials]
+        [
+            [t["work_gain"], t["work_weight"], t["arm_limit_weight"], t["torque_limit_nm"]]
+            for t in trials
+        ]
     )
     if not np.isfinite(parameters).all() or np.any(parameters < 0):
         raise ValueError("Controller gains must be finite and nonnegative")
@@ -93,7 +96,7 @@ def main() -> None:
         )
         + "\n"
     )
-    initial, _, labels = validation_resets(campaign["seed"], campaign["episodes_per_stratum"], [20])
+    initial, _, labels = validation_resets(campaign["seed"], campaign["episodes_per_stratum"], [40])
     if jax.config.x64_enabled:
         initial = initial._replace(x=initial.x.astype(jnp.float64))
     np.savez_compressed(
@@ -108,9 +111,10 @@ def main() -> None:
     run = jax.pmap(
         lambda initial, parameters: evaluate(
             initial,
-            parameters,
+            parameters[:3],
             campaign["chunk_decisions"],
             campaign["mode"],
+            parameters[3],
         ),
         devices=devices,
     )
@@ -124,7 +128,17 @@ def main() -> None:
         state, trace = run(state, jnp.asarray(parameters))
         host = jax.device_get(trace)
         if not all(np.isfinite(value).all() for value in host.values()):
-            raise FloatingPointError(f"Nonfinite trajectory at chunk {index}")
+            invalid = {
+                trial["name"]: [
+                    name for name, value in host.items() if not np.isfinite(value[i]).all()
+                ]
+                for i, trial in enumerate(trials)
+                if any(not np.isfinite(value[i]).all() for value in host.values())
+            }
+            (machine / "numerical_failure.json").write_text(
+                json.dumps({"chunk": index, "invalid": invalid})
+            )
+            raise FloatingPointError(f"Nonfinite trajectory at chunk {index}: {invalid}")
         chunks.append(host)
         captures = np.sum(host["success"][:, -1], axis=-1)
         excursions = np.sum(host["arm_violation"][:, -1], axis=-1)

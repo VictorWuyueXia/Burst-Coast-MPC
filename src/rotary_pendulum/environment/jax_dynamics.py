@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from typing import cast
+
+import jax
 import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
@@ -48,14 +51,14 @@ def state_derivative(x: ArrayLike, u: ArrayLike) -> Array:
 
 
 def rk4_step(x: ArrayLike, u: ArrayLike) -> Array:
-    """Advance exactly one 20 ms physics interval under constant shaft torque."""
+    """Advance one 20 ms interval using ten 2 ms RK4 steps under constant torque."""
 
-    state = jnp.asarray(x)
-    k1 = state_derivative(state, u)
-    k2 = state_derivative(state + 0.5 * PHYSICS_DT_S * k1, u)
-    k3 = state_derivative(state + 0.5 * PHYSICS_DT_S * k2, u)
-    k4 = state_derivative(state + PHYSICS_DT_S * k3, u)
-    following = state + PHYSICS_DT_S * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
-    # Normalize only the completed RK4 step; angular velocity remains signed.
-    # Exact upright uses -pi; crossing it preserves the direction of motion.
-    return following.at[..., 1].set((following[..., 1] + jnp.pi) % (2 * jnp.pi) - jnp.pi)
+    def integrate(index: int, state: Array) -> Array:
+        k1 = state_derivative(state, u)
+        k2 = state_derivative(state + 0.001 * k1, u)
+        k3 = state_derivative(state + 0.001 * k2, u)
+        k4 = state_derivative(state + 0.002 * k3, u)
+        following = state + 0.002 * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
+        return following.at[..., 1].set((following[..., 1] + jnp.pi) % (2 * jnp.pi) - jnp.pi)
+
+    return cast(Array, jax.lax.fori_loop(0, 10, integrate, jnp.asarray(x)))

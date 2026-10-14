@@ -10,22 +10,18 @@ from typing import Any, cast
 
 import jax
 import jax.numpy as jnp
-import matplotlib
 import numpy as np
 from jax import Array
 
 from rotary_pendulum.environment.jax_dynamics import MODEL, PHYSICS_DT_S
-from rotary_pendulum.environment.jax_environment import ARM_LIMIT_RAD, GOAL, EnvState, reset
+from rotary_pendulum.environment.jax_environment import EnvState, reset
 from rotary_pendulum.RL.jax_residual_control import (
-    POLICY_TORQUE_NM,
     TARGET_ENERGY_J,
     residual_action,
 )
+from rotary_pendulum.RL.jax_residual_plotting import plot_trajectories
 from rotary_pendulum.RL.jax_residual_task import observe, transition
 from rotary_pendulum.RL.jax_td3 import Actor
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 
 def validation_resets(
@@ -72,15 +68,17 @@ def evaluate(
 ) -> dict[str, Array]:
     """Evaluate matched lanes through the longest deadline, freezing completed episodes."""
 
-    if mode not in ("heuristic", "unfiltered", "zero", "policy"):
+    if mode not in ("heuristic", "unfiltered", "zero", "policy", "linear"):
         raise ValueError(f"Unknown validation mode: {mode}")
     if mode == "policy" and actor is None:
         raise ValueError("Policy validation requires explicit actor parameters")
 
     def advance(state: EnvState, unused: None) -> tuple[EnvState, dict[str, Array]]:
-        observation = observe(state, deadline_steps)
+        observation = observe(
+            state, deadline_steps, round(settings["hold_duration_s"] / PHYSICS_DT_S)
+        )
         residual = (
-            cast(Array, Actor().apply(actor, observation))
+            cast(Array, Actor(tuple(settings["hidden_widths"])).apply(actor, observation))
             if mode == "policy"
             else jnp.zeros(state.x.shape[0])
         )
@@ -94,6 +92,10 @@ def evaluate(
             applied, intervention = heuristic, jnp.zeros_like(intervention)
         elif mode == "zero":
             applied, intervention = jnp.zeros_like(applied), jnp.zeros_like(intervention)
+        elif mode == "linear":
+            error = state.x.at[:, 1].set(jnp.arctan2(-observation[:, 1], -observation[:, 2]))
+            applied = settings["torque_limit_nm"] * jnp.clip(-error @ actor, -1.0, 1.0)
+            intervention = jnp.zeros_like(intervention)
         active = ~(state.success | state.timeout)
         applied = jnp.where(active, applied, 0.0)
         following, reward, components, physics_x, _ = transition(
@@ -200,94 +202,5 @@ def write_validation(
     writer.writerows(rows)
     handle.close()
 
-    # Pick a median-return and best-return case at 60 s from each random stratum;
-    # the chosen lane IDs are saved so that plots are never anonymous anecdotes.
-    selected: dict[str, list[int]] = {}
-    for label in ("downward", "moving", "near", "tight", "probe"):
-        lanes = [
-            i
-            for i, row in enumerate(rows)
-            if row["stratum"] == label and row["deadline_s"] == max(data["deadline_s"])
-        ]
-        ranked = sorted(lanes, key=lambda i: rows[i]["return"])
-        chosen = ranked if label == "probe" else [ranked[len(ranked) // 2], ranked[-1]]
-        selected[label] = chosen
-        figure, axes = plt.subplots(6, len(chosen), figsize=(6 * len(chosen), 14), squeeze=False)
-        for column, lane in enumerate(chosen):
-            active = data["active"][:, lane]
-            time = data["time_s"][active, lane]
-            # Include all 20 ms physics samples for state traces; torque stays at 100 ms.
-            fine_time = (time[:, None] + 0.02 * np.arange(1, 6)).reshape(-1)
-            state = x[active, lane].reshape(-1, 4)
-            angle = np.rad2deg((state[:, 1] + np.pi) % (2 * np.pi) - np.pi)
-            angle[np.abs(np.diff(angle, prepend=angle[0])) > 180] = np.nan
-            axes[0, column].plot(fine_time, state[:, 0], label="arm θ")
-            for bound in (-float(ARM_LIMIT_RAD), float(ARM_LIMIT_RAD)):
-                axes[0, column].axhline(bound, color="red", ls=":")
-            axes[0, column].set_ylabel("Arm position (rad)")
-            axes[1, column].plot(fine_time, angle, label="Pendulum position")
-            for edge in (-180, 180):
-                axes[1, column].axhspan(
-                    max(-180, edge - np.rad2deg(GOAL.beta_tolerance_rad)),
-                    min(180, edge + np.rad2deg(GOAL.beta_tolerance_rad)),
-                    color="green",
-                    alpha=0.15,
-                )
-            axes[1, column].set_ylim(-180, 180)
-            axes[1, column].set_ylabel("Pendulum [deg; 0 down, ±180 up]")
-            axes[2, column].plot(fine_time, state[:, 2], label="arm ω")
-            axes[2, column].plot(fine_time, state[:, 3], label="pendulum ν")
-            axes[2, column].set_ylabel("Velocity (rad/s)")
-            axes[3, column].plot(
-                fine_time,
-                energy[active, lane].reshape(-1),
-                label="Relative hinge-swing energy / target",
-            )
-            axes[3, column].axhline(1, color="black", ls=":")
-            axes[3, column].set_ylabel("Relative swing energy / target")
-            axes[4, column].step(
-                time,
-                1000 * data["heuristic_nm"][active, lane],
-                where="post",
-                alpha=0.5,
-                label="heuristic",
-            )
-            axes[4, column].step(
-                time, 1000 * data["applied_nm"][active, lane], where="post", label="applied"
-            )
-            axes[4, column].set_ylim(-1100 * POLICY_TORQUE_NM, 1100 * POLICY_TORQUE_NM)
-            axes[4, column].set_ylabel("Torque (mN m)")
-            axes[5, column].step(
-                time, data["filter_mode"][active, lane], where="post", label="filter mode"
-            )
-            axes[5, column].plot(time, data["hold_count"][active, lane] / 5, label="hold fraction")
-            axes[5, column].set_ylabel("Mode / hold fraction")
-            axes[5, column].set_xlabel("Time (s)")
-            axes[0, column].set_title(f"{label}, lane {lane}: success={rows[lane]['success']}")
-            for axis in axes[:, column]:
-                axis.grid(alpha=0.25)
-                axis.legend(fontsize=8, loc="upper right")
-        figure.tight_layout()
-        figure.savefig(human / f"{label}_trajectories.png", dpi=130)
-        for axis in axes.flat:
-            axis.set_xlim(0, 5)
-        figure.savefig(human / f"{label}_first5s.png", dpi=130)
-        plt.close(figure)
-    (machine / "plot_selection.json").write_text(json.dumps(selected, indent=2) + "\n")
-    (human / "interpretation_summary.md").write_text(
-        "# Validation plots\n\n"
-        "Angles: θ is the unwrapped arm position; "
-        "α is pendulum position in −180–180 degrees, measured from downward; "
-        "β is wrapped angle from upright. Velocities ω and ν belong to arm and pendulum. "
-        "E/E* uses hinge-relative swing energy, excluding arm-carried kinetic energy; "
-        "it is a control quantity, not the pendulum body's full physical energy.\n\n"
-        "Filter modes: 0 accept, 1 coast, 2 brake, 3 least predicted excursion when no "
-        "candidate stays inside the arm bounds. Red lines show the configured arm bounds. "
-        "Hold fraction 1 means five consecutive 20 ms goal samples and early success. "
-        "The goal checks only pendulum angle within [-180, -165] or [165, 180) degrees.\n\n"
-        "Each random stratum shows median-return and best-return longest-deadline cases. "
-        "Probe plots show all deterministic probes. Complete traces, selections and "
-        "episode outcomes are in ../machine-scannables/. Campaign interpretation is "
-        "written separately after visual inspection.\n"
-    )
+    plot_trajectories(directory, data, rows, settings)
     return rows

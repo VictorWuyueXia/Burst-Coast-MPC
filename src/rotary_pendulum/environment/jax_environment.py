@@ -17,8 +17,8 @@ _mission_domains = OmegaConf.to_container(OmegaConf.load(MISSION_CONFIG_PATH), r
 assert isinstance(_mission_domains, dict)
 GOAL = GoalConfig.model_validate(_mission_domains["goal"])
 HOLD_PHYSICS_STEPS = 5
-MAX_PHYSICS_STEPS = 1000
-ARM_LIMIT_RAD = jnp.pi
+MAX_PHYSICS_STEPS = 2000
+ARM_LIMIT_RAD = 0.75 * jnp.pi
 RESET_LOW = jnp.array(
     [[-0.20, -0.20, -0.5, -0.5], [-0.50, 0.40, -2.0, -6.0], [-0.25, jnp.pi - 0.25, -1.0, -1.0]]
 )
@@ -66,26 +66,30 @@ def step(
     *,
     physics_steps: int = HOLD_PHYSICS_STEPS,
     max_physics_steps: int | Array = MAX_PHYSICS_STEPS,
+    goal_hold_steps: int = GOAL.hold_steps,
+    stop_on_success: bool = True,
 ) -> EnvState:
     """Hold torque; capture is angle-only and arm excursions remain nonterminal."""
 
     applied_torque = jnp.clip(jnp.asarray(u), -TORQUE_LIMIT_NM, TORQUE_LIMIT_NM)
 
     def advance_one(state: EnvState, _: None) -> tuple[EnvState, None]:
-        active = ~(state.success | state.timeout)
+        active = ~((state.success & stop_on_success) | state.timeout)
         integrated = rk4_step(state.x, applied_torque)
         next_x = jnp.where(active[..., None], integrated, state.x)
         next_steps = state.physics_steps + active.astype(jnp.int32)
         upright_error = jnp.arctan2(
             jnp.sin(next_x[..., 1] - jnp.pi), jnp.cos(next_x[..., 1] - jnp.pi)
         )
-        inside_goal = jnp.abs(upright_error) <= GOAL.beta_tolerance_rad
+        inside_goal = jnp.abs(upright_error) < GOAL.beta_tolerance_rad
         next_goal_count = jnp.where(
             active, jnp.where(inside_goal, state.goal_count + 1, 0), state.goal_count
         )
         arm_violation = state.arm_violation | (active & (jnp.abs(next_x[..., 0]) >= ARM_LIMIT_RAD))
-        success = state.success | (active & (next_goal_count >= GOAL.hold_steps))
-        timeout = state.timeout | (active & (next_steps >= max_physics_steps) & ~success)
+        success = state.success | (active & (next_goal_count >= goal_hold_steps))
+        timeout = state.timeout | (
+            active & (next_steps >= max_physics_steps) & ~(success & stop_on_success)
+        )
         return EnvState(next_x, next_steps, next_goal_count, success, arm_violation, timeout), None
 
     return jax.lax.scan(advance_one, env_state, None, length=physics_steps)[0]

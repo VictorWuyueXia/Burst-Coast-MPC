@@ -117,7 +117,7 @@ def test_evaluation_masks_terminal_values_and_enumerates_all_planners() -> None:
     learner = {"params": params}
     states = EnvState(
         x=jnp.zeros((1, 4), dtype=jnp.float32),
-        physics_steps=jnp.array([995], dtype=jnp.int32),
+        physics_steps=jnp.array([1995], dtype=jnp.int32),
         goal_count=jnp.zeros((1,), dtype=jnp.int32),
         success=jnp.zeros((1,), dtype=jnp.bool_),
         arm_violation=jnp.zeros((1,), dtype=jnp.bool_),

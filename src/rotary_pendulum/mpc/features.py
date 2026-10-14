@@ -12,7 +12,7 @@ from rotary_pendulum.environment.dynamics import derive_model, state_derivative
 from rotary_pendulum.mpc.discrete_model import state_derivative_symbolic
 from rotary_pendulum.utils.config_schema import EpisodeConfig, MPCConfig
 
-ARM_ANGLE_LIMIT_RAD = 0.5 * np.pi
+ARM_ANGLE_LIMIT_RAD = 0.75 * np.pi
 PHASE_ORIGIN_ENERGY_RATIO = 0.05
 PHASE_ORIGIN_SPEED_RATIO = 0.01
 

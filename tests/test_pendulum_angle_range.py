@@ -35,8 +35,11 @@ def test_complete_steps_cross_zero_and_upright_in_both_directions_and_match_mode
     model = ca.Function("full_turn", [symbolic], [rk4_step_symbolic(symbolic, 0, physics)])
     expected = numpy_step(states, 0, 0.02, PHYSICAL, MODEL)
     actual = np.asarray(jax.jit(rk4_step)(states, 0))
-    np.testing.assert_allclose(actual, expected, atol=1e-12)
     np.testing.assert_allclose(np.array(model.map(4)(states.T)).T, expected, atol=1e-12)
+    fine = states.copy()
+    for _ in range(10):
+        fine = numpy_step(fine, 0, 0.002, PHYSICAL, MODEL)
+    np.testing.assert_allclose(actual, fine, atol=1e-12)
     assert -10 < np.rad2deg(actual[0, 1]) < 0
     assert -180 < np.rad2deg(actual[2, 1]) < -170
     assert 170 < np.rad2deg(actual[3, 1]) < 180
@@ -65,10 +68,19 @@ def test_equivalent_angles_preserve_controller_goal_and_phase_coordinates() -> N
     np.testing.assert_allclose(phase, np.broadcast_to(phase[0], phase.shape), atol=1e-12)
     initial = reset(jax.random.PRNGKey(12), 0)
     for degrees in (-179, 179, -160, 160):
-        result = step(initial._replace(x=jnp.array([0.0, np.deg2rad(degrees), 0, 0])), 0)
+        result = step(
+            initial._replace(
+                x=jnp.array([0.0, np.deg2rad(degrees), 0, 0]), goal_count=jnp.array(49)
+            ),
+            0,
+        )
         assert bool(result.success) == (abs(degrees) == 179)
     for turns in (-1, 0, 1):
-        captured = step(initial._replace(x=jnp.array([0.0, np.pi + turns * 2 * np.pi, 0, 0])), 0)
+        captured = step(
+            initial._replace(x=jnp.array([0.0, np.pi + turns * 2 * np.pi, 0, 0])),
+            0,
+            physics_steps=50,
+        )
         assert captured.success and -np.pi <= captured.x[1] < np.pi
         downward = step(initial._replace(x=jnp.array([0.0, turns * 2 * np.pi, 0, 0])), 0)
         assert not downward.success and -np.pi <= downward.x[1] < np.pi

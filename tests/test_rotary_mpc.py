@@ -177,7 +177,7 @@ def test_default_longest_burst_converges_from_zero_initial_guess() -> None:
     problem = build_single_shooting_problem(candidate, config, config.mpc)
     result = solve_candidate(np.zeros(4, dtype=np.float64), 0.0, problem, config)
     assert result.solver_status == "Solve_Succeeded"
-    assert np.max(np.abs(result.predicted_states[:, 0])) <= ARM_ANGLE_LIMIT_RAD + 1.0e-5
+    assert np.max(np.abs(result.predicted_states[:, 0])) <= ARM_ANGLE_LIMIT_RAD * (1 + 1.0e-5)
 
 
 def test_controller_commits_candidate_local_last_solutions_after_all_succeed(monkeypatch) -> None:

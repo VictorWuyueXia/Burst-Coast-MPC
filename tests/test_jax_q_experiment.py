@@ -12,7 +12,7 @@ from scripts.launch_rotary_q_wave import main
 
 
 def test_dense_example_validates_and_legacy_or_invalid_rewards_are_rejected() -> None:
-    path = Path("docs/10-rl-five-action-local-capture/machine-scannables/dense_experiment.json")
+    path = Path("artifacts/rotary_pendulum/reference-data/9-RL/10-rl-five-action-local-capture/machine-scannables/dense_experiment.json")
     experiment = json.loads(path.read_text())
     assert validate_experiment(experiment) == 16
     for change in (

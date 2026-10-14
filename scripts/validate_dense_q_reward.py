@@ -24,7 +24,7 @@ def main() -> None:
     """Evaluate fixed starts and save reproducible component and trajectory evidence."""
 
     experiment_path = Path(
-        "docs/10-rl-five-action-local-capture/machine-scannables/dense_experiment.json"
+        "artifacts/rotary_pendulum/reference-data/9-RL/10-rl-five-action-local-capture/machine-scannables/dense_experiment.json"
     )
     experiment = json.loads(experiment_path.read_text())
     validate_experiment(experiment)

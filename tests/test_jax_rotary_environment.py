@@ -83,12 +83,12 @@ def test_constants_match_the_validated_nominal_configuration() -> None:
     assert PHYSICS_DT_S == pytest.approx(0.02)
     assert TORQUE_LIMIT_NM == pytest.approx(0.0204)
     assert GOAL.theta_tolerance_rad == pytest.approx(0.08)
-    assert GOAL.beta_tolerance_rad == pytest.approx(np.pi / 12)
+    assert GOAL.beta_tolerance_rad == pytest.approx(np.pi / 36)
     assert GOAL.omega_tolerance_rad_s == pytest.approx(0.15)
     assert GOAL.nu_tolerance_rad_s == pytest.approx(0.20)
-    assert GOAL.hold_steps == 5
-    assert ARM_LIMIT_RAD == pytest.approx(np.pi)
-    assert MAX_PHYSICS_STEPS * PHYSICS_DT_S == pytest.approx(20.0)
+    assert GOAL.hold_steps == 50
+    assert ARM_LIMIT_RAD == pytest.approx(0.75 * np.pi)
+    assert MAX_PHYSICS_STEPS * PHYSICS_DT_S == pytest.approx(40.0)
 
 
 def test_float64_derivative_parity_over_4096_states_and_torque_extremes() -> None:
@@ -106,7 +106,9 @@ def test_float64_rk4_parity_and_20ms_resolution_gate() -> None:
     states = _validation_states()
     tiled_states = np.repeat(states, 3, axis=0)
     torques = np.tile([-TORQUE_LIMIT_NM, 0.0, TORQUE_LIMIT_NM], len(states))
-    expected_20ms = numpy_rk4_step(tiled_states, torques, 0.02, PHYSICAL, MODEL)
+    expected_20ms = tiled_states.copy()
+    for _ in range(10):
+        expected_20ms = numpy_rk4_step(expected_20ms, torques, 0.002, PHYSICAL, MODEL)
     actual_20ms = np.asarray(jax.jit(rk4_step)(jnp.asarray(tiled_states), jnp.asarray(torques)))
 
     np.testing.assert_allclose(actual_20ms[:, :2], expected_20ms[:, :2], rtol=1e-12, atol=1e-9)
@@ -184,22 +186,24 @@ def test_goal_hold_reset_and_success_over_timeout_precedence() -> None:
         jnp.array(False),
         jnp.array(False),
     )
-    success = step(upright, 0.0)
-    assert bool(success.success) and int(success.goal_count) == 5
-    assert int(success.physics_steps) == 5
+    early = step(upright, 0.0, physics_steps=49)
+    assert not early.success and early.goal_count == 49
+    success = step(early, 0.0, physics_steps=1)
+    assert bool(success.success) and int(success.goal_count) == 50
+    assert int(success.physics_steps) == 50
 
     departed = step(upright._replace(goal_count=jnp.array(3), x=jnp.zeros(4)), 0.0)
     assert int(departed.goal_count) == 0 and not bool(departed.success)
-    at_horizon = upright._replace(physics_steps=jnp.array(999), goal_count=jnp.array(4))
+    at_horizon = upright._replace(physics_steps=jnp.array(1999), goal_count=jnp.array(49))
     simultaneous = step(at_horizon, 0.0)
     assert bool(simultaneous.success) and not bool(simultaneous.timeout)
-    assert int(simultaneous.physics_steps) == 1000
+    assert int(simultaneous.physics_steps) == 2000
 
 
 def test_timeout_transformations_full_scan_and_raw_jacobians() -> None:
-    base = reset(jax.random.key(7), 0)._replace(x=jnp.zeros(4), physics_steps=jnp.array(995))
+    base = reset(jax.random.key(7), 0)._replace(x=jnp.zeros(4), physics_steps=jnp.array(1995))
     timed_out = jax.jit(step)(base, 0.0)
-    assert bool(timed_out.timeout) and int(timed_out.physics_steps) == 1000
+    assert bool(timed_out.timeout) and int(timed_out.physics_steps) == 2000
     for before, after in zip(timed_out, step(timed_out, 0.0), strict=True):
         np.testing.assert_array_equal(before, after)
 
@@ -213,7 +217,7 @@ def test_timeout_transformations_full_scan_and_raw_jacobians() -> None:
     def decision_scan(states: EnvState, action: jax.Array) -> tuple[EnvState, None]:
         return jax.vmap(step)(states, jnp.full((12,), action)), None
 
-    completed = jax.jit(lambda carry: jax.lax.scan(decision_scan, carry, jnp.zeros(200))[0])(batch)
+    completed = jax.jit(lambda carry: jax.lax.scan(decision_scan, carry, jnp.zeros(400))[0])(batch)
     assert np.isfinite(completed.x).all()
     assert np.all(np.asarray(completed.physics_steps) <= MAX_PHYSICS_STEPS)
 

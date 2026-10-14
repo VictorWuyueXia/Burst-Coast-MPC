@@ -110,25 +110,39 @@ def test_lossless_environment_soft_boundary_and_noncentered_capture() -> None:
     crossed = step(initial._replace(x=jnp.array([ARM_LIMIT_RAD - 0.02, 0, 1, 0])), 0)
     assert crossed.arm_violation and not crossed.success and not crossed.timeout
     assert crossed.x[0] > ARM_LIMIT_RAD and crossed.physics_steps == 5
-    captured = step(initial._replace(x=jnp.array([1.0, jnp.pi, 0, 0])), 0)
-    assert captured.success and captured.goal_count == 5
-    fast = step(initial._replace(x=jnp.array([1.0, jnp.pi, 0.5, 1.0])), 0)
+    captured = step(initial._replace(x=jnp.array([1.0, jnp.pi, 0, 0])), 0, physics_steps=50)
+    assert captured.success and captured.goal_count == 50
+    fast = step(
+        initial._replace(x=jnp.array([1.0, jnp.pi, 0.5, 1.0]), goal_count=jnp.array(49)),
+        0,
+        physics_steps=1,
+    )
     assert fast.success and abs(fast.x[2]) > 0.15 and abs(fast.x[3]) > 0.2
-    outside_capture = step(initial._replace(x=jnp.array([ARM_LIMIT_RAD + 0.1, jnp.pi, 0, 0])), 0)
+    outside_capture = step(
+        initial._replace(x=jnp.array([ARM_LIMIT_RAD + 0.1, jnp.pi, 0, 0])), 0, physics_steps=50
+    )
     assert outside_capture.success and outside_capture.arm_violation
-    # The soft penalty starts at pi itself, with no inward margin and no rejection.
-    for angle in (np.pi - 0.02, np.pi + 0.1):
+    # The soft penalty starts at 80% of the 135-degree boundary.
+    for angle in (0.8 * float(ARM_LIMIT_RAD) - 0.02, float(ARM_LIMIT_RAD) + 0.1):
         state = jnp.array([angle, jnp.pi, 0, 0])
         torque, status = decode(state, jnp.array(0.0), 0.01, 10000.0)
         assert np.isfinite(torque)
-        expected = 10000.0 * (max(float(status["predicted_peak_arm_rad"]) - np.pi, 0) / np.pi) ** 2
+        expected = (
+            10000.0
+            * (
+                max(float(status["predicted_peak_arm_rad"]) - 0.8 * float(ARM_LIMIT_RAD), 0)
+                / (0.2 * float(ARM_LIMIT_RAD))
+            )
+            ** 2
+        )
         assert float(status["selected_arm_limit_cost"]) == pytest.approx(expected)
-        if angle < np.pi:
+        if angle < 0.8 * float(ARM_LIMIT_RAD):
             assert torque == 0 and expected == 0
 
 
 def test_rollout_actual_work_terminal_masking_and_artifact_split(tmp_path: Path) -> None:
     initial, _, labels = validation_resets(123, 1, [20])
+    initial = initial._replace(goal_count=initial.goal_count.at[5].set(45))
     params = jnp.array([0.04, 0.01, 10000.0])
     final, traces = jax.jit(lambda state: evaluate(state, params, 2, "energy"))(initial)
     data = jax.device_get(traces)

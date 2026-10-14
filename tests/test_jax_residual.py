@@ -21,7 +21,7 @@ from rotary_pendulum.RL.jax_residual_task import collect, observe, transition
 from rotary_pendulum.RL.jax_td3 import Actor, initialize, update
 
 SETTINGS = json.loads(
-    Path("docs/11-rl-continuous-residual/machine-scannables/heuristic_campaign.json").read_text()
+    Path("artifacts/rotary_pendulum/reference-data/9-RL/11-rl-continuous-residual/machine-scannables/heuristic_campaign.json").read_text()
 )["shared"] | {
     "learning_rate": 3e-4,
     "minibatch_size": 8,
@@ -94,7 +94,7 @@ def test_deadlines_and_success_freeze_at_physics_resolution() -> None:
         assert result.timeout and result.physics_steps == deadline
         assert observation[6] == 0
         np.testing.assert_allclose(reward, components.sum())
-    upright = state._replace(x=jnp.array([0, jnp.pi, 0, 0]))
+    upright = state._replace(x=jnp.array([0, jnp.pi, 0, 0]), goal_count=jnp.array(45))
     result, *_ = transition(upright, jnp.array(0), jnp.array(3000), SETTINGS)
     assert result.success and result.physics_steps == 5 and not result.timeout
     frozen, reward, *_ = transition(result, jnp.array(POLICY_TORQUE_NM), jnp.array(3000), SETTINGS)
@@ -106,7 +106,7 @@ def test_observation_distinguishes_deadlines_and_hold_memory() -> None:
     state = reset(jax.random.PRNGKey(1), 0)
     short, long = observe(state, jnp.array(1000)), observe(state, jnp.array(3000))
     assert short.shape == (8,) and short[6] != long[6]
-    changed = observe(state._replace(goal_count=jnp.array(3)), jnp.array(1000))
+    changed = observe(state._replace(goal_count=jnp.array(30)), jnp.array(1000))
     assert changed[7] == 0.6
 
 
@@ -165,7 +165,7 @@ def test_matched_deadlines_and_heuristic_rollout() -> None:
     # Full deadlines are exercised using zero torque, including early upright success.
     result = jax.jit(lambda state: evaluate(state, deadlines, SETTINGS, "zero"))(initial)
     np.testing.assert_allclose(np.asarray(result["duration_s"])[[8, 20, 32]], [20, 40, 60])
-    np.testing.assert_allclose(np.asarray(result["duration_s"])[[9, 21, 33]], [0.1, 0.1, 0.1])
+    np.testing.assert_allclose(np.asarray(result["duration_s"])[[9, 21, 33]], [1.0, 1.0, 1.0])
     assert np.isfinite(result["physics_x"]).all()
 
 

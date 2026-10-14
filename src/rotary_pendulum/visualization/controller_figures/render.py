@@ -27,8 +27,8 @@ def render() -> None:
     root = Path(__file__).resolve().parents[4]
     records = root / ("artifacts/rotary_pendulum/to-show/"
                       "single-constant-torque-action-controller/portable-animation-records/records")
-    output = root / "docs/15-controller-paper/figures"
-    machine, human = output / "machine-scannables", output / "human-readables"
+    human = root / "docs/10-heuristic-controller/15-controller-paper/figures/human-readables"
+    machine = root / "artifacts/rotary_pendulum/reference-data/10-heuristic-controller/15-controller-paper/figures/machine-scannables"
     machine.mkdir(parents=True, exist_ok=True)
     human.mkdir(parents=True, exist_ok=True)
 

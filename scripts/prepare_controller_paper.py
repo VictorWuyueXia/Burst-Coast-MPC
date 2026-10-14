@@ -189,12 +189,13 @@ def prepare_decoder_curve(records: Path, output: Path) -> tuple[dict, dict]:
 # Save generated plot data separately from the editable manuscript.
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
-    paper = root / "docs/15-controller-paper"
+    paper = root / "docs/10-heuristic-controller/15-controller-paper"
     records = root / (
         "artifacts/rotary_pendulum/experiment-results/"
         "single-constant-torque-action-controller/portable-animation-records/records"
     )
-    output = paper / "machine-scannables/figure-data"
+    machine = root / "artifacts/rotary_pendulum/reference-data/10-heuristic-controller/15-controller-paper/machine-scannables"
+    output = machine / "figure-data"
     output.mkdir(parents=True, exist_ok=True)
     tables, audit = prepare_replay_tables(records, output)
     print(
@@ -219,7 +220,7 @@ if __name__ == "__main__":
         + "\n".join(definitions)
         + "\n"
     )
-    (paper / "machine-scannables/figure_audit.json").write_text(json.dumps(audit, indent=2) + "\n")
+    (machine / "figure_audit.json").write_text(json.dumps(audit, indent=2) + "\n")
     print(
         "Saved figure data; diagnostic endpoint agrees with the recorded prediction.",
         flush=True,

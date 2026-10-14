@@ -38,8 +38,8 @@ def test_observation_order_includes_time_and_hold_memory() -> None:
     np.testing.assert_allclose(observation, [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0])
     assert observation.dtype == jnp.float32
     upright = active._replace(x=jnp.array([0.0, jnp.pi, 0.0, 0.0]))
-    observation = observe(upright._replace(goal_count=jnp.array(4), physics_steps=jnp.array(50)))
-    np.testing.assert_allclose(observation[-2:], [0.95, 0.8], atol=1e-7)
+    observation = observe(upright._replace(goal_count=jnp.array(49), physics_steps=jnp.array(50)))
+    np.testing.assert_allclose(observation[-2:], [0.975, 0.98], atol=1e-7)
 
 
 def test_boundary_crossing_continues_and_success_masks_post_terminal_reward() -> None:
@@ -63,12 +63,12 @@ def test_boundary_crossing_continues_and_success_masks_post_terminal_reward() ->
 
     almost_held = near_boundary._replace(
         x=jnp.array([0.0, jnp.pi, 0.0, 0.0]),
-        goal_count=jnp.array(4),
+        goal_count=jnp.array(49),
         arm_violation=jnp.array(True),
     )
     held, _, reward, _, terms, done = transition(almost_held, jnp.array(0), REWARD)
     assert bool(done) and bool(held.success) and int(held.physics_steps) == 1
-    np.testing.assert_allclose(terms, [0, 0, -0.02 * 1.05 * 1.001, 0, 0.02], atol=1e-7)
+    np.testing.assert_allclose(terms, [0, 0, -0.02 * 1.05 * 1.0005, 0, 0.02], atol=1e-7)
     assert float(reward) < 0
 
     repeated, _, repeated_base, repeated_train, repeated_components, repeated_done = transition(
@@ -88,7 +88,7 @@ def test_action_order_has_measured_pump_and_fine_symmetric_pairs() -> None:
 def test_dense_reward_matches_independent_physics_sum_for_all_actions() -> None:
     for action in range(5):
         state = reset(jax.random.fold_in(jax.random.key(7), action), 1)._replace(
-            physics_steps=jnp.array(998, dtype=jnp.int32)
+            physics_steps=jnp.array(1998, dtype=jnp.int32)
         )
         torque = float(ACTION_TORQUES_NM[action])
         expected = np.zeros(5)
@@ -106,7 +106,7 @@ def test_dense_reward_matches_independent_physics_sum_for_all_actions() -> None:
                 [
                     -abs(energy / (2 * MODEL.gravity_torque_nm) - 1),
                     -0.02 * abs(torque) / float(ACTION_TORQUES_NM[2]),
-                    -1.05 * (1 + int(reference.physics_steps) / 1000),
+                    -1.05 * (1 + int(reference.physics_steps) / 2000),
                     -0.2 * (theta / float(ARM_LIMIT_RAD)) ** 2,
                     score,
                 ]
@@ -154,7 +154,7 @@ def test_collection_inserts_terminal_next_state_and_wraps_replay() -> None:
     model = QNetwork((8, 8), "tanh")
     params = model.init(jax.random.key(1), jnp.zeros((4, 7), dtype=jnp.float32))
     states = jax.vmap(reset)(jax.random.split(jax.random.key(2), 4), jnp.zeros((4,), jnp.int32))
-    states = states._replace(physics_steps=states.physics_steps.at[0].set(999))
+    states = states._replace(physics_steps=states.physics_steps.at[0].set(1999))
     rollout = {
         "env_state": states,
         "key": jax.random.split(jax.random.key(3), 2),

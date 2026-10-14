@@ -8,12 +8,16 @@ from jax import Array
 
 from rotary_pendulum.environment.jax_dynamics import PHYSICS_DT_S
 from rotary_pendulum.environment.jax_environment import EnvState, step
-from rotary_pendulum.heuristic.decoder import decode
+from rotary_pendulum.heuristic.decoder import POLICY_TORQUE_NM, decode
 from rotary_pendulum.heuristic.energy import encode, policy
 
 
 def evaluate(
-    initial: EnvState, parameters: Array, decisions: int, mode: str
+    initial: EnvState,
+    parameters: Array,
+    decisions: int,
+    mode: str,
+    torque_limit_nm: float = POLICY_TORQUE_NM,
 ) -> tuple[EnvState, dict[str, Array]]:
     """Advance a fixed chunk with parameters [work gain, work penalty, arm-limit penalty]."""
 
@@ -26,7 +30,9 @@ def evaluate(
     def advance(state: EnvState, unused: None) -> tuple[EnvState, dict[str, Array]]:
         requested = policy(encode(state.x), parameters[0])
         if mode == "energy":
-            torque, diagnostic = decode(state.x, requested, parameters[1], parameters[2])
+            torque, diagnostic = decode(
+                state.x, requested, parameters[1], parameters[2], torque_limit_nm
+            )
         else:
             torque = jnp.zeros_like(requested)
             diagnostic = {
