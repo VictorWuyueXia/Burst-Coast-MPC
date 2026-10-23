@@ -24,6 +24,8 @@ At start of a conversation, briefly scan through the code base and the docs to h
 - Do not add in small logics without telling just to make things work to a goal. The goal is not to simply make somthing work or achieve a criteria, but to experiment on if a specific formulation works. And if the formulation does not work, why not, and how to reformulate? The mathematical analysis is the focus, not development of a working product.
 
 # doc rules
+- only save pdf, md, txt, and tex files that are considered as "documents". All experiment generated files goes to artifacts/.
+
 - When writing docs, if your answer include mathematical expressions/formulas/variables, fully define them when they emerge, explain how to get the values (defined, measured, computed, heuristic, tunable, etc.), and give an intuitive interpretations for each of them. Output in .md files with "$$" latex math syntax. Split into human readable parts which is more illustrative and intuitive with major governing formulas, and machine schanning parts with as much rigorous details as you can write. Also make a 中文 version of the same doc file with same name and suffix -CN, and gitignore any files with suffix -CN.
 
 - When formulating a plan, explicitly identify stages and milestones of the dev process, give specific validation procedures for each milestone and their success flags. And always rememver our projects are meant to be show-of-concept, not to deliver a clinic/industry-ready product. So never over engineering the method, but proactively keep the mathematicall elegance (streamline, efficiency, naturally working, etc.) and strigency of our methods.
@@ -38,7 +40,7 @@ We are on a ubuntu remote server where conda or sudo is not available, we need t
 # How to use GPU
 We are on a 8-GPU servers now which means we want to use the maximum parallel computing ability of them with our code to lighten the time cost of our computation. 
 
-We are on a shared server, so everytime when we run code that uses GPU, check the GPU occupation status -- if other users are running things on any GPU, avoid those GPUs. If more than 4 GPUs are in use, stop the operation and tell me. Default to using GPU 0-3.
+We are on a shared server, so everytime when we run code that uses GPU, check the GPU occupation status -- if other users are running things on any GPU, avoid those GPUs. If more than 4 GPUs are in use, stop the operation and tell me. Default to using GPU 6-7.
 
 But you cannot access GPU with your sandbox terminal directly, and sudo is not available on this remote server. So the way is to submit the training/run command through the terminal tool with sandbox_permissions="require_escalated". After my approval, the command executed outside the sandbox on the same Ubuntu host, where CUDA and the GPUs were visible.
 For example, the earlier eight-GPU run used:

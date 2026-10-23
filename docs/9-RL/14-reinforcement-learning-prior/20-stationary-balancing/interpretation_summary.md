@@ -57,6 +57,10 @@ The remaining arm crossings are consistent with the objective: a finite soft cos
 
 The teacher is feasible for long holds but is not a globally safe oracle: it also crosses during difficult starts and perturbations. Its two caps use different prediction lengths, so teacher differences cannot be attributed solely to motor strength. The actor's residual torque and arm offsets show that successful angle holding is not the same as minimum-effort equilibrium or readiness for a burst/coast schedule. Ten minutes and this fixed perturbation family do not prove indefinite stability or general robustness.
 
+## TD learning and MPC terminal-value readiness
+
+The [learning-oriented task explanation](td_training_and_mpc.md) defines the state, action, reward, networks, TD targets and training losses, followed by an implementation reference. The saved critics support a terminal-value evaluation experiment, but actor balancing results do not establish critic accuracy or MPC performance. Independent discounted-return comparisons and matched MPC tests remain necessary. The explanation also records the online reset-angle convention issue relevant to training-state coverage.
+
 ## Plots, artifacts and verification
 
 Start with the [aggregate comparison](../../artifacts/rotary_pendulum/stationary-balancing-20261013/human-readables/heldout_comparison.png), [nominal episodes](../../artifacts/rotary_pendulum/stationary-balancing-20261013/human-readables/nominal_episodes.png), [final quiet-balance detail](../../artifacts/rotary_pendulum/stationary-balancing-20261013/human-readables/nominal_last10s.png), and [disturbance/recovery detail](../../artifacts/rotary_pendulum/stationary-balancing-20261013/human-readables/disturbance_recovery.png). [Full disturbed episodes](../../artifacts/rotary_pendulum/stationary-balancing-20261013/human-readables/disturbed_episodes.png) show both kicks. Episode plots use the same fixed downward episode 0, not a favorable trajectory selected afterward. Green is the ±5° goal, red is the ±135° arm range, and purple marks disturbances; upright axes are zoomed to ±10°, and arm scales can differ to reveal excursions.
