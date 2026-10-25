@@ -1,0 +1,4 @@
+# Tested CPU inference environment; Python 3.12. No project, Flax or Optax dependency.
+jax==0.11.2
+jaxlib==0.11.2
+numpy==2.4.6

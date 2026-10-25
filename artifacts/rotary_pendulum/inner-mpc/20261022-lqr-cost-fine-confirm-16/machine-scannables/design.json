@@ -1,0 +1,231 @@
+{
+  "solver": "cem",
+  "stage": "confirm",
+  "objective": "undiscounted discrete LQR stage sum plus max negative frozen twin Q",
+  "input_weight": 1.0,
+  "plant": {
+    "torque_limit_nm": 0.00459,
+    "discount": 1.0,
+    "torque_cost_per_s": 0.0,
+    "arm_cost_per_s": 0.2,
+    "energy_cost_per_s": 1.0,
+    "upright_reward_per_s": 1.0,
+    "upright_widths": [
+      0.16,
+      0.4,
+      0.3
+    ],
+    "observation_scales": [
+      2.356194490192345,
+      1,
+      1,
+      30.592532352353444,
+      21.36069107055664
+    ],
+    "rl_cost": false,
+    "centering_cost_per_s": 0.0,
+    "speed_cost_per_s": 0.0,
+    "speed_width_rad": 0.08726646259971647,
+    "lqr_state_weights": [
+      0.18012654869748937,
+      44.44444444444444,
+      0.25,
+      0.25
+    ]
+  },
+  "decisions": 400,
+  "count": 32,
+  "duration_s": 40.0,
+  "horizon": 10,
+  "prediction_dt_s": 0.001,
+  "verification_dt_s": 0.0005,
+  "record_dt_s": 0.001,
+  "seed": 20261020,
+  "population": 1024,
+  "elites": 32,
+  "generations": 16,
+  "initial_std": 0.5,
+  "model": {
+    "package": "TD3_20261016",
+    "format_version": 1,
+    "export_date": "2026-10-16",
+    "training_date": "2026-10-13",
+    "selection": "Highest recorded validation compliance; selected separately from weaker-cap model. Not the last checkpoint.",
+    "source_checkpoint": "artifacts/rotary_pendulum/stationary-balancing-20261013/wave-2/quarter_bc1000/machine-scannables/best.msgpack",
+    "source_checkpoint_sha256": "834cc0e545e89f5aa2c3b6c0180687c85d7151a0032b2ed3470c391a7fe28f4c",
+    "online_transitions": 524288,
+    "parameter_count": 400643,
+    "weights_sha256": "840650b06e8cec03bc8d188b9cae6237853b0fac8ebfabeff11ba26be68b284d",
+    "networks": {
+      "actor": [
+        5,
+        256,
+        256,
+        256,
+        1
+      ],
+      "q1": [
+        6,
+        256,
+        256,
+        256,
+        1
+      ],
+      "q2": [
+        6,
+        256,
+        256,
+        256,
+        1
+      ],
+      "hidden_activation": "SiLU",
+      "actor_output": "tanh; multiply by max_torque_nm",
+      "critic_output": "linear scalar discounted reward",
+      "dtype": "float32",
+      "kernel_layout": "input,output",
+      "parameters": "Online actor and online twin critics, no target or optimizer states"
+    },
+    "observation": {
+      "state_order": [
+        "arm_angle_rad_unwrapped",
+        "pendulum_angle_rad_zero_down",
+        "arm_speed_rad_s",
+        "pendulum_speed_rad_s"
+      ],
+      "features": [
+        "theta/L",
+        "sin(alpha)",
+        "cos(alpha)",
+        "omega/arm_speed_scale",
+        "nu/pendulum_speed_scale"
+      ],
+      "divisors": [
+        2.356194490192345,
+        1,
+        1,
+        30.592532352353444,
+        21.36069107055664
+      ],
+      "pendulum_upright_rad": "plus or minus pi",
+      "action": "torque_nm/max_torque_nm",
+      "clipping": false,
+      "clock_features": false
+    },
+    "limits": {
+      "max_torque_nm": 0.00459,
+      "arm_soft_limit_deg": 135,
+      "arm_soft_margin_deg": 108,
+      "hard_arm_enforcement": false,
+      "speed_hard_bounds": null,
+      "action_hold_s": 0.1,
+      "reward_sample_s": 0.02,
+      "rk4_step_s": 0.002,
+      "discount_per_action": 0.995,
+      "sampling_reset_s": 120,
+      "success_termination": false,
+      "bootstrap_at_reset": "Use pre-reset physical next state with done=False",
+      "evaluation_upright_tolerance_deg": 5,
+      "evaluation_contiguous_hold_s": 10
+    },
+    "reward": {
+      "upright_cost_per_s": 1,
+      "upright_widths_rad_rad_s_rad_s": [
+        0.16,
+        0.4,
+        0.3
+      ],
+      "energy_error_cost_per_s": 1,
+      "normalized_torque_squared_cost_per_s": 2,
+      "arm_cost_per_s": 0.2,
+      "energy_target_j": 0.03037176,
+      "time_cost_used": false,
+      "definition": "See human-readables/interpretation_summary.md; sum five post-step rates times 0.02"
+    },
+    "physical_config": {
+      "gravity_m_s2": 9.81,
+      "arm_mass_kg": 0.095,
+      "arm_length_m": 0.085,
+      "pendulum_mass_kg": 0.024,
+      "pendulum_length_m": 0.129,
+      "rotary_damping_nms": 0.0,
+      "pendulum_damping_nms": 0.0,
+      "torque_limit_nm": 0.0204
+    },
+    "derived_physics": {
+      "pendulum_com_length_m": 0.0645,
+      "arm_inertia_kg_m2": 0.00022879166666666672,
+      "pendulum_com_inertia_kg_m2": 3.3282000000000004e-05,
+      "pendulum_inertia_kg_m2": 0.00013312800000000002,
+      "base_inertia_kg_m2": 0.00040219166666666673,
+      "coupling_inertia_kg_m2": 0.00013158,
+      "gravity_torque_nm": 0.01518588,
+      "vertical_mass_determinant_kg2_m4": 3.622967580000001e-08,
+      "natural_frequency_rad_s": 12.98387398820208,
+      "natural_period_s": 0.4839222340642602
+    },
+    "runtime": {
+      "python_tested": "3.12.13",
+      "dependencies": {
+        "jax": "0.11.2",
+        "jaxlib": "0.11.2",
+        "numpy": "2.4.6"
+      },
+      "device_tested": "CPU",
+      "training_only_flax_version": "0.12.10"
+    },
+    "reference_source_sha256": {
+      "src/rotary_pendulum/RL/jax_td3.py": "9e5083fbf2f5d4340f4fa386b7d32cc5891c575de433c222506654a7f56ad14c",
+      "src/rotary_pendulum/RL/jax_stationary_task.py": "b93a127c67dfd93e07a65b0e922b05e0f297d57b863ae7915040cf3170acaecf",
+      "src/rotary_pendulum/RL/jax_residual_task.py": "538f29f598e9ed948dedfee99001594cee600b5a7c509a93535b02b0b69e72da",
+      "src/rotary_pendulum/RL/jax_residual_control.py": "f8ab2f686083657886b75d21f30d8fe4422feec24f56cd78aced6bd89a8c6f76",
+      "src/rotary_pendulum/environment/jax_dynamics.py": "1b951f3aadc89873fdfc6c888ca152c6e34310e5a81226952f29828b9cbe4791",
+      "src/rotary_pendulum/environment/jax_environment.py": "3e0ce5bfac8f955cb71cd9b05664c1cf15eaebae1e3c6d0a8e2d9dadef8c5e71",
+      "src/rotary_pendulum/environment/dynamics.py": "2f63aa595a60139287e870a59e1a522c3a3407c763172495698d37f53ca47d33",
+      "src/rotary_pendulum/configs/physics.yaml": "4909036f2e6600283088ecfb67e6cc6cdca3e3d26db42ca9d9e1cfd882342401"
+    },
+    "limitations": [
+      "Critic calibration and MPC closed-loop performance not validated",
+      "100 ms feedback continuation, not an arbitrary coast schedule",
+      "Nominal lossless simulator; no hardware/noise/latency/parameter robustness guarantee",
+      "Soft arm constraint; violations observed",
+      "No proven safe extrapolation domain or indefinite stability",
+      "Q minimum is not a certified lower bound"
+    ],
+    "reference_vectors": {
+      "seed": 20261016,
+      "count": 1024,
+      "state_box_rad_rad_s": [
+        [
+          -2.356194490192345,
+          -3.141592653589793,
+          -2,
+          -8
+        ],
+        [
+          2.356194490192345,
+          3.141592653589793,
+          2,
+          8
+        ]
+      ],
+      "torque_range_nm": [
+        -0.00459,
+        0.00459
+      ],
+      "special_cases": "First four states: downward, upright, positive and negative arm limits; first three torques: -cap, zero, +cap",
+      "purpose": "Numerical parity only; not a certified operating envelope",
+      "sha256": "36aadc77e06f09fd9ec39f10a4853310e30895aa234dba59dd65fabb48c628ac"
+    },
+    "export_method": "flax.serialization.msgpack_restore; actor and critics[0,1] params/Dense_0..3 kernel,bias copied losslessly to NPZ; reference generated with PYTHONPATH set to training source_snapshot/src"
+  },
+  "devices": [
+    "cuda:0 NVIDIA L40S"
+  ],
+  "termination": "No performance-based stopping; unresolved physical infeasibility is an explicit execution error",
+  "source_sha256": {
+    "/home/yl948/MyEnd/Burst-Coast-MPC/scripts/experiments/inner-mpc/lqr_cost_run.py": "0500be3b8be9a1938ebecb94bfb1d15446fa979a0b8c8f98b053ed518f7fa4e2",
+    "src/rotary_pendulum/mpc/inner_model.py": "4f5a0ac98509856bf87ca5e49b7da17cb84429fd1119061e96bf4884aa6eba2f",
+    "src/rotary_pendulum/mpc/gpu_cem.py": "0ee7d5b6906fad735d2af04a8cca50de6a64b54373463df2054d245ca257aac7",
+    "src/rotary_pendulum/environment/jax_dynamics.py": "624a683eab06d011a827c8f758e979f28a299b1cc95b43c72562b8fde25bb04c"
+  }
+}

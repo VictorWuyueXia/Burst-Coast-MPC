@@ -1,0 +1,10 @@
+{
+  "controller": "MPC+RL",
+  "count": 32,
+  "duration_s": 40,
+  "mean_total_hold_s": 37.7644375,
+  "mean_max_hold_s": 37.7644375,
+  "final_10s_hold": 32,
+  "final_10s_arm_rms_deg": 12.747810284274006,
+  "final_10s_upright_rms_deg": 0.48462874155575486
+}

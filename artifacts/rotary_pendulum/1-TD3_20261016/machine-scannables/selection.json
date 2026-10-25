@@ -1,0 +1,80 @@
+{
+  "transitions": 524288,
+  "score": [
+    1.0,
+    1.0,
+    -6.962116458453238e-05
+  ],
+  "summary": {
+    "all": {
+      "settled": 1.0,
+      "arm_violation": 0.0,
+      "bounded_settled": 1.0,
+      "longest_hold_s": 107.396640625,
+      "final_hold_s": 107.396640625,
+      "final10_upright_fraction": 1.0,
+      "peak_arm_deg": 89.51819616556168,
+      "torque_rms_mnm": 1.0442244903824758,
+      "final10_torque_rms_mnm": 0.06962116790964501,
+      "final10_mean_abs_torque_mnm": 0.06144247623888077,
+      "absolute_motor_work_j": 0.10386889217153339,
+      "episode_return": -36.02335967507679
+    },
+    "downward": {
+      "settled": 1.0,
+      "arm_violation": 0.0,
+      "bounded_settled": 1.0,
+      "longest_hold_s": 96.06343749999999,
+      "final_hold_s": 96.06343749999999,
+      "final10_upright_fraction": 1.0,
+      "peak_arm_deg": 112.82510709762573,
+      "torque_rms_mnm": 1.767124094069004,
+      "final10_torque_rms_mnm": 0.06818440378992818,
+      "final10_mean_abs_torque_mnm": 0.060752960183890536,
+      "absolute_motor_work_j": 0.19042720639845356,
+      "episode_return": -70.08250200748444
+    },
+    "capture": {
+      "settled": 1.0,
+      "arm_violation": 0.0,
+      "bounded_settled": 1.0,
+      "longest_hold_s": 107.52687499999999,
+      "final_hold_s": 107.52687499999999,
+      "final10_upright_fraction": 1.0,
+      "peak_arm_deg": 89.45172676444054,
+      "torque_rms_mnm": 1.0770160291576758,
+      "final10_torque_rms_mnm": 0.07778098699054681,
+      "final10_mean_abs_torque_mnm": 0.06945642796927132,
+      "absolute_motor_work_j": 0.10520886703534416,
+      "episode_return": -34.1826247330755
+    },
+    "braking": {
+      "settled": 1.0,
+      "arm_violation": 0.0,
+      "bounded_settled": 1.0,
+      "longest_hold_s": 111.97375000000001,
+      "final_hold_s": 111.97375000000001,
+      "final10_upright_fraction": 1.0,
+      "peak_arm_deg": 106.62792384624481,
+      "torque_rms_mnm": 0.7531133322045207,
+      "final10_torque_rms_mnm": 0.06683286998304538,
+      "final10_mean_abs_torque_mnm": 0.05761848104884848,
+      "absolute_motor_work_j": 0.06921649209061798,
+      "episode_return": -22.991984460502863
+    },
+    "recovery": {
+      "settled": 1.0,
+      "arm_violation": 0.0,
+      "bounded_settled": 1.0,
+      "longest_hold_s": 114.0225,
+      "final_hold_s": 114.0225,
+      "final10_upright_fraction": 1.0,
+      "peak_arm_deg": 49.16802695393562,
+      "torque_rms_mnm": 0.5796445060987025,
+      "final10_torque_rms_mnm": 0.06568641087505966,
+      "final10_mean_abs_torque_mnm": 0.057942035753512755,
+      "absolute_motor_work_j": 0.05062300316171786,
+      "episode_return": -16.836327499244362
+    }
+  }
+}

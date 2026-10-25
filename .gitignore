@@ -43,7 +43,7 @@ env/
 
 # --- Experiment outputs and research logs ------------------------------------
 artifacts/inverted_pendulum/
-artifacts/rotary_pendulum/
+artifacts/rotary_pendulum/*
 *.mp4
 *.mov
 *.webm
@@ -97,4 +97,22 @@ _archive/
 **/_archive/
 
 # --- Localized companion documents ------------------------------------------
+*-CN.*
+
+# Official MPC+RL parameter setting only; other experiment records stay local.
+!artifacts/rotary_pendulum/1-TD3_20261016/
+!artifacts/rotary_pendulum/inner-mpc/
+artifacts/rotary_pendulum/inner-mpc/*
+!artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-confirm-16/
+!artifacts/rotary_pendulum/inner-mpc/mpc-rl-transfer/
+artifacts/rotary_pendulum/inner-mpc/mpc-rl-transfer/machine-scannables/audit_panel_alignment.py
+!artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/
+artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/*
+!artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/machine-scannables/
+artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/machine-scannables/*
+!artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/machine-scannables/design.json
+!artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/machine-scannables/starts.npz
+
+__pycache__/
+*.pyc
 *-CN.*
