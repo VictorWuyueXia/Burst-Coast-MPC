@@ -49,9 +49,7 @@ artifacts/rotary_pendulum/*
 *.webm
 *.mkv
 *.avi
-artifacts/experiments/
-artifacts/cmp-time-fitting/
-artifacts/MonteCarloData/
+artifacts/
 runs/
 outputs/
 results/

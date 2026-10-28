@@ -1,0 +1,19 @@
+% Reserve the matched scenario comparison without implying measured results.
+\begin{figure*}[t]
+\centering
+\fbox{%
+\begin{minipage}[c][2.5in][c]{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
+\centering
+\textbf{Act--coast performance atlas}\par\medskip
+Scenario columns with a declared pooled summary\par\medskip
+Task and constraint status\par
+Activation count \quad Enabled time \quad Online computation time\par
+Replanning count as a separate diagnostic\par\medskip
+Act--coast, bang--bang, event-triggered MPC,\par
+maximum hands-off control, and mixed temporal resolution MPC\par\medskip
+\textit{Matched comparison records pending}
+\end{minipage}}
+\caption{Placeholder for the aggregate act--coast performance comparison.
+Scenario columns compare the proposed controller with bang--bang control, event-triggered MPC, maximum hands-off control, and mixed temporal resolution MPC under common dynamics, initial states, limits, holding criteria, and assessment duration. A task-success and constraint-status strip accompanies the resource rows so failed or shortened runs cannot appear as resource savings. Activation count $N_{\mathrm{on}}$ counts off-to-on mode transitions, including initial enablement when applicable. Enabled time $T_{\mathrm{on}}$ accumulates all enabled intervals, including enabled zero commands. Online computation time $C_{\mathrm{cmp}}$ sums non-overlapping controller timings, counting nested outer and inner optimization once; replanning count $n(T)$ separately counts feedback decisions over assessment duration $T$. The intended panels retain scenario-level distributions and trial denominators, with failed-run exposure identified separately and any pooled weighting declared. Computation comparisons require matched hardware and distinguish batch throughput from single-session latency. No comparison measurements are shown.}
+\label{fig:atlas}
+\end{figure*}
