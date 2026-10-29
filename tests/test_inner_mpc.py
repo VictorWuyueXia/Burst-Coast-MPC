@@ -14,8 +14,8 @@ from rotary_pendulum.mpc.inner_model import CONSTRAINT_JAC, OBJECTIVE_GRAD, eval
 from rotary_pendulum.mpc.inner_solvers import sample_inner, solve_inner
 from rotary_pendulum.RL.jax_stationary_task import transition
 
-ROOT = Path("artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables")
-BASE = json.loads((ROOT / "training_settings.json").read_text())
+ROOT = Path("artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables")
+BASE = json.loads((ROOT / "policy_settings.json").read_text())
 MANIFEST = json.loads((ROOT / "manifest.json").read_text())
 ARCHIVE = np.load(ROOT / "weights.npz", allow_pickle=False)
 NETWORKS = {

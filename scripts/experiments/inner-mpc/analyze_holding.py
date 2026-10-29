@@ -14,7 +14,7 @@ from terminal_linearization import terminal_model
 # Load the authenticated network and the compact transitions reconstructed from the archive.
 repository = Path(__file__).resolve().parents[3]
 root = repository / "artifacts/rotary_pendulum"
-bundle = root / "1-TD3_20261016/machine-scannables"
+bundle = root / "final-results/rl-policy/machine-scannables"
 manifest = json.loads((bundle / "manifest.json").read_text())
 checksum = hashlib.sha256((bundle / "weights.npz").read_bytes()).hexdigest()
 assert checksum == manifest["weights_sha256"]
@@ -22,7 +22,7 @@ archive = np.load(bundle / "weights.npz", allow_pickle=False)
 weights = {name: archive[name] for name in archive.files}
 archive.close()
 terminal = terminal_model(weights, np.array(manifest["observation"]["divisors"]))
-source = root / "inner-mpc/20261022-lqr-cost-fine-confirm-16/machine-scannables"
+source = root / "final-results/rl-mpc/machine-scannables/session-records"
 design = json.loads((source / "design.json").read_text())
 assert manifest["physical_config"]["rotary_damping_nms"] == 0
 assert manifest["physical_config"]["pendulum_damping_nms"] == 0

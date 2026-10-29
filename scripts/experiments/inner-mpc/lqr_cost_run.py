@@ -39,11 +39,11 @@ from rotary_pendulum.mpc.inner_model import evaluate, rollout
 solver, stage, generations = "cem", sys.argv[1], int(sys.argv[2])
 assert stage in ("screen", "confirm") and generations in (16, 32, 64)
 assert jax.default_backend() == "gpu" and jax.config.x64_enabled
-root = Path(f"artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-{stage}-{generations}")
+root = Path(f"artifacts/rotary_pendulum/runs/rl-mpc/{stage}-{generations}")
 machine = root / "machine-scannables"
 machine.mkdir(parents=True, exist_ok=False)
 (root / "human-readables").mkdir()
-bundle = Path("artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables")
+bundle = Path("artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables")
 manifest = json.loads((bundle / "manifest.json").read_text())
 assert PHYSICAL.model_dump() == manifest["physical_config"]
 assert (
@@ -64,21 +64,9 @@ networks = {
 }
 archive.close()
 networks = dict(actor=networks["actor"], critics=(networks["q1"], networks["q2"]))
-original = Path("artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/machine-scannables")
+original = Path("artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/session-records")
 design = json.loads((original / "design.json").read_text())
-plant = design["configurations"][3]["plant"] | dict(
-    speed_cost_per_s=0.0,
-    speed_width_rad=float(np.deg2rad(5)),
-    discount=1.0,
-    torque_cost_per_s=0.0,
-    centering_cost_per_s=0.0,
-    lqr_state_weights=[
-        1 / design["configurations"][3]["plant"]["observation_scales"][0] ** 2,
-        1 / 0.15**2,
-        0.25,
-        0.25,
-    ],
-)
+plant = design["plant"].copy()
 archive = np.load(original / "starts.npz", allow_pickle=False)
 count, decisions = (8, 400) if stage == "screen" else (32, 400)
 initial, groups = archive["states"][:count].copy(), archive["groups"][:count].copy()

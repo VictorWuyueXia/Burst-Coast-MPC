@@ -1,0 +1,965 @@
+{
+  "scope": "Four selected controller and sensitivity result bundles",
+  "files": [
+    {
+      "path": "energy-controller/human-readables/animation_guide.md",
+      "bytes": 5395,
+      "sha256": "136ef653546a60224e35e025bb7a70504175146cd201ab2882c8292a1e86ac4b"
+    },
+    {
+      "path": "energy-controller/human-readables/fine_plant_validation_sessions.png",
+      "bytes": 711241,
+      "sha256": "25b105baf78d059b587d2fd8bb570313e880b6bdaaed858da9550de0b38ca0c8"
+    },
+    {
+      "path": "energy-controller/human-readables/interpretation_summary.md",
+      "bytes": 3092,
+      "sha256": "49f0f6b780d402ea142c9d7bd452f4de8bf1c2a8637156bc4402b8a356465935"
+    },
+    {
+      "path": "energy-controller/human-readables/population_performance.png",
+      "bytes": 81387,
+      "sha256": "48c415a7e1af7a7b33d42b901eee12fe977aa3a707986ae5b45367e1bdfb231a"
+    },
+    {
+      "path": "energy-controller/human-readables/validation_seed_20261022_sessions.png",
+      "bytes": 673026,
+      "sha256": "210750bdb5e71aa14232206fde4c316771187464de2b8580c73bc1008372c0a9"
+    },
+    {
+      "path": "energy-controller/human-readables/validation_seed_20261023_sessions.png",
+      "bytes": 730429,
+      "sha256": "9a211458cd187d3acc5dc3f5ce1a11ce1d2a6b3d03971db6112a566eaa0b1cd9"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/arm_crossing_despite_bounded_tested_torques.csv",
+      "bytes": 214860,
+      "sha256": "7731957a0c2c121cd901879a40a0e99a2ca724e1455697da10b821deef2e983c"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/arm_crossing_despite_bounded_tested_torques.npz",
+      "bytes": 49366,
+      "sha256": "12749f9e44e5c3912596eaa5cb6a9db7c9d7a2632e7775bd58c6c1dac7ce3beb"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/arm_crossing_without_bounded_tested_torque.csv",
+      "bytes": 251439,
+      "sha256": "90c8a21332d9639e9fd5c0469eb4a3df18cc54e7c5825dd10da961c371c9960f"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/arm_crossing_without_bounded_tested_torque.npz",
+      "bytes": 56056,
+      "sha256": "bb8d14463ec10f3d79c34b1421aa760eda7b051946ad1fd2ea065135d82bba76"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/downward_median_capture_time.csv",
+      "bytes": 213771,
+      "sha256": "4b1e87ba223f83bda36bd974298b62d4edc70c56dfc4310b21e24fa4464dd7b6"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/downward_median_capture_time.npz",
+      "bytes": 48946,
+      "sha256": "316b1db958e1ec1871f0f3859947ab08dde457bf0907ee6f882fe7b2d8fd301b"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/downward_slowest_capture.csv",
+      "bytes": 323769,
+      "sha256": "246487f70970e475d961745d31f0896b8955ea4a4fd721b49fa03c8fb27af4d2"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/downward_slowest_capture.npz",
+      "bytes": 70410,
+      "sha256": "7cfb2ad4457cf7e1fce3fb515e55a9f87978ec354e72e74569ea0e8b25d9891b"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/exact_downward_rest.csv",
+      "bytes": 193114,
+      "sha256": "f66e2613acddc8ee4357d75298d3789d3c217f296f8de1c54df99a62faccebd6"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/exact_downward_rest.npz",
+      "bytes": 44783,
+      "sha256": "df6b6cb448fff21e974df4fed141153e08e916a7b8b65c8b416de74382e110ac"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/manifest.json",
+      "bytes": 18951,
+      "sha256": "ca44fbeb189ae453c0f64d426f70ef545b545cf829e5ce457272fa3c87f11ff3"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/moving_median_capture_time_without_arm_crossing.csv",
+      "bytes": 175765,
+      "sha256": "e74c9188f08d24af031411d731b06bb8e0e39ea5ca74f9360b4597dee57e4733"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/moving_median_capture_time_without_arm_crossing.npz",
+      "bytes": 41476,
+      "sha256": "08573026c4eef2559ed403f1fe428c5f3b5a8d8a4e6ce8f04e5b24015ab07d11"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/near_upright_median_capture_time.csv",
+      "bytes": 2510,
+      "sha256": "053d6cf42fc1099b50ad46f056acbbec74cbcb4d309dbe9c829a4ebd40520a30"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/near_upright_median_capture_time.npz",
+      "bytes": 6776,
+      "sha256": "4fb3cc4ba9f3a5b085c1e7a396252198b42f306d06590fa86f403b32e611543b"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261022/campaign.json",
+      "bytes": 413,
+      "sha256": "8fb396cc07b1f40510a0f09fc9f334dd29ce4e0a2a3c4e9a51c3f56f14b4974c"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261022/controller_settings.json",
+      "bytes": 629,
+      "sha256": "9d5470ee0ba18db74d4563df9d17c46bea959810eb4f67f1468335a643d2e635"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261022/full_validation_episodes.csv",
+      "bytes": 673174,
+      "sha256": "e98d6c5b06bda6207174d9533bffb0c1187604786013897f133a6130ebb23778"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261022/integration_audit.json",
+      "bytes": 3251,
+      "sha256": "4cd90faa69e46fe847347a6f53f53a5dcbfd483d262f6da47eb87866519bd248"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261022/physics.yaml",
+      "bytes": 246,
+      "sha256": "4909036f2e6600283088ecfb67e6cc6cdca3e3d26db42ca9d9e1cfd882342401"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261022/source_provenance.json",
+      "bytes": 1952,
+      "sha256": "b79bd3b2fe758785fac8d788fd4485da2306b4321d2432149c3c467cbfd30d19"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261023/campaign.json",
+      "bytes": 413,
+      "sha256": "9f5a3a7471f26e547a1e83a5a8f41c2027112bb8eba028ba82ddd9e40fafe60e"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261023/controller_settings.json",
+      "bytes": 629,
+      "sha256": "f9b517b9985e7ebaba966e123b116b5da78519a6e624b4adb48087d2c2c151a7"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261023/full_validation_episodes.csv",
+      "bytes": 672312,
+      "sha256": "b77ba89b5c2f70d5f10475f61597b47bb4847db556179c527b3dacc72bf428b8"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261023/integration_audit.json",
+      "bytes": 3253,
+      "sha256": "135051bc0d9d28681b1385d8a8e1c0008fb4aa176446ef738e97c1a7990a917c"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261023/physics.yaml",
+      "bytes": 246,
+      "sha256": "4909036f2e6600283088ecfb67e6cc6cdca3e3d26db42ca9d9e1cfd882342401"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/provenance/validation_seed_20261023/source_provenance.json",
+      "bytes": 1952,
+      "sha256": "b6dd54b72d669cbfa23b4f470ffcbe76ce9f89da5f533a8cb5b657ce23f01857"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/tight_upright_median_capture_time.csv",
+      "bytes": 2608,
+      "sha256": "af6073a5c8fa8796431e9b1936f64ea9f34f0205040488b2e61bfb9e0708a14c"
+    },
+    {
+      "path": "energy-controller/machine-scannables/animation/tight_upright_median_capture_time.npz",
+      "bytes": 6795,
+      "sha256": "1d2755862ecf696d7bbf701baa898c34b8d3352e7be16680b96b7985c261cbd0"
+    },
+    {
+      "path": "energy-controller/machine-scannables/fine_plant/episodes.csv",
+      "bytes": 673950,
+      "sha256": "6dd7d8da7f748bf90789f77c96d524d8818aa26b4128cbf49a42aa3533cab11a"
+    },
+    {
+      "path": "energy-controller/machine-scannables/fine_plant/initial_states.npz",
+      "bytes": 64660,
+      "sha256": "1f3c93a26dcfc25e04e1adeb100719028a5088f68471febe0add26a4b8b805b1"
+    },
+    {
+      "path": "energy-controller/machine-scannables/fine_plant/integration_audit.json",
+      "bytes": 3257,
+      "sha256": "e3f3507207a8afebfbb37a71b5b9d1537dc847f731c679ceba67f0b697f79aac"
+    },
+    {
+      "path": "energy-controller/machine-scannables/fine_plant/plot_selection.json",
+      "bytes": 72,
+      "sha256": "f9262a7e051cdf9239014c6a0e06296a71a2d4069dbbda52b48b26a004f9ff28"
+    },
+    {
+      "path": "energy-controller/machine-scannables/fine_plant/provenance.json",
+      "bytes": 1936,
+      "sha256": "39bea8d3a3aff33a60cb9b667c2d2334c868e85877ceff32b133dcaed9fe2af3"
+    },
+    {
+      "path": "energy-controller/machine-scannables/fine_plant/representative_sessions.npz",
+      "bytes": 87770,
+      "sha256": "1ab1051675d4850997ed0e5948951d17c71dfb4b7b9b9e745455c50d6199f0b5"
+    },
+    {
+      "path": "energy-controller/machine-scannables/fine_plant/settings.json",
+      "bytes": 491,
+      "sha256": "d9cc75293f46b6f6d791785dcfd6d40438962ebb96a5168a63cc57799467832c"
+    },
+    {
+      "path": "energy-controller/machine-scannables/fine_plant/summary.csv",
+      "bytes": 2298,
+      "sha256": "b571257bfd722bd24665edc83d59a70e8f6ec1406e00c957dc3b41894c7c2e90"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261022/episodes.csv",
+      "bytes": 673174,
+      "sha256": "e98d6c5b06bda6207174d9533bffb0c1187604786013897f133a6130ebb23778"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261022/initial_states.npz",
+      "bytes": 64660,
+      "sha256": "1f3c93a26dcfc25e04e1adeb100719028a5088f68471febe0add26a4b8b805b1"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261022/integration_audit.json",
+      "bytes": 3251,
+      "sha256": "4cd90faa69e46fe847347a6f53f53a5dcbfd483d262f6da47eb87866519bd248"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261022/plot_selection.json",
+      "bytes": 71,
+      "sha256": "d0c6a3771e5d6882a9c31bbad3fb550e9d084d3c6f194c6d8c45685a9e62395d"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261022/provenance.json",
+      "bytes": 1952,
+      "sha256": "b79bd3b2fe758785fac8d788fd4485da2306b4321d2432149c3c467cbfd30d19"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261022/representative_sessions.npz",
+      "bytes": 86528,
+      "sha256": "60f969b5b71862c63fd83df65a301ffd8e888f2eb1dd60c0de7fd5e33dc56d93"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261022/settings.json",
+      "bytes": 629,
+      "sha256": "9d5470ee0ba18db74d4563df9d17c46bea959810eb4f67f1468335a643d2e635"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261022/summary.csv",
+      "bytes": 2281,
+      "sha256": "c985e2da137d81e320413cd43191d6c79b44673a2d75b385305c37e3ce17de26"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261023/episodes.csv",
+      "bytes": 672312,
+      "sha256": "b77ba89b5c2f70d5f10475f61597b47bb4847db556179c527b3dacc72bf428b8"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261023/initial_states.npz",
+      "bytes": 64623,
+      "sha256": "99b2ff72b5943935362b83eccb457eee09d87cc2e821d91852c0497e829b81d4"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261023/integration_audit.json",
+      "bytes": 3253,
+      "sha256": "135051bc0d9d28681b1385d8a8e1c0008fb4aa176446ef738e97c1a7990a917c"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261023/plot_selection.json",
+      "bytes": 72,
+      "sha256": "13d8d3c859a7aebc70adc1f08e9ae0b5f5d501394d79d63d279349fedf2f9c74"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261023/provenance.json",
+      "bytes": 1952,
+      "sha256": "b6dd54b72d669cbfa23b4f470ffcbe76ce9f89da5f533a8cb5b657ce23f01857"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261023/representative_sessions.npz",
+      "bytes": 90585,
+      "sha256": "d65d99daf615be8080d281226ef3963eeab87ce7de69bb39265cc515b48d4fa6"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261023/settings.json",
+      "bytes": 629,
+      "sha256": "f9b517b9985e7ebaba966e123b116b5da78519a6e624b4adb48087d2c2c151a7"
+    },
+    {
+      "path": "energy-controller/machine-scannables/validation_20261023/summary.csv",
+      "bytes": 2297,
+      "sha256": "3656ced0bdb1ec9428dc0bc6d97c30330eca0de2ec7fb69ee2c73d5487ca189a"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/decision_context.pdf",
+      "bytes": 41009,
+      "sha256": "f18ac464c8ab0a788ce9cd4f7fc5bb9a25e01b348bc9428530d04a43d7d2c8ab"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/decision_context.png",
+      "bytes": 703132,
+      "sha256": "603a5d2fddb07aabae1597848e771415e6bf8a163e4feeac828fc0681a415ffe"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/decision_context.svg",
+      "bytes": 122050,
+      "sha256": "7b35b7b83586036844ad284d8b740331d0d7c885777a7ab602cfc0f65484087b"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/decision_map.pdf",
+      "bytes": 49718,
+      "sha256": "92bd405bc371e77a75192e54d8963da0fb82ad858516a6a4f3fcc8c8bd2a8a16"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/decision_map.png",
+      "bytes": 515924,
+      "sha256": "6eede3b65daea049d0105231a16595f559f1c0b7db9bd231a2fcc6a2e07ecb19"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/decision_map.svg",
+      "bytes": 119846,
+      "sha256": "f3ae3ccc78422f25e608b344e00876e0d31cdfd6c35fe2d40bd8025cf738da0f"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/interpretation_summary.md",
+      "bytes": 7998,
+      "sha256": "393ffb198769eaca29f7fe1ce389e72cb0716af4a2ce859691b22135db261faa"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/sampled_decisions.pdf",
+      "bytes": 21939,
+      "sha256": "59380a2b9958c98fdbda2b6ea93b6e1ee02049bb23565cfdb7c4a4d8e7264298"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/sampled_decisions.png",
+      "bytes": 561642,
+      "sha256": "b50ae506426850cebf612d926e52fd56233f2edbd9a82d9379501afd8fe16a4d"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/human-readables/sampled_decisions.svg",
+      "bytes": 82710,
+      "sha256": "23670e69b1dab60c0a7388da6e98f954770a31a7c769e05f2a39990fa3affb3b"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/machine-scannables/comparison.npz",
+      "bytes": 1867400,
+      "sha256": "9c9f04fe23ce1f40dfff0ef4320b7e6dd24ad37fabe2fa171d89f582d3b3d696"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/machine-scannables/decisions.csv",
+      "bytes": 28456,
+      "sha256": "afa4f85bac200bcd78c08f11ea19e0e53dfde25368003b7b274c2405f82cdc31"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/machine-scannables/methods.md",
+      "bytes": 7236,
+      "sha256": "7d0c7b8d65c949ba97aa57cc9abf15702a324ad4619e2782eb201ff6b8c7d935"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/machine-scannables/samples.csv",
+      "bytes": 2831,
+      "sha256": "944d345c7a02e3ec323bc2bf6bbff640bea6b3eec91d6ad787947cebf1f0ac8b"
+    },
+    {
+      "path": "energy-torque-sensitivity/action-comparison/machine-scannables/summary.json",
+      "bytes": 6297,
+      "sha256": "b0ad1194d5c136c3bd34bbc16dbef854a50e8818d541da8d8a87844e82f7cd67"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/coast_energy_sensitivity_planes.pdf",
+      "bytes": 135786,
+      "sha256": "3f66120ee167b1e5f73d0ff1cfd1dbe186f3b2b887a9946791eda62a7e6014e0"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/coast_energy_sensitivity_planes.png",
+      "bytes": 736657,
+      "sha256": "90eff6b5739873d907c36d267493fe3addcc8137346db46c1a49a640972f5064"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/coast_energy_sensitivity_planes.svg",
+      "bytes": 319458,
+      "sha256": "d8231264e94f1c2c6b1df320e63127a3d4bd5d8df237e37e2bbfdd01956abd64"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/coast_physical_sessions.pdf",
+      "bytes": 90469,
+      "sha256": "b08bc043a4842d0ec8fa99e5cd321c34b347f84e78e3d29bcd5df0669609dcb9"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/coast_physical_sessions.png",
+      "bytes": 1150015,
+      "sha256": "ba4f3e41495e4921a838e0175b07502e2a08ced35bbfbbd1a577a79680e7fe2c"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/coast_physical_sessions.svg",
+      "bytes": 266477,
+      "sha256": "ed8cb59fc4089b20b447fa5a70f0aa40ad362bfda225b1c27fbb6b7ba725fbb9"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/controlled_energy_sensitivity_planes.pdf",
+      "bytes": 259901,
+      "sha256": "22282e519beaab9efa016aee4f7d2da12c2843590f60813f219830bb41496b4b"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/controlled_energy_sensitivity_planes.png",
+      "bytes": 1284305,
+      "sha256": "49a8ed058b55a103e7dbfdcbf1e28f4a2d1771f9551b288a09e0be3ce49e83d3"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/controlled_energy_sensitivity_planes.svg",
+      "bytes": 499616,
+      "sha256": "cebbf96efe69989c0cc5ea44acf3c88c8302c91efba9a75ebdfe691d11ac48cf"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/controlled_physical_sessions.pdf",
+      "bytes": 114133,
+      "sha256": "877aec136fb7a7e238371c93613ff4cc2802870bfc3dabd9531e441a1e339ada"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/controlled_physical_sessions.png",
+      "bytes": 1548341,
+      "sha256": "0782c255cb8a95dd3ea5ab23bfbe20cfc2c78aeef336749f2471e2933f140712"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/controlled_physical_sessions.svg",
+      "bytes": 355541,
+      "sha256": "2b7ca21d1701bd7e829a0c31ba0419f746c7c2536006ee5be18ab3ae7599e94e"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/energy_task_preferences_and_rates.pdf",
+      "bytes": 82964,
+      "sha256": "a5e4d3ab20e271cf10d1e706450ebdfcf28675b32a8feb83153813326949d780"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/energy_task_preferences_and_rates.png",
+      "bytes": 1014609,
+      "sha256": "1687ed0f183c508360f582786d58ea57c3b5584e4de1547caa21125a56250acd"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/energy_task_preferences_and_rates.svg",
+      "bytes": 216453,
+      "sha256": "1f1d175e359130b84df3ea780827bfd82ef1595f71631a412971df8a283cb5ec"
+    },
+    {
+      "path": "energy-torque-sensitivity/human-readables/interpretation_summary.md",
+      "bytes": 9046,
+      "sha256": "0d561fc7447234a3899a5ddbc29c8b7cccf16d0a56736cb06c2cd95d4478a187"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/coast_intermediate_energy.csv",
+      "bytes": 6735357,
+      "sha256": "c3aa982ca8733be701a98e37d71a10ec14015983219e3163a6cbe8a02ac94fb3"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/coast_intermediate_energy.npz",
+      "bytes": 1378864,
+      "sha256": "74e1d218a6e44f6e7b1992964f9fa286eec5179b0c83562e15b8e09029f7e0a2"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/coast_low_energy.csv",
+      "bytes": 6691102,
+      "sha256": "611bfdf9598ffc213c0cc6c4b80ee05c39ca23205d9cfbf3de1e38015c1b736c"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/coast_low_energy.npz",
+      "bytes": 1392680,
+      "sha256": "432b0ecee73e1fe7de21b06d34af2aaf2887200932f69d0c29eb18661215286d"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/coast_near_upright_energy.csv",
+      "bytes": 6686393,
+      "sha256": "07399f4bcb25d736b3a778303067643b7a9017e3568e4e8550f32a953654809a"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/coast_near_upright_energy.npz",
+      "bytes": 1383651,
+      "sha256": "65cd58ad84faa8dfc56c5225319951561c41058500ee4d6e10ab30d5bb8c651b"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/controlled_slow_downward.csv",
+      "bytes": 448295,
+      "sha256": "d04accf160b494aeabe01282fe80c85a4075180713938890d4a15e97b5310845"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/controlled_slow_downward.npz",
+      "bytes": 122900,
+      "sha256": "545d38ed92cfc494f46c82f5107ae6abdf73148c1c313067576e98dfb01fc4be"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/controlled_typical_downward.csv",
+      "bytes": 309161,
+      "sha256": "b1556117c4a157677e427b852eb440943dfdaa8c60cdafc7dae6af2e5dbb3e2b"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/controlled_typical_downward.npz",
+      "bytes": 86001,
+      "sha256": "655eee9e5d50beda24302be03acdd608afe97eb8a853d34e02dacbc983e5ed41"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/controlled_typical_moving.csv",
+      "bytes": 250074,
+      "sha256": "3cf2f5d72b6aeaed4dd151a68a7794b665b996e005ffc6cad47fa87f4be236e6"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/controlled_typical_moving.npz",
+      "bytes": 71099,
+      "sha256": "26e7d99c421671265ce8711006a806fce02424323bfc568f5e3fc6bdbbd53aca"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/methods.md",
+      "bytes": 12168,
+      "sha256": "ff45611734cd0953278b672c9bb9ac22fa8559c4c9bcefebb5e5120fef18cb51"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/metrics.json",
+      "bytes": 27634,
+      "sha256": "77464295aecff95e624b99be5e766799c517f36c70bb2ea6f4fc671de606cabe"
+    },
+    {
+      "path": "energy-torque-sensitivity/machine-scannables/provenance.json",
+      "bytes": 6918,
+      "sha256": "afbfbabb8c9bb6b9d01b6e1bfd337472457872e1e66ba495b90c7e9083caa9fa"
+    },
+    {
+      "path": "interpretation_summary.md",
+      "bytes": 2742,
+      "sha256": "cc488ad74fb7e34045032f78ba6e6c2929442ca070ced60499ffed538c6e8a19"
+    },
+    {
+      "path": "machine-scannables/data_contract.md",
+      "bytes": 5908,
+      "sha256": "a187da1f4d1db221bc64ceee8143feb96b6dbd0b31c5362b8d93d753dec4520a"
+    },
+    {
+      "path": "machine-scannables/package_results.py",
+      "bytes": 11581,
+      "sha256": "69a3f27a41019ade3a4410dcc6c8ab352cb63a225199483f2d0ae8033a72f4fc"
+    },
+    {
+      "path": "machine-scannables/packaging_provenance.json",
+      "bytes": 15987,
+      "sha256": "71034f2833c7a160d129fa4c6b739982b20fe7d3718fd8b782fd58486bfa7e41"
+    },
+    {
+      "path": "machine-scannables/validation.json",
+      "bytes": 1407,
+      "sha256": "454031cb94c7c1d42bba0c9893c402e1b6c81a9007a66e6551d525022216055d"
+    },
+    {
+      "path": "rl-mpc/human-readables/hold_metrics.pdf",
+      "bytes": 17894,
+      "sha256": "afa4c95437d980aaa02e777e7c009677cb57d4e01741e41f7973a03807f108c9"
+    },
+    {
+      "path": "rl-mpc/human-readables/hold_metrics.png",
+      "bytes": 60520,
+      "sha256": "32ef05160e5a86161e1c13a6ffc50c2728d2580f366a2d4520604702df671b06"
+    },
+    {
+      "path": "rl-mpc/human-readables/hold_metrics.svg",
+      "bytes": 48023,
+      "sha256": "0f7fe3e702d7a219e974acbb3bbb25e52051aa257c31e1e862715e0eceb0efb3"
+    },
+    {
+      "path": "rl-mpc/human-readables/representative_sessions.pdf",
+      "bytes": 35888,
+      "sha256": "e37ce9f2b9b02718487a128d366ad6a5cb1f4ec5dcbb2bda85c0ee888a38e6a1"
+    },
+    {
+      "path": "rl-mpc/human-readables/representative_sessions.png",
+      "bytes": 138320,
+      "sha256": "848326d419b6b8a9e577b4bb2b424cf206b08781dab15a9cb7941397e7365267"
+    },
+    {
+      "path": "rl-mpc/human-readables/representative_sessions.svg",
+      "bytes": 111258,
+      "sha256": "dd8aeebc9e1c7e72aa7188fac66397f8ee967057deefce268e59a4a43b41ff7d"
+    },
+    {
+      "path": "rl-mpc/interpretation_summary.md",
+      "bytes": 2796,
+      "sha256": "789ad36dba3f1c09cdd1ba8fc1deeddb7c6aeb4aa65991e02c8465acf651dfa2"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/baseline_report.py",
+      "bytes": 3445,
+      "sha256": "e651eef820588142c708060062585cc02b3d4f5c48eae9e80aa4e82d73a898be"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/episodes.csv",
+      "bytes": 893,
+      "sha256": "0092e4380a389c0cdf984ba0af7df886701e756ee6a4bd94c10707224491bcef"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0000.npz",
+      "bytes": 1153991,
+      "sha256": "db6165dd3fe45db76352539779cf30f686b67b7e57557bda0984f0b74060622a"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0001.npz",
+      "bytes": 1144366,
+      "sha256": "3a6de3d24e6cf2e07e765524e69026efe93cbc2927bdf5775f124eab7c5b46b7"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0002.npz",
+      "bytes": 1146252,
+      "sha256": "f338b0a147c05d5d3b1371515543dba2eb6553a396025afb503b7f6caeba4b09"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0003.npz",
+      "bytes": 1135068,
+      "sha256": "7842f37ea815645670599b99962797c754efe63b785611b8d11ee54d01daf10f"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0004.npz",
+      "bytes": 1125794,
+      "sha256": "0d381b7d72ee7ee7f9763ada79a83d989c6e92d97dc2e67ffce2ef9f664befb0"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0005.npz",
+      "bytes": 1113470,
+      "sha256": "981a0f80d09e8e4d9523fc529ce871b4c946472a143e2c137910048f2f6a802b"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0006.npz",
+      "bytes": 1109019,
+      "sha256": "f66d75a674ed12b1aa74da1429a86f5d056fb0d65866d271666541d2c71bd7f2"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0007.npz",
+      "bytes": 1111097,
+      "sha256": "331551dfa3881c1d355c06db7b8fff9d410a22db5ec52be4bd0ba4ddd0ed6fcd"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0008.npz",
+      "bytes": 1105098,
+      "sha256": "2cd5cb0e09567aec23cdec56645e137525f0ed7e748613821dbfa3a89e730a53"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0009.npz",
+      "bytes": 1108366,
+      "sha256": "fe7ccd88336226a279762ead656ea1c1cca6d319863599ee9588eb433c95336f"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0010.npz",
+      "bytes": 1111485,
+      "sha256": "e5430bd8bbfc14833da9a3b97292fb2f892b91fe15a16ca475b3b986d2209b70"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0011.npz",
+      "bytes": 1113836,
+      "sha256": "f83ce991395e66e5029a6172152a12719274efbff97b3f4b70730150525ffec0"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0012.npz",
+      "bytes": 1111057,
+      "sha256": "853928266f0545fd14ed56d4150708853ce679e98140a685d22edc81ec8ef971"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0013.npz",
+      "bytes": 1110449,
+      "sha256": "ce4ffce854e1479a0837f99d53caaa4726a887fae761755e5bb50a9745673a54"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0014.npz",
+      "bytes": 1112641,
+      "sha256": "61fcfa3391deab28e8af25300f736186270bb871f15da5ab2077984657e8e1e0"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0015.npz",
+      "bytes": 1110520,
+      "sha256": "834c39eb739e42ef1397d9fae0f0ca22fbd63de216191e44aa407615edbdfeff"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0016.npz",
+      "bytes": 1109923,
+      "sha256": "129639385abb2fa636efca9e5c052fecac060072365b98e36d67331ac5190a37"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0017.npz",
+      "bytes": 1112105,
+      "sha256": "3182c2274659f540ee123c7c1d30f31339fe934d620c3f659066e8920abeb6b5"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0018.npz",
+      "bytes": 1111577,
+      "sha256": "df13a6f3bb1ff43d68abbd46fda6dc08ae31ed73989ef546982493b9488bef42"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0019.npz",
+      "bytes": 1111388,
+      "sha256": "f6ac0bfa75227b2aa5647e3faea541ca8f913fe6155bbff80b136ac98b15e916"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0020.npz",
+      "bytes": 1110774,
+      "sha256": "1b6c0497780c518445804c84888d43d6982c3713d152cf815144fbfa65d964b5"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0021.npz",
+      "bytes": 1111497,
+      "sha256": "68fca9138bfd5a8adecc49849e889a06d25bb1a2b47e30b5e9a538ce3fd86820"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0022.npz",
+      "bytes": 1112121,
+      "sha256": "16f8bda92cc020e99d091bcb26ba65b3c5d863c92d9d031657aa89c1462ad976"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0023.npz",
+      "bytes": 1112967,
+      "sha256": "7f04a79c3e4590a2227fa04df75477bc7a4d09d2f191332fa830cf71c2babb96"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0024.npz",
+      "bytes": 1112013,
+      "sha256": "9ac26216647d4043d4ffb9d0e81f911d8ee08d476fbca682913c74f8b8e88fea"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0025.npz",
+      "bytes": 1110222,
+      "sha256": "f7b8997716552de5f89e6f822d5d89e311cc3bd0c06fd63e24d229c0ae5a33fe"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0026.npz",
+      "bytes": 1109903,
+      "sha256": "e9a18ac99c1df89c8e06ee48db0481d0b1cc2df03067e8fd0dacdb880e933948"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0027.npz",
+      "bytes": 1109439,
+      "sha256": "328e1d66b84228aa26bccae91df879d3a225050c28d6907b1ba008354ecb212d"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0028.npz",
+      "bytes": 1111612,
+      "sha256": "30c2b0beb0ecd227d261fcc3a5f5e79e308f763b607e33c8960eb7b051de0833"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0029.npz",
+      "bytes": 1112007,
+      "sha256": "170673b3eec9c86f49d28b5c7153d9dd8824aea9955a48a51f08653f48e07e4f"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0030.npz",
+      "bytes": 1110267,
+      "sha256": "f895d9839abb0cdb0031a593a83b246f7b4c099dc2ad6e0019ed13f2692688b1"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0031.npz",
+      "bytes": 1111252,
+      "sha256": "c46b9c07d0a829dbdaf63cd335151d9e998b0aa4821eb24b9e410e26f66ff397"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0032.npz",
+      "bytes": 1110693,
+      "sha256": "3c5bce4b753777753e9d0eec27f877a130459ef682a515b2fd1021976063515a"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0033.npz",
+      "bytes": 1109835,
+      "sha256": "fa0246292528e098f3792f4a3f81093cfa1e50c2a8140b615a5d211c2abdc2b9"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0034.npz",
+      "bytes": 1107640,
+      "sha256": "6b043578e9fc04a0cf2a7951f42aedf8658f07b69c1e38c5944bdfe5d3c9e035"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0035.npz",
+      "bytes": 1109165,
+      "sha256": "ab88a0a44aa2075935fb46d43da2b898f07908596cc7564b82d3372a67f4bced"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0036.npz",
+      "bytes": 1112265,
+      "sha256": "ae5aac60680230da4439d03a020e6fd8df324eb8b2d1a6cf756726039bb51f2d"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0037.npz",
+      "bytes": 1111309,
+      "sha256": "528e8b16f41e5a2409bd3280c303a4fbc31f6ac1478b4d42be460c274c6a6c89"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0038.npz",
+      "bytes": 1112410,
+      "sha256": "860033d9af60a7385da5ea925e65d97ca61cfce960c1fcfb15236c05e5abb3b5"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/chunk-0039.npz",
+      "bytes": 1110463,
+      "sha256": "91ec20b0fecff97a4827e4f41aee6a89d0c0d9f07ebee23a334963095eefbc3f"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/completed.json",
+      "bytes": 32,
+      "sha256": "1eea1f33618b5d801009f3f4829a71b5611bd6f4b23b39d15ff0b862062020fe"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/design.json",
+      "bytes": 7990,
+      "sha256": "056d259c3941956e14142bee4a46438ef87e761212c99983c0cbbc8d78cf55c1"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/sources/gpu_cem.py",
+      "bytes": 4067,
+      "sha256": "0ee7d5b6906fad735d2af04a8cca50de6a64b54373463df2054d245ca257aac7"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/sources/inner_model.py",
+      "bytes": 9289,
+      "sha256": "4f5a0ac98509856bf87ca5e49b7da17cb84429fd1119061e96bf4884aa6eba2f"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/sources/jax_dynamics.py",
+      "bytes": 3167,
+      "sha256": "624a683eab06d011a827c8f758e979f28a299b1cc95b43c72562b8fde25bb04c"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/sources/lqr_cost_run.py",
+      "bytes": 8156,
+      "sha256": "0500be3b8be9a1938ebecb94bfb1d15446fa979a0b8c8f98b053ed518f7fa4e2"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/session-records/starts.npz",
+      "bytes": 1790,
+      "sha256": "caa1adc82a336feebc6be16aa9760e7f223a75b438ff6fec16541008de1bea97"
+    },
+    {
+      "path": "rl-mpc/machine-scannables/summary.json",
+      "bytes": 255,
+      "sha256": "32fe630f6c9e01ba5aecf50aab6105c9df9d2d4239d5c3598cde70bc92d1e4a8"
+    },
+    {
+      "path": "rl-policy/README.md",
+      "bytes": 3445,
+      "sha256": "bdef7c8810d5b6273d5af0838018ec36491c6a4a80d60b7a0e7c4987209008e7"
+    },
+    {
+      "path": "rl-policy/human-readables/disturbed_final_ten_seconds.png",
+      "bytes": 134468,
+      "sha256": "a074150fa355353d8c84ae2c1da9f615a6adcd2332ade185928bcfc63c3d10b3"
+    },
+    {
+      "path": "rl-policy/human-readables/disturbed_sessions.png",
+      "bytes": 196077,
+      "sha256": "0644e7e542ec4571450fce8011c0593de78f3ade50c1179ef7a30c757b81b095"
+    },
+    {
+      "path": "rl-policy/human-readables/interpretation_summary.md",
+      "bytes": 2545,
+      "sha256": "dd5f06a4001f6f4cde1161e7410dfed7f6849cee7aaa75a69abd764eab75f4aa"
+    },
+    {
+      "path": "rl-policy/human-readables/nominal_final_ten_seconds.png",
+      "bytes": 136194,
+      "sha256": "8dbc82b0e453c1682e70fb582dd97ba8b04db14abca65be14278356a0e3b0be7"
+    },
+    {
+      "path": "rl-policy/human-readables/nominal_sessions.png",
+      "bytes": 165662,
+      "sha256": "3799c4ba577712f6f32c2e0c58d58f52ac1b8d77856fc330c1f2416a1be4ac6e"
+    },
+    {
+      "path": "rl-policy/inference.py",
+      "bytes": 3726,
+      "sha256": "5f1217ea65ea89e83c1dce0dd2054f055d795b6955e907f162ec96e9f2442836"
+    },
+    {
+      "path": "rl-policy/machine-scannables/disturbed/episodes.csv",
+      "bytes": 129312,
+      "sha256": "4b12cfd9c02dcd2aa331640fdd39c7d0e68b5bf0df9228b5a6ed92368b2b544d"
+    },
+    {
+      "path": "rl-policy/machine-scannables/disturbed/plot_selection.json",
+      "bytes": 15,
+      "sha256": "e405d2491c14a32ea2e25a0f6302a97a9b736a3011e33341a9838566b9831cde"
+    },
+    {
+      "path": "rl-policy/machine-scannables/disturbed/representative_sessions.npz",
+      "bytes": 1539781,
+      "sha256": "d134dc808e89effbf614b6f85fa5ebbf080e5da000f793cc0e5cc8ba87735c55"
+    },
+    {
+      "path": "rl-policy/machine-scannables/disturbed/settings.json",
+      "bytes": 461,
+      "sha256": "297b6cc01877e9aef1495637da7d9023a3edaaafc0eb0a7883a1dfd9af2c92eb"
+    },
+    {
+      "path": "rl-policy/machine-scannables/manifest.json",
+      "bytes": 5916,
+      "sha256": "fed15c3cb1a7e114556706144e32505bbc5a47a2a8e84290ed06a089cef9d21a"
+    },
+    {
+      "path": "rl-policy/machine-scannables/nominal/episodes.csv",
+      "bytes": 128206,
+      "sha256": "9ac3b9e51ccb0a5de4b2dbc495b636d067dd6aad931696f5b7317881164ca9c6"
+    },
+    {
+      "path": "rl-policy/machine-scannables/nominal/plot_selection.json",
+      "bytes": 13,
+      "sha256": "bf8fefe3657dc78e7e3b76f9c9fee9541a5e85b78810720c57dce02f10cac30b"
+    },
+    {
+      "path": "rl-policy/machine-scannables/nominal/representative_sessions.npz",
+      "bytes": 1525890,
+      "sha256": "dc0b0edba7ca5b03833d4fa5d548b271fc0db1c4b6f5c3a10b32aec7513ba31e"
+    },
+    {
+      "path": "rl-policy/machine-scannables/nominal/settings.json",
+      "bytes": 342,
+      "sha256": "93a84b005f7a16f102a227ff9ed3895cdeb3eb87b1e4d5a9bd046be2cf626617"
+    },
+    {
+      "path": "rl-policy/machine-scannables/operating_contract.md",
+      "bytes": 6030,
+      "sha256": "d00738584fa7066d4af0a242cb0d243285f22c3e86039b8718777fda0985906c"
+    },
+    {
+      "path": "rl-policy/machine-scannables/policy_settings.json",
+      "bytes": 241,
+      "sha256": "cecd33b697b64117767320ce0b7f09deb42aa10a078ba1f65b827d449b2cb0a4"
+    },
+    {
+      "path": "rl-policy/machine-scannables/population_performance.csv",
+      "bytes": 3104,
+      "sha256": "6ae82c04ae1a47f4e4d6298502cbfe53c22fdb53b16c02f199dc9e014f1312bc"
+    },
+    {
+      "path": "rl-policy/machine-scannables/reference_vectors.npz",
+      "bytes": 42696,
+      "sha256": "36aadc77e06f09fd9ec39f10a4853310e30895aa234dba59dd65fabb48c628ac"
+    },
+    {
+      "path": "rl-policy/machine-scannables/selection.json",
+      "bytes": 2679,
+      "sha256": "d25a9833e05d2b7ae1b3cfa6d523bbb6d37b091710b27e74710b3bea3095fa49"
+    },
+    {
+      "path": "rl-policy/machine-scannables/verification.json",
+      "bytes": 641,
+      "sha256": "13f2ac99071f6100bc4a12c5bd77c7762fee6cc7fc91e51e0154c468daf150ab"
+    },
+    {
+      "path": "rl-policy/machine-scannables/weights.npz",
+      "bytes": 1608690,
+      "sha256": "840650b06e8cec03bc8d188b9cae6237853b0fac8ebfabeff11ba26be68b284d"
+    },
+    {
+      "path": "rl-policy/requirements.txt",
+      "bytes": 127,
+      "sha256": "4962653d9a3b832e5c0c445f4c5bdb8e356b1676cb9e22c29cbee94924022bdc"
+    },
+    {
+      "path": "rl-policy/verify.py",
+      "bytes": 2449,
+      "sha256": "6c9a5ee4d4c9f9d48f32f4138da61ff5cce4fc233970ec2a32840742e2f2a40e"
+    }
+  ]
+}

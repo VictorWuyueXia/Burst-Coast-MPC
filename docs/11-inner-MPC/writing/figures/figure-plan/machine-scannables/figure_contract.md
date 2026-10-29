@@ -56,7 +56,7 @@ Before Figure 3 is inserted, add the required diagnostic definitions to Methods.
 
 Detailed authority: [Figure 4 production plan](../../session-record/figure_4_plan.md) and [source contract](../../session-record/machine-scannables/source_contract.md). Use vertically matched controller blocks, adjacent expanded-transient/full-remainder views with no time omitted, and the declared transient/holding error ordinates. Four common-timestamp poses link physical configurations to the traces. The current act–coast block remains empty.
 
-Available continuously enabled data: `artifacts/rotary_pendulum/inner-mpc/mpc-rl-transfer/` and raw confirmation under `artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-confirm-16/machine-scannables/`.
+Available continuously enabled data: `artifacts/rotary_pendulum/final-results/rl-mpc/` and raw confirmation under `artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/session-records/`.
 
 - Use a complete preselected session, such as the previously fixed downward example 0. Keep the initial condition and full duration; do not select the best-looking success.
 - `starts.npz` supplies initial states/groups. State order in `executed` is arm angle, pendulum angle from downward, arm speed, pendulum speed.

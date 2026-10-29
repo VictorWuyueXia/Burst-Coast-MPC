@@ -53,7 +53,7 @@ def terminal_model(weights: dict[str, np.ndarray], divisors: np.ndarray) -> ca.F
 if __name__ == "__main__":
     # Require the original frozen bundle and verify its checksum before reading model arrays.
     repository = Path(__file__).resolve().parents[3]
-    bundle = repository / "artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables"
+    bundle = repository / "artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables"
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     checksum = hashlib.sha256((bundle / "weights.npz").read_bytes()).hexdigest()
     assert checksum == manifest["weights_sha256"]

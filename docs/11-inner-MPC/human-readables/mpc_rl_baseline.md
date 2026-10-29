@@ -4,7 +4,7 @@ Effective 2026-10-23, **MPC+RL** names the latest nonlinear CEM MPC with the exa
 
 ## Frozen settings and evidence
 
-The authoritative numerical record is [the completed 32-start confirmation design](../../../artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-confirm-16/machine-scannables/design.json). Keep its physics, observation encoding and checkpoint unchanged when making baseline comparisons. The [machine contract](../machine-scannables/lqr_stage_cost_contract.md) specifies the execution and record details.
+The authoritative numerical record is [the completed 32-start confirmation design](../../../artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/session-records/design.json). Keep its physics, observation encoding and checkpoint unchanged when making baseline comparisons. The [machine contract](../machine-scannables/lqr_stage_cost_contract.md) specifies the execution and record details.
 
 | Item | Official setting |
 |---|---|

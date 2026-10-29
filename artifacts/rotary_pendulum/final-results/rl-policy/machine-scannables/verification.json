@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "device": "cpu:0",
+  "reference_cases": 1024,
+  "reference": "Original training-snapshot Flax online actor and critics",
+  "rtol": 2e-05,
+  "atol": 2e-05,
+  "max_absolute_error": {
+    "actor_torque_nm": 6.566551746800542e-09,
+    "q1": 0.0,
+    "q2": 0.0,
+    "q_min": 0.0,
+    "v_actor": 7.62939453125e-06
+  },
+  "single_and_multiaxis_batch": "passed",
+  "finite_state_torque_gradients": "passed",
+  "warm_single_call_ms": 0.4218834638595581,
+  "warm_1024_batch_ms": 5.1900094995896024,
+  "timing_scope": "Full API including actor and both critics at supplied and actor actions",
+  "q_calibration_validated": false
+}

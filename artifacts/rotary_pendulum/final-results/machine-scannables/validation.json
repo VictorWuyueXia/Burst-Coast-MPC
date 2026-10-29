@@ -1,0 +1,76 @@
+{
+  "checks": {
+    "rl_nominal": {
+      "passed": true,
+      "episodes": 512,
+      "plotted_lanes": [
+        36,
+        496,
+        11
+      ]
+    },
+    "rl_disturbed": {
+      "passed": true,
+      "episodes": 512,
+      "plotted_lanes": [
+        340,
+        204,
+        131
+      ]
+    },
+    "energy_validation_20261022": {
+      "passed": true,
+      "episodes": 2052,
+      "plotted_lanes": [
+        50,
+        635,
+        1493,
+        1655
+      ]
+    },
+    "energy_validation_20261023": {
+      "passed": true,
+      "episodes": 2052,
+      "plotted_lanes": [
+        510,
+        884,
+        1236,
+        1574
+      ]
+    },
+    "energy_fine_plant": {
+      "passed": true,
+      "episodes": 2052,
+      "plotted_lanes": [
+        105,
+        779,
+        1335,
+        1655
+      ]
+    },
+    "rl_mpc": {
+      "passed": true,
+      "sessions": 32,
+      "duration_s": 40,
+      "identical_plant_and_initial_states": true
+    },
+    "animation_checksums": {
+      "passed": true
+    },
+    "sensitivity_pairs": {
+      "passed": true,
+      "paired_csv_npz_sessions": 6,
+      "includes_action_comparison": true
+    },
+    "cpu_inference": {
+      "passed": true,
+      "reference_cases": 1024
+    },
+    "inner_mpc_tests": {
+      "passed": true,
+      "tests": 3
+    }
+  },
+  "scope": "Read-only comparison against saved source records; no new simulation.",
+  "passed": true
+}

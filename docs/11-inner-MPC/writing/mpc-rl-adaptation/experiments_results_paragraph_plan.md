@@ -20,7 +20,7 @@ Use [the writing guidance](../writing_guidance.md). Give subsection A three para
 
 **Figure:** No extra figure. A concise caption or small protocol table can carry the initial-state groups and numerical settings needed to read the performance figure.
 
-**Source:** [The official baseline](../../human-readables/mpc_rl_baseline.md) and [baseline transfer guide](../../../../artifacts/rotary_pendulum/inner-mpc/mpc-rl-transfer/interpretation_summary.md). Their current successful baseline is distinct from earlier teacher, hybrid-handoff, and shorter-horizon studies.
+**Source:** [The official baseline](../../human-readables/mpc_rl_baseline.md) and [baseline transfer guide](../../../../artifacts/rotary_pendulum/final-results/rl-mpc/interpretation_summary.md). Their current successful baseline is distinct from earlier teacher, hybrid-handoff, and shorter-horizon studies.
 
 ### A2. How a representative trajectory connects swing-up and holding
 
@@ -30,7 +30,7 @@ Use [the writing guidance](../writing_guidance.md). Give subsection A three para
 
 **Equations:** No new governing equation. Explain absolute upright error $|\beta|$ and arm angle $\theta$ in the figure caption; mark the existing target and arm limits. Use the complete saved trajectory so the reader sees continued regulation after the first arrival.
 
-**Figure — current-performance panel (a):** Synchronized dynamic-state traces, applied input, enabled mode, replanning/shut-off markers and physical keyframes, with target/operating limits. Keep the sparse act-coast block blank until its matched record exists. Use the saved representative-session selection, not a newly selected best outcome. Existing [representative-session assets](../../../../artifacts/rotary_pendulum/inner-mpc/mpc-rl-transfer/human-readables/representative_sessions.png) use fixed session indices. Inspect and simplify the asset when later preparing the paper; do not infer behavior outside the saved duration.
+**Figure — current-performance panel (a):** Synchronized dynamic-state traces, applied input, enabled mode, replanning/shut-off markers and physical keyframes, with target/operating limits. Keep the sparse act-coast block blank until its matched record exists. Use the saved representative-session selection, not a newly selected best outcome. Existing [representative-session assets](../../../../artifacts/rotary_pendulum/final-results/rl-mpc/human-readables/representative_sessions.png) use fixed session indices. Inspect and simplify the asset when later preparing the paper; do not infer behavior outside the saved duration.
 
 ### A3. What the population supports and what remains unresolved
 

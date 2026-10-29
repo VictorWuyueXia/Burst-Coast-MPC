@@ -38,7 +38,7 @@ machine = Path(
     "artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-confirm-summary/machine-scannables"
 )
 machine.mkdir(parents=True, exist_ok=True)
-bundle = Path("artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables")
+bundle = Path("artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables")
 manifest = json.loads((bundle / "manifest.json").read_text())
 assert PHYSICAL.model_dump() == manifest["physical_config"]
 assert (
@@ -172,7 +172,7 @@ critical_states, critical_actions, interval_ids = [], [], []
 for chunk, path in enumerate(
     sorted(
         Path(
-            "artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-confirm-16/machine-scannables"
+            "artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/session-records"
         ).glob("chunk-*.npz")
     )
 ):

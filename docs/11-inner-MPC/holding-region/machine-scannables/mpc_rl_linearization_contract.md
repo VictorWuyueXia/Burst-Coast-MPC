@@ -17,16 +17,16 @@ Maximum budget is these three substantive functions and one straight-line numeri
 
 ## File formats inferred from the committed loaders
 
-The required bundle is `artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables/`.
+The required bundle is `artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables/`.
 
 - `manifest.json` supplies `weights_sha256`, `observation.divisors`, `networks`, and `physical_config`.
 - `weights.npz` supplies arrays named `actor.i.kernel`, `actor.i.bias`, `q1.i.kernel`, `q1.i.bias`, `q2.i.kernel`, and `q2.i.bias`, with consecutive zero-based layer indices.
 - Kernels have shape `(input_width, output_width)`; biases have shape `(output_width,)`. Hidden layers use SiLU; the actor ends in scalar tanh and the critics end in a scalar affine layer.
 - The actor input is five-dimensional; each critic receives those five features plus the normalized actor action. Use the online actor and online critics from one matching bundle.
 - In upright-error coordinates the observation before scaling is `(theta, -sin(beta), -cos(beta), omega, nu)`. The CasADi decoder retains both the observation-map and actor-substitution derivative chains.
-- `training_settings.json` and run design resolve torque cap, observation conventions, reward discount and provenance. Do not use the generic physics torque cap in place of the runtime cap.
+- `policy_settings.json` and run design resolve torque cap, observation conventions, reward discount and provenance. Do not use the generic physics torque cap in place of the runtime cap.
 
-The original run is `artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-confirm-16/machine-scannables/`. Required files are `design.json`, `starts.npz`, `completed.json`, `chunk-*.npz`, and `sources/`. Prefer the actual records over report prose.
+The original run is `artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/session-records/`. Required files are `design.json`, `starts.npz`, `completed.json`, `chunk-*.npz`, and `sources/`. Prefer the actual records over report prose.
 
 - `plans`: `(decision, lane, 11)`, with ten normalized commands and one terminal epigraph scalar.
 - `stage_states`: `(decision, lane, 10, 4)`, with the measured current state first.

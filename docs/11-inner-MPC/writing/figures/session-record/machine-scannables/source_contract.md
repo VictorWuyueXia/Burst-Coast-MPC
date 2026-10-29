@@ -6,11 +6,11 @@ The author subsequently authorized record-derived figure production and Canva as
 
 Repository-relative sources:
 
-- Official transfer manifest: artifacts/rotary_pendulum/inner-mpc/mpc-rl-transfer/machine-scannables/manifest.json.
-- Raw complete record: artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-confirm-16/machine-scannables/chunk-0000.npz through chunk-0039.npz.
+- Official transfer manifest: artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/manifest.json.
+- Raw complete record: artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/session-records/chunk-0000.npz through chunk-0039.npz.
 - Archived design and source snapshots: design.json and sources/ in that same raw directory.
 - Actual initial conditions: artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/machine-scannables/starts.npz.
-- Existing comparison-free metrics: artifacts/rotary_pendulum/inner-mpc/mpc-rl-transfer/machine-scannables/episodes.csv and summary.json.
+- Existing comparison-free metrics: artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/episodes.csv and summary.json.
 
 Select lane 0, already used as the downward representative; do not search for a more attractive result. The saved group index is 0. A read-only inspection found the actual initial state [0.06535831996416491, 0.06806342455862913, 0.13459179470736138, -0.01850166246763489], ordered as theta, alpha, omega, nu in radians and radians per second. It is near downward, not exact downward rest.
 

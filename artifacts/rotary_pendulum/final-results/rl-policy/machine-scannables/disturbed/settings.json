@@ -1,0 +1,26 @@
+{
+  "contract_id": "rotary-stationary-td3-v3",
+  "validation_seed": 2026110600,
+  "upright_widths": [
+    0.16,
+    0.4,
+    0.3
+  ],
+  "deadline_s": 600,
+  "action_mode": "direct_unfiltered",
+  "torque_limit_nm": 0.00459,
+  "hold_duration_s": 10,
+  "controller": "policy",
+  "perturbation_times_s": [
+    120,
+    300
+  ],
+  "perturbation_delta": [
+    0.05,
+    0.12,
+    0.2,
+    0.35
+  ],
+  "arm_limit_rad": 2.356194490192345,
+  "integration_dt_s": 0.002
+}

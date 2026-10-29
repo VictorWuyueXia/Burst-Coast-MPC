@@ -48,4 +48,4 @@ Implementation remains in the existing `evaluate` function. New parameters are `
 
 Validation milestones: (1) independently reconstruct the tracking cost and check finite-difference gradients on GPU; zero rate recovers the prior objective; (2) confirm every requested decision is recorded and physically accepted; (3) compare first arrival, first continuous one-/ten-second hold, final ten-second hold, subsequent departures, arm error and batch solve time on paired starts. Screening uses eight starts (two per original group), confirmation uses all 32. Screening and confirmation CEM draws differ because batch shape changes; neither cohort is a new independently sampled test set.
 
-Source checkpoint directory is now `artifacts/rotary_pendulum/1-TD3_20261016`; its weight checksum is checked against the exported manifest. No Q retraining, CPU solver benchmark, dynamics change, or new project stage is introduced.
+Source checkpoint directory is now `artifacts/rotary_pendulum/final-results/rl-policy`; its weight checksum is checked against the exported manifest. No Q retraining, CPU solver benchmark, dynamics change, or new project stage is introduced.

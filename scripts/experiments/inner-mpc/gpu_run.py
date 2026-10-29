@@ -57,7 +57,7 @@ def main() -> None:
     manifest = metadata["model"]
     if PHYSICAL.model_dump() != manifest["physical_config"]:
         raise ValueError("Physics differs from frozen checkpoint")
-    bundle = Path("artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables")
+    bundle = Path("artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables")
     if (
         hashlib.sha256((bundle / "weights.npz").read_bytes()).hexdigest()
         != manifest["weights_sha256"]

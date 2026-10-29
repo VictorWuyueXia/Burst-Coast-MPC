@@ -27,9 +27,9 @@ Recommended order: provenance and scope; holding-domain construction; empirical 
 
 All paths below are relative to the repository root. The three source directories were checked and are absent from the local working tree; the checkpoint and run directories are also absent from the pinned Git tree.
 
-- `artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables/weights.npz`
-- The same bundle's `manifest.json` and `training_settings.json`.
-- `artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-confirm-16/machine-scannables/`: `design.json`, `starts.npz`, `completed.json`, `chunk-*.npz`, and `sources/`.
+- `artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables/weights.npz`
+- The same bundle's `manifest.json` and `policy_settings.json`.
+- `artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/session-records/`: `design.json`, `starts.npz`, `completed.json`, `chunk-*.npz`, and `sources/`.
 - `artifacts/rotary_pendulum/inner-mpc/20261019-gpu-closed-cem/machine-scannables/`: original design, stored starts, and preparation/source provenance.
 
 Optional existing evidence: the screen-16 run and local probe outputs for optimizer-gap diagnosis; the teacher settings containing the LQR gain and its derivation inputs. The Riccati matrix can be recomputed from the frozen model and existing weights if it was not saved. No new RL training is required for this audit.

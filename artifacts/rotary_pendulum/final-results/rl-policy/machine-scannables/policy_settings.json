@@ -1,0 +1,14 @@
+{
+  "torque_limit_nm": 0.00459,
+  "discount": 0.995,
+  "torque_cost_per_s": 2.0,
+  "arm_cost_per_s": 0.2,
+  "energy_cost_per_s": 1.0,
+  "upright_reward_per_s": 1.0,
+  "upright_widths": [
+    0.16,
+    0.4,
+    0.3
+  ],
+  "deadline_s": 120
+}

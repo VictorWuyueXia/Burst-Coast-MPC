@@ -21,9 +21,9 @@ root = args.output
 machine, human = root / "machine-scannables", root / "human-readables"
 machine.mkdir(parents=True, exist_ok=False)
 human.mkdir()
-bundle = Path("artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables")
+bundle = Path("artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables")
 manifest = json.loads((bundle / "manifest.json").read_text())
-base = json.loads((bundle / "training_settings.json").read_text())
+base = json.loads((bundle / "policy_settings.json").read_text())
 if hashlib.sha256((bundle / "weights.npz").read_bytes()).hexdigest() != manifest["weights_sha256"]:
     raise ValueError("Portable checkpoint checksum mismatch")
 plant = {

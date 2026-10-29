@@ -1,0 +1,201 @@
+{
+  "selection": [
+    {
+      "label": "Typical downward capture",
+      "rule": "median duration in downward",
+      "lane": "302",
+      "stratum": "downward",
+      "success": "True",
+      "in_bound_capture": "True",
+      "arm_violation": "False",
+      "duration_s": "11.040000000000001",
+      "approach": "True",
+      "closest_upright_rad": "0.023807679839354723",
+      "minimum_energy_cost": "1.190925698503685e-05",
+      "final_energy_cost": "1.190925698503685e-05",
+      "peak_arm_rad": "1.0648740281150768",
+      "beyond_arm_s": "0.0",
+      "predicted_crossing_fraction": "0.0",
+      "work_override_fraction": "0.7207207207207207",
+      "numerical_reject_fraction": "0.0",
+      "final_arm_speed_rad_s": "-0.15508768345028295",
+      "final_pendulum_speed_rad_s": "-1.642419407250337",
+      "final_total_energy_j": "0.030518346906896754",
+      "arm_reversals": "31",
+      "maximum_potential_fraction": "0.9998583052881362",
+      "zero_work_nonzero_torque_count": "0",
+      "total_absolute_work_mismatch_j": "0.032516588685867494",
+      "coast_fraction": "0.09009009009009009",
+      "absolute_work_j": "0.03571805435850637",
+      "max_work_error_j": "1.0150735878495103e-06",
+      "max_energy_balance_j": "1.5263292016853331e-09",
+      "retained_samples": 553,
+      "excluded_inactive_samples": 448
+    },
+    {
+      "label": "Slow downward capture",
+      "rule": "slowest duration in downward",
+      "lane": "325",
+      "stratum": "downward",
+      "success": "True",
+      "in_bound_capture": "True",
+      "arm_violation": "False",
+      "duration_s": "16.02",
+      "approach": "True",
+      "closest_upright_rad": "0.05399608177925242",
+      "minimum_energy_cost": "2.584251944867912e-06",
+      "final_energy_cost": "2.584251944867912e-06",
+      "peak_arm_rad": "0.9243232213301562",
+      "beyond_arm_s": "0.0",
+      "predicted_crossing_fraction": "0.0",
+      "work_override_fraction": "0.6273291925465838",
+      "numerical_reject_fraction": "0.0",
+      "final_arm_speed_rad_s": "0.3935562446098508",
+      "final_pendulum_speed_rad_s": "1.334203048087848",
+      "final_total_energy_j": "0.030430305219609863",
+      "arm_reversals": "44",
+      "maximum_potential_fraction": "0.9992712828665025",
+      "zero_work_nonzero_torque_count": "0",
+      "total_absolute_work_mismatch_j": "0.03881574625767508",
+      "coast_fraction": "0.055900621118012424",
+      "absolute_work_j": "0.042921516938451636",
+      "max_work_error_j": "5.446203928247154e-07",
+      "max_energy_balance_j": "1.0443803877269175e-09",
+      "retained_samples": 802,
+      "excluded_inactive_samples": 199
+    },
+    {
+      "label": "Typical moving-start capture",
+      "rule": "median duration in moving",
+      "lane": "766",
+      "stratum": "moving",
+      "success": "True",
+      "in_bound_capture": "True",
+      "arm_violation": "False",
+      "duration_s": "8.92",
+      "approach": "True",
+      "closest_upright_rad": "0.13254678894558536",
+      "minimum_energy_cost": "9.81888736797585e-06",
+      "final_energy_cost": "9.81888736797585e-06",
+      "peak_arm_rad": "1.7025694352940735",
+      "beyond_arm_s": "0.0",
+      "predicted_crossing_fraction": "0.0",
+      "work_override_fraction": "0.6777777777777778",
+      "numerical_reject_fraction": "0.0",
+      "final_arm_speed_rad_s": "0.4033161573813314",
+      "final_pendulum_speed_rad_s": "0.5269734233693262",
+      "final_total_energy_j": "0.030262222206986645",
+      "arm_reversals": "24",
+      "maximum_potential_fraction": "0.9956142637852045",
+      "zero_work_nonzero_torque_count": "0",
+      "total_absolute_work_mismatch_j": "0.020311484504238572",
+      "coast_fraction": "0.05555555555555555",
+      "absolute_work_j": "0.021989130980240818",
+      "max_work_error_j": "4.203684014519779e-07",
+      "max_energy_balance_j": "1.7177823748940751e-09",
+      "retained_samples": 447,
+      "excluded_inactive_samples": 554
+    }
+  ],
+  "releases": [
+    {
+      "case": "coast_low_energy",
+      "source_case": "controlled_slow_downward",
+      "source_lane": 325,
+      "source_sample": 40,
+      "source_time_s": 0.8,
+      "initial_state": [
+        -0.2537889257558883,
+        0.5264908051161572,
+        -1.6751167502032622,
+        8.877921222933598
+      ],
+      "energy_fraction": 0.20488057726447423
+    },
+    {
+      "case": "coast_intermediate_energy",
+      "source_case": "controlled_slow_downward",
+      "source_lane": 325,
+      "source_sample": 139,
+      "source_time_s": 2.7800000000000002,
+      "initial_state": [
+        -0.8547334924279104,
+        1.2877809257011785,
+        -2.123699617068107,
+        10.175920648626176
+      ],
+      "energy_fraction": 0.6001479070689296
+    },
+    {
+      "case": "coast_near_upright_energy",
+      "source_case": "controlled_slow_downward",
+      "source_lane": 325,
+      "source_sample": 744,
+      "source_time_s": 14.88,
+      "initial_state": [
+        -0.37437794955533704,
+        2.5873154876535747,
+        0.3823635917294984,
+        -2.9920969704951723
+      ],
+      "energy_fraction": 0.9500327166961154
+    }
+  ],
+  "checks": {
+    "step_halving_max_state_error": [
+      6.123984199746246e-07,
+      1.944151021504581e-06,
+      1.2892776296347108e-05,
+      1.3920643159082147e-05
+    ]
+  },
+  "source": "artifacts/rotary_pendulum/experiment-results/single-constant-torque-action-controller/raw-runs/fine_plant/gain_0.004_work_0.02/machine-scannables",
+  "source_sha256": "697abd5df504e182242c1fe596f019c6331ddc67abb942bf4aa39834dba87281",
+  "physical": {
+    "gravity_m_s2": 9.81,
+    "arm_mass_kg": 0.095,
+    "arm_length_m": 0.085,
+    "pendulum_mass_kg": 0.024,
+    "pendulum_length_m": 0.129,
+    "rotary_damping_nms": 0.0,
+    "pendulum_damping_nms": 0.0,
+    "torque_limit_nm": 0.0204
+  },
+  "model": {
+    "pendulum_com_length_m": 0.0645,
+    "arm_inertia_kg_m2": 0.00022879166666666672,
+    "pendulum_com_inertia_kg_m2": 3.3282000000000004e-05,
+    "pendulum_inertia_kg_m2": 0.00013312800000000002,
+    "base_inertia_kg_m2": 0.00040219166666666673,
+    "coupling_inertia_kg_m2": 0.00013158,
+    "gravity_torque_nm": 0.01518588,
+    "vertical_mass_determinant_kg2_m4": 3.622967580000001e-08,
+    "natural_frequency_rad_s": 12.98387398820208,
+    "natural_period_s": 0.4839222340642602
+  },
+  "coast_duration_s": 12,
+  "integration_steps_s": [
+    0.001,
+    0.0005
+  ],
+  "source_settings": {
+    "seed": 20261022,
+    "episodes_per_stratum": 512,
+    "decisions": 200,
+    "chunk_decisions": 10,
+    "mode": "energy",
+    "trials": [
+      {
+        "name": "gain_0.004_work_0.02",
+        "work_gain": 0.004,
+        "work_weight": 0.02,
+        "arm_limit_weight": 10000.0
+      }
+    ],
+    "name": "gain_0.004_work_0.02",
+    "work_gain": 0.004,
+    "work_weight": 0.02,
+    "arm_limit_weight": 10000.0,
+    "pendulum_angle_convention": "[0, 360) degrees; 0 down, 180 up; state arrays use radians in [0, 2*pi)"
+  }
+}

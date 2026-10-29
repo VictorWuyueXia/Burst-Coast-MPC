@@ -54,7 +54,7 @@ def main() -> None:
     plant = configurations[0]["plant"]
     if PHYSICAL.model_dump() != manifest["physical_config"]:
         raise ValueError("Current physical parameters differ from the trained model")
-    bundle = Path("artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables")
+    bundle = Path("artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables")
     if (
         hashlib.sha256((bundle / "weights.npz").read_bytes()).hexdigest()
         != manifest["weights_sha256"]

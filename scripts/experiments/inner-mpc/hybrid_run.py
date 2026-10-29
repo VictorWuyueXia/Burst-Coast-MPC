@@ -43,7 +43,7 @@ root = Path(f"artifacts/rotary_pendulum/inner-mpc/20261022-hybrid-{stage}-{dwell
 machine = root / "machine-scannables"
 machine.mkdir(parents=True, exist_ok=False)
 (root / "human-readables").mkdir()
-bundle = Path("artifacts/rotary_pendulum/1-TD3_20261016/machine-scannables")
+bundle = Path("artifacts/rotary_pendulum/final-results/rl-policy/machine-scannables")
 manifest = json.loads((bundle / "manifest.json").read_text())
 assert PHYSICAL.model_dump() == manifest["physical_config"]
 assert (

@@ -15,7 +15,7 @@ from terminal_linearization import terminal_model
 # Authenticate the unchanged controller inputs and reuse its decoded local dynamics.
 repository = Path(__file__).resolve().parents[3]
 root = repository / "artifacts/rotary_pendulum"
-bundle = root / "1-TD3_20261016/machine-scannables"
+bundle = root / "final-results/rl-policy/machine-scannables"
 manifest = json.loads((bundle / "manifest.json").read_text())
 assert hashlib.sha256((bundle / "weights.npz").read_bytes()).hexdigest() == manifest["weights_sha256"]
 archive = np.load(bundle / "weights.npz", allow_pickle=False)
@@ -23,7 +23,7 @@ terminal = terminal_model({key: archive[key] for key in archive.files},
                           np.array(manifest["observation"]["divisors"]))
 terminal = terminal.factory("frozen_values", ["error"], ["values", "jacobian"])
 archive.close()
-source = root / "inner-mpc/20261022-lqr-cost-fine-confirm-16/machine-scannables"
+source = root / "final-results/rl-mpc/machine-scannables/session-records"
 design = json.loads((source / "design.json").read_text())
 folder = root / "inner-mpc/actual-holding-study-20261025/machine-scannables"
 model = mpc_sensitivity(terminal, dict(plant=design["plant"], mechanics=manifest["derived_physics"]))

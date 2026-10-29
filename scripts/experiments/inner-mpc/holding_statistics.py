@@ -84,8 +84,8 @@ def holding_statistics(record_root: Path) -> dict:
 if __name__ == "__main__":
     # Save compact command-level records; the original archive remains the dense-data source.
     repository = Path(__file__).resolve().parents[3]
-    source = repository / "artifacts/rotary_pendulum/inner-mpc/20261022-lqr-cost-fine-confirm-16"
-    result = holding_statistics(source / "machine-scannables")
+    source = repository / "artifacts/rotary_pendulum/final-results/rl-mpc/machine-scannables/session-records"
+    result = holding_statistics(source)
     output = repository / "artifacts/rotary_pendulum/inner-mpc/actual-holding-study-20261025"
     machine = output / "machine-scannables"
     machine.mkdir(parents=True, exist_ok=True)
