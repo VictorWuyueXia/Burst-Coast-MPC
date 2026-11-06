@@ -57,86 +57,132 @@
 \pagestyle{empty}
 
 \section{Introduction}
-% Act--coast control trades enabled operation against continued task performance.
-Act--coast control alternates bounded actuation with intervals of unforced motion. The controller applies a planned input while enabled and commands zero input during coast, allowing the plant to follow its natural dynamics. The aim is to reduce enabled time and the frequency of feedback decisions while meeting a prescribed task and respecting operating constraints. The controller must therefore determine both how to act and when feedback is needed again.
+% Periodic feedback limits accumulated error under explicit stability assumptions.
+Conventional feedback control commonly uses periodic state measurements and control updates throughout operation, with sufficiently high update rates selected to limit errors introduced by sampling~\cite{heemels2012}. Near an equilibrium, a locally Lipschitz feedback law bounds changes in the commanded input in proportion to changes in the measured state, allowing small state deviations to produce correspondingly small input corrections. Under suitable robustness assumptions, stability can be preserved by keeping sampling errors sufficiently small relative to the state, so that a Lyapunov function continues to decrease~\cite{tabuada2007}.
 
-% The input and coast duration jointly determine the next feedback state.
-Coast duration cannot be selected independently of the preceding input. Actuation determines the state at switch-off, while unforced evolution determines the state at the next feedback decision. A longer coast can reduce intervention but also permit motion toward a constraint or away from the target. Each input and timing choice must therefore be assessed through the complete intervening motion and the control required afterward.
+% Application costs motivate retaining useful motion or configurations between interventions.
+However, maintaining frequent feedback and actuation throughout operation can sometimes be costly. For example, a spacecraft propulsion system with limited re-ignition charges must allocate its burns separated by passive coast intervals~\cite{peyraud2023}. Modern autonomous sail ships, when sailing on a steady course, keep their sail configurations while the wind changes remains within a tolerable range. Reconfiguration is undesired as realigning heavy sail structures and ship hulls consumes large amount of energy and time~\cite{akiyama2021}. Such adjustments motivates minimum activation control that reduces total number of actuation events while maintaining tracking performance~\cite{sang2026}. This motivates a controller that optimize for minium number of activations, with dynamic prediction horizons for each actuation and passive coasting cycle.
 
-% The research objective is controller synthesis and analysis on a chosen benchmark.
-We seek a bi-level controller in which outer model predictive control (MPC) selects both shut-off and replanning times, while an inner problem optimizes the bounded input for those times. Figure~\ref{fig:act-coast-overview} illustrates the complete event, with model prediction for its two parts and a continuation estimate for motion beyond its endpoint. The aim is a construction algorithm, sufficient conditions for admissible evolution between decisions, and quantified task and resource performance. We examine the predictive-control ingredients in nominal simulation on a rotary-pendulum benchmark.
+% Application costs lead from transfer-time objectives to input sparsity and restart timing.
+Control methods minimizing replanning times or actuation duration have been studied. 
+% Minimum time bang bang control exploits bounded input authority for rapid transfer, as in the double integrator problem, but its transfer time objective does not separately price active operation or restarting~\cite{liberzon2012}. 
+% To reward inactive periods, 
+Maximum hands off control minimizes nonzero input duration, with an equivalent $L^1$ cost integrating input magnitude under normality assumptions~\cite{nagahara2015}. The work also provides practical stability analysis for disturbed linear systems under stated conditions. 
+However, minimizing nonzero input duration creates many few-step actuation and effectively requires the actuator to reactivate many times through out operation.
 
-\input{figures/act-coast-overview/figure-1.tex}
+% Feedback scheduling motivates extended prediction and continuation assessment.
+The timing of control updates has also been investigated. A nonuniform temporal resolution for model predictive control (MPC) allows longer prediction horizons without exponential growth of computations, but does not by itself determine when feedback updates or actuation should occur~\cite{ahmed2022}. Event-triggered MPC activate feedback and optimization when the measured state deviates sufficiently from the prediction, while executing the previously planned input sequence between activations~\cite{lehmann2013}. This reduces activation and computation of controllers, but does not affect actuator re-activations or durations. 
+Beyond scheduling feedback timings, recent work on stability and feasibility for switched systems established finite periods for dynamic systems to work in temporarily uncontrollable or unstable operating regions, before having to switch to a different controlled operation region~\cite{hall2025}. This work directly supports alternating actuation and passive intervals, but rely on externally imposed switch timing rather than optimized.
 
+Planning over longer prediction horizons increases the size of the optimization problem, whose global solution is NP hard in general for nonconvex formulations~\cite{vavasis1990}. This motivates using reinforcement learning (RL) to estimate state values beyond an explicit prediction horizon. TD-MPC2's illustrated a combination of learned latent dynamics, terminal action values, and trajectory optimization across diverse continuous control tasks~\cite{hansen2024}. But the work yet to address control intervention timings nor total actuation times.
+
+% Q values select timing; conditional MPC handles constrained input optimization.
+To investigate the motivated control scheme for minimum number of activation, and connect activation timing with long horizon performance, we formulate a bi-level act--coast predictive controller. The controller provide dense control for a short finite period of time, then compares learned estimates of future return to select shut-off and the next replanning horizons. A constrained MPC solve for the optimal input trajectories given the two horizons, followed by a zero-input passive coasting period from shut-off to the next replanning. This structure lets control engage sparsely only at critical states, as illustrated in Figure~\ref{fig:act-coast-overview}. The controller is tested on the benchmark introduced in Section~\ref{sec:dynamics}, with metrics of number of plannings, total actuation time, and the conventional converging time, converging error, and constraints satisfaction.
+
+\begin{figure*}[t]
+      \centering
+      \includegraphics[width=0.8\textwidth]{figures/Figure 1 - Overview.png}
+      \caption{Act--coast control with variable episode durations.
+      (A) Each episode alternates a planned actuation interval with zero-input coast.
+      Replanning starts a new episode and determines the subsequent input and timing.
+      Blue denotes actuation and orange denotes coast; the input profiles are schematic.
+      (B) Space reserved for the controller-synthesis pipeline.}
+      \label{fig:act-coast-overview}
+      \end{figure*}
+      
+      
 \section{Problem Formulation}
-% State and input constraints apply to both forced and unforced motion.
-Consider the nominal nonlinear plant $\dot x=f(x,u)$ in continuous time $t$, with physical state $x$ and commanded input $u$. The known dynamics $f$ admit unique trajectories for admissible planned inputs, whose values belong to a prescribed bounded set $\mathcal U$ containing zero. The full state is observed at scheduled decision times, starting from $x(0)\in\mathcal X_0\subseteq\mathcal X$, where $\mathcal X_0$ and $\mathcal X$ are the prescribed initial-state and operating sets. The constraints $x(t)\in\mathcal X$ and $u(t)\in\mathcal U$ apply throughout executed motion, including coast under $f(x,0)$.
+% The plant and path constraints apply throughout actuation and coast.
+Consider the nominal nonlinear plant $\dot x=f(x,u)$, where $t\ge0$ is time, $x$ is the physical state, and $u$ is the commanded input. The known dynamics $f$ yields system trajectories per the states $x$, and inputs $u$ in a prescribed bounded set $\mathcal U$ containing zero. The initial state belongs to a prescribed set $\mathcal X_0\subseteq\mathcal X$, where $\mathcal X$ is the feasible state set, and the full state is observed at each time step that the controller is activated. The constraints $x(t)\in\mathcal X$ and $u(t)\in\mathcal U$ must hold throughout motion.
 
-% Each event executes an enabled input segment followed by zero-input coast.
-Each decision selects an enabled input segment and the coast that follows it. At time $t_j$, with event index $j=0,1,\ldots$ and $t_0=0$, choose event duration $h_j$, enabled duration $\tau_j$, and planned input $v_j(s)\in\mathcal U$ for elapsed time $s\in[0,\tau_j)$, giving
+% Episode time separates the shut-off horizon from the next planning horizon.
+Each control episode consists of a finite time actuation interval followed by control shut-off and passive coasting, until the next controller activation. Episode $j=0,1,\ldots$ starts at $t_j$, with $t_0=0$, and uses elapsed time $\tau=t-t_j\in[0,h_j]$, where $h_j$ is the planning horizon of episode $j$. The controller selects a shut-off horizon $\sigma_j$ and an input trajectory $v_j(\tau)\in\mathcal U$ for $0\le\tau<\sigma_j$, giving
 \begin{equation}
 \begin{aligned}
  t_{j+1}&=t_j+h_j,\\
- u(t)&=\begin{cases}
- v_j(t-t_j),&t_j\le t<t_j+\tau_j,\\
- 0,&t_j+\tau_j\le t<t_{j+1}.
- \end{cases}.
+ u(t_j+\tau)&=\begin{cases}
+ v_j(\tau),&0\le\tau<\sigma_j,\\
+ 0,&\sigma_j\le\tau<h_j.
+ \end{cases}
 \end{aligned}
 \label{eq:act-coast}
 \end{equation}
-The first branch executes the planned actuation, and the second allows unforced evolution until feedback resumes at $t_{j+1}$. Prescribed bounds $0<h_{\min}\le h_j\le h_{\max}<\infty$ prevent accumulation of decisions in finite time, while $0<\tau_j<h_j$ requires both intervals to be nonempty. Define the mode indicator $m(t)$ as one while enabled and zero during coast, so an enabled zero command remains distinct from disabled operation.
+Thus $\tau=0$ marks controller activation and planning, $\tau=\sigma_j$ marks shut-off, and $\tau=h_j$ marks the next episode, with prescribed bounds for horizons $0<h_{\min}\le h_j\le h_{\max}<\infty$ and $0<\sigma_j<h_j$. We further define $m(t)$ as $1$ during the planned actuation interval and $0$ during passive coasting to distinguish any planned zero actuation from controller shut-off.
 
-% Task success requires uninterrupted target residence within the assessment horizon.
-Task completion requires reaching a prescribed target neighborhood and remaining there for a prescribed duration. For a chosen task-error map $e$, Euclidean norm $\|\cdot\|$, and tolerance $\varepsilon>0$, define $\mathcal G=\{x\in\mathcal X:\|e(x)\|\le\varepsilon\}$. Within assessment duration $T>0$, success requires an entry time $t_g\in[0,T-T_{\mathrm{hold}}]$ such that $x(t)\in\mathcal G$ throughout $[t_g,t_g+T_{\mathrm{hold}}]$, where $0<T_{\mathrm{hold}}\le T$ is the required hold duration. This uninterrupted residence distinguishes continued regulation from a single target visit, while admissibility remains required throughout the assessment.
+% Success combines finite-time entry and residence with Lyapunov stability of the target.
+The control objective is to reach a prescribed closed target region $\mathcal G\subseteq\mathcal X$ in finite time and remain there. For each initial state, require a finite entry time $t_g\ge0$ such that $x(t)\in\mathcal G$ for all $t\ge t_g$. With the bounded values of the initial state, this is a Lyapunov stability with a oscillation bound $\rho>0$ around the desired configuration.
+% In addition, require Lyapunov stability of $\mathcal G$: for every prescribed neighborhood size $\rho>0$, there must be a $\delta>0$ such that $d_{\mathcal G}(x(0))<\delta$ implies $d_{\mathcal G}(x(t))<\rho$ for all $t\ge0$ along the closed-loop trajectories. Here $d_{\mathcal G}(x)=\inf_{y\in\mathcal G}\|x-y\|$ is Euclidean distance to the target, with $y$ ranging over $\mathcal G$ and $\delta$ specifying how close the initial state must be. 
+The controller therefore must achieve both the finite-time entry and the stability conditions.
 
-% Enabled duration and decision count give switch-off and feedback timing explicit costs.
-The performance objective accounts for enabled time and new decisions alongside task error and input effort. For a chosen nonnegative running cost $\ell(x,u)$ and positive design weights $c_{\mathrm{on}},c_{\mathrm{dec}}$, define
+% Resource charges distinguish actuation duration from repeated planning.
+% Performance balances task error and input effort against actuation time and planning frequency. 
+To evaluate performance of such controller, we would start with the total activation counts and the total actuation time.
+For an assessment duration $T>0$, a prescribed nonnegative running cost $\ell(x,u)$, and positive design weights $c_{\mathrm{on}},c_{\mathrm{act}}$, define
 \begin{equation}
 \begin{aligned}
  T_{\mathrm{on}}&=\int_0^T m(t)\,\dd t,\qquad
  n(T)=\#\{j:0\le t_j<T\},\\
  J_T&=\int_0^T\ell(x(t),u(t))\,\dd t\\
- &\quad+c_{\mathrm{on}}T_{\mathrm{on}}+c_{\mathrm{dec}}n(T).
+ &\quad+c_{\mathrm{on}}T_{\mathrm{on}}+c_{\mathrm{act}}n(T).
 \end{aligned}
 \label{eq:act-coast-cost}
 \end{equation}
-Here $T_{\mathrm{on}}$ is total enabled duration, $\#$ denotes counting, and $n(T)$ counts decisions including the initial one. The running cost expresses task and input preferences, while the two charges make switch-off consequential even at zero input and attach a cost to repeated decisions. Task completion and path admissibility remain requirements on this comparison.
+Here $T_{\mathrm{on}}$ is total actuation time, $\#$ denotes counting, and $n(T)$ counts activations, including the initial one. The cost term $\ell(x(t),u(t))$ measures the open-loop task and input preferences, while $c_{\mathrm{on}}$ and $c_{\mathrm{act}}$ assign costs to actuation duration and repeated activations.
 
-% Evaluation separates task quality, resource use, and analytical admissibility.
-The synthesis problem is to construct a state-dependent rule for Eq.~\eqref{eq:act-coast} that meets these requirements with low cost~\eqref{eq:act-coast-cost} on its feasible initial-state domain. Primary measures are task success, the earliest hold-completion time $t_g+T_{\mathrm{hold}}$ satisfying the residence condition, constraint violations, enabled fraction $T_{\mathrm{on}}/T$, and decision rate $n(T)/T$. Input effort $\int_0^T\|u(t)\|^2\,\dd t$ and task-error root mean square $(T^{-1}\int_0^T\|e(x(t))\|^2\,\dd t)^{1/2}$ quantify the accompanying control performance. Comparisons retain failed runs and use common dynamics, initial conditions, limits, target, and duration for act--coast control and periodic feedback with continuous enablement. An admissibility certificate must establish constraint satisfaction between decisions, beyond checks at finitely many prediction nodes.
+% Evaluation retains only quantities directly tied to the synthesis objective.
+The synthesis problem is to construct the rule in Eq.~\eqref{eq:act-coast} that achieves finite target neighborhood entry time $t_g$ while primarily reducing $T_{\mathrm{on}}$ and $n(T)$. For each $T_{\mathrm{on}}$ and $n(T)$ combination, the controller must reduce $J_T$ while satisfying its state and input constraints.
+Its tracking error and input effort will also be measured for comparison with exisitng methods. 
+The system's control Lyapunov stability require analytical justification.
+
 
 \section{Method}
 % The benchmark and learned predictive controller supply the inner-control ingredients.
-The methods develop predictive-control ingredients for the act--coast design. Section~\ref{sec:dynamics} introduces the benchmark dynamics and energy representation, and Section~\ref{sec:contorller} constructs a teacher that supplies learning references. Section~\ref{sec:learning} learns a stationary policy and continuation value from these references and further interaction. Section~\ref{sec:mpc-rl} combines them with constrained nonlinear MPC, using a fixed prediction horizon and replanning after each held command as an inner-control baseline. Section~\ref{sec:bilevel} formulates outer MPC timing selection around conditional input optimization.
+We use the rotary pendulum as a benchmark to demonstrate act--coast controller synthesis and evaluate its performance numerically. The rotary pendulum has a single motor driving the arm, while the pendulum swings about a passive hinge. The task is to reach and hold the centered-upright configuration under torque and arm-travel limits. We first define the dynamics and energy representation, then use them to generate reference trajectories to train the RL policy and state value estimator for constrained predictive control. Finally, we formulate the selection of the shut-off and planning horizons.
 
 \subsection{Rotary-pendulum dynamics and energy representation}
 \label{sec:dynamics}
 % Benchmark coordinates retain the physical phase required for prediction.
-Our chosen benchmark (Fig.~\ref{fig:rotary-pendulum-geometry}) is a rotary pendulum whose passive rod swings in an arm-attached vertical plane perpendicular to the motor-driven arm. The unwrapped arm angle $\theta\in\mathbb R$ is measured from a fixed horizontal reference, and the pendulum angle $\alpha\in[-\pi,\pi)$ is measured from downward. Signed angular speeds $\omega=\dot\theta$ and $\nu=\dot\alpha$, defined before angular wrapping, give physical state $x=(\theta,\alpha,\omega,\nu)^{\mathsf T}$ and coordinates $q=(\theta,\alpha)^{\mathsf T}$. For uniform rigid rods with ideal joints and zero damping, kinetic and potential energies are $K=\tfrac12\dot q^{\mathsf T}M(\alpha)\dot q$ and $V=G(1-\cos\alpha)$, where $M$ is the coupled inertia matrix and $G$ is pendulum mass times gravity times its center-of-mass distance from the hinge. The Lagrangian $\mathcal L=K-V$ retains mixed kinetic energy because arm motion carries the pendulum hinge.
+A rotary pendulum, as shown in Fig.~\ref{fig:rotary-pendulum-geometry}, consists of a passive pendulum (blue) swinging in an arm-attached vertical plane perpendicular to the motor-driven arm (orange). The unwrapped arm angle $\theta\in\mathbb R$ is measured from a fixed centered position, and the pendulum angle $\alpha\in[-\pi,\pi)$ is measured from downward. Signed angular speeds $\omega=\dot\theta$ and $\nu=\dot\alpha$, defined before angular wrapping, yielding physical state $x=(\theta,\alpha,\omega,\nu)^{\mathsf T}$ and general coordinates $q=(\theta,\alpha)^{\mathsf T}$.
 
-% The benchmark specializes the generic limits and orientation-holding criterion.
-Motor torque and arm travel satisfy $|u|\le U$ and $|\theta|<\theta_{\max}$, where $U,\theta_{\max}>0$ are prescribed bounds and positive torque increases $\theta$. Numerical commands are held over a fixed duration $\Delta>0$. Define the upright error $\beta=\operatorname{wrap}(\alpha-\pi)$, where $\operatorname{wrap}$ selects the equivalent angle in $[-\pi,\pi)$, and use $e(x)=\beta$ with prescribed angular tolerance $\varepsilon=\varepsilon_\alpha>0$. This target tests orientation, while ideal upright rest additionally requires $\omega=\nu=0$.
+% Define the tracking task in physical coordinates.
+The task goal is to reach and hold at centered-upright rest, where $q_g=(0,-\pi)^{\mathsf T}$ and $x_g=(0,-\pi,0,0)^{\mathsf T}$. The wrapped angle $-\pi$ is equivalent to $\pi$. 
+% The controller must bring the state into a prescribed neighborhood of $x_g$ in finite time and keep it there. 
+For angular tracking, we define angular tracking error $e(x)=\beta$ with tolerance $\varepsilon>0$, where $\beta=\operatorname{wrap}(\alpha-\pi)$ is the upright error and $\operatorname{wrap}$ selects the equivalent angle in $[-\pi,\pi)$.
 
-\input{figures/rotary-pendulum-geometry/figure-2.tex}
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/Figure 2 - Rotary Pendulum.png}
+\caption{The rotary-pendulum system.
+Motor torque drives the horizontal arm, while the pendulum swings freely about
+its hinge. The top view defines arm angle $\theta$, angular velocity
+$\omega=\dot\theta$, and the prescribed travel bounds
+$\pm\theta_{\max}$. And the side view defines pendulum angle $\alpha$, angular velocity
+$\nu=\dot\alpha$, and the wrapped angle between $[-\pi, \pi]$.}
+\label{fig:rotary-pendulum-geometry}
+\end{figure}
+% \vspace{-6em}
 
 % The forced Euler--Lagrange relation supplies the physical prediction model.
-Differentiating $\mathcal L$ relates joint torques to accelerations through $\frac{\dd}{\dd t}(\partial\mathcal L/\partial\dot q)-\partial\mathcal L/\partial q=(u,0)^{\mathsf T}$. With torque applied only to the arm, this gives
+For uniform rigid rods with ideal joints and zero damping, the Lagrangian is $\mathcal L=K-V$, where $K=\tfrac12\dot q^{\mathsf T}M(\alpha)\dot q$ is kinetic energy and $V=G(1-\cos\alpha)$ is gravitational potential energy relative to downward rest. Here $M(\alpha)$ is the coupled inertia matrix and $G=m_p g\ell_p/2$, where $m_p$ and $\ell_p$ are the pendulum mass and length, and $g$ is gravitational acceleration.
+The forced Euler--Lagrange equation has generalized torque $(u,0)^{\mathsf T}$ as the motor acts only on the arm. The governing equation of motion is therefore
 \begin{equation}
 \begin{aligned}
  M(\alpha)&=\begin{bmatrix}A(\alpha)&C(\alpha)\\C(\alpha)&J\end{bmatrix},\\
- M(\alpha)\ddot q&+
+ \ddot q
+ &=M^{-1}(\alpha)
  \begin{bmatrix}
- A'\omega\nu+C'\nu^2\\
- -\tfrac12 A'\omega^2+G\sin\alpha
- \end{bmatrix}
- =\begin{bmatrix}u\\0\end{bmatrix}.
+ u-A'\omega\nu-C'\nu^2\\
+ \tfrac12 A'\omega^2-G\sin\alpha
+ \end{bmatrix}.
 \end{aligned}
 \label{eq:dynamics}
 \end{equation}
-Here $A=J_0+J\sin^2\alpha$, $C=B\cos\alpha$, and primes denote differentiation with respect to $\alpha$; the fixed coefficients $J_0,J,B$ are the baseline arm-axis inertia including the carried pendulum, pendulum hinge inertia, and inertial coupling coefficient, respectively, computed from link geometry and masses. The off-diagonal entries couple the accelerations, while the remaining terms describe velocity-dependent inertial torques and gravity. Solving for the accelerations and adjoining $\dot\theta=\omega$, $\dot\alpha=\nu$ defines the physical-state dynamics $\dot x=f(x,u)$, whose integration predicts motion under a proposed torque.
+Here $A=J_0+J\sin^2\alpha$, $C=B\cos\alpha$, and primes denote differentiation with respect to $\alpha$. The coefficients $J_0,J,B$ are the baseline arm-axis inertia including the carried pendulum, pendulum hinge inertia, and inertial coupling coefficient, respectively, computed from the link geometry and masses. The matrix $M(\alpha)$ is positive definite because every nonzero joint velocity gives positive kinetic energy. The input direction $M^{-1}(\alpha)(1,0)^{\mathsf T}$ has rank one, so the motor cannot prescribe both joint accelerations independently. Adjoining $\dot\theta=\omega$ and $\dot\alpha=\nu$ gives the physical-state dynamics $\dot x=f(x,u)$ used for prediction.
+
+With limited motor torque, swing-up relies on building energy through successive swings. The upright angular error alone would constantly trying to drive the pendulum to $x_g$ and rejects useful swings that contribute in building up the energy. We therefore add an energy representation of the system and control the motion directly with energy states.
 
 % The energy partition distinguishes motion from the elevation needed at upright rest.
-Upright rest requires mechanical energy to become gravitational potential rather than remain kinetic motion. Separate the arm-body kinetic energy $K_a=\tfrac12 I_a\omega^2$, where $I_a$ is the arm's own motor-axis inertia, from the pendulum-body kinetic energy $K_p=K-K_a$, which includes hinge motion and coupling. These define the energy map $H$, energy representation $z$, total energy $E$, and upright-rest energy $\Estar$ by
+Upright rest requires all mechanical energy to become gravitational potential. Separate the arm kinetic energy $K_a=\tfrac12 I_a\omega^2$, where $I_a$ is the arm's own motor-axis inertia, from the pendulum-body kinetic energy $K_p=K-K_a$, which includes hinge motion and coupling. These define the energy map $H$, energy representation $z$, total energy $E$, and upright-rest energy $\Estar$ by
 \begin{equation}
 \begin{aligned}
  z=H(x)&=(K_a,K_p,V)^{\mathsf T},\\
@@ -144,53 +190,93 @@ Upright rest requires mechanical energy to become gravitational potential rather
 \end{aligned}
 \label{eq:encoder}
 \end{equation}
-Since $K_a+K_p=E-V$, bringing both $E$ and $V$ toward $\Estar$ removes the remaining kinetic energy and motivates the teacher's energy feedback.
+Since $K_a+K_p=E-V$, bringing both $E$ and $V$ toward $\Estar$ removes the remaining kinetic energy as the pendulum approaches upright.
 
 % Physical phase determines the direction of energy exchange.
-Energy feedback specifies a desired correction, while physical phase determines its realization. Differentiating $E=K+V$ along Eq.~\eqref{eq:dynamics} cancels internal energy exchange, and differentiating $V$ gives
+Differentiating $E=K+V$ along Eq.~\eqref{eq:dynamics} cancels internal energy exchange, and differentiating $V$ gives
 \begin{equation}
  \dot E=u\omega,\qquad \dot V=G\sin\alpha\,\nu.
 \label{eq:powers}
 \end{equation}
-Motor power changes total energy, while pendulum orientation and signed velocity determine whether potential energy rises or falls. States with opposite $\alpha$ and otherwise identical coordinates have the same $z$ but opposite $\dot V$ when $\sin\alpha\,\nu\ne0$. The teacher therefore uses the full physical state to predict energy transfer.
+Motor power changes total energy, while pendulum orientation and signed velocity determine whether potential energy rises or falls. Note that states with opposite sign for $\alpha$ would be represented with the same $z$, but have opposite $\dot V$ when $\sin\alpha\,\nu\ne0$. Thus energy state feedback control can only specify a desired control magnitude, while physical phase must determine its realization direction.  Predicting energy transfer therefore still requires the full physical state.
 
-\subsection{Mechanical teacher and demonstration trajectories}
+Motor torque and arm travel satisfy their physical feasible bounds $|u|\le U$ and $|\theta|<\theta_{\max}$, where positive torque increases $\theta$. The control commands are held constant over a fixed duration time step $\Delta>0$. Predictions in episode $j$ are evaluated on the grid $\tau=k\Delta$ for integers $k\ge0$ with $k\Delta\le h_j$. Thus $\tau$ remains elapsed episode time and $k$ indexes the prediction steps.
+
+
+\subsection{Energy-based control and reference trajectories}
 \label{sec:contorller}
-% Bounded work feedback guides the search for a nominal torque.
-The energy-based heuristic~\cite{astrom2000} requests bounded work from the difference between current and upright-rest energy. For a chosen gain $\kappa>0$, work bound $\bar w>0$, and action duration $\Delta>0$, define requested work $w$ and work $\mathcal W(x,u)$ delivered from initial state $x$ by a constant torque as
+% Requested work sets torque magnitude before phase determines its direction.
+We use the energy representation to construct swing-up reference trajectories under dense feedback and actuation, before introducing RL state value estimations and act--coast scheduling. Inspired by energy-based inverted pendulum control~\cite{astrom2000}, we adapt the method to a heuristic controller that requests work input from the energy-state error. At a given state $x_t$, define
 \begin{equation}
 \begin{aligned}
- w&=\operatorname{clip}\bigl(\kappa(\Estar-E),-\bar w,\bar w\bigr),\\
- \mathcal W(x,u)&=\int_0^\Delta u\omega(s)\,\dd s
- =u[\theta(\Delta)-\theta(0)].
+ w_t&=\operatorname{clip}\bigl(\kappa(\Estar-E(x_t)),-\bar w_t,\bar w_t\bigr),\\
+ \bar w_t&=U\Delta|\omega_t|.
 \end{aligned}
 \label{eq:workpolicy}
 \end{equation}
-Here $\operatorname{clip}$ restricts the request to the stated bounds, and $\theta(s),\omega(s)$ are the predicted arm angle and speed at elapsed time $s$, so work follows from the arm displacement under constant torque. Positive $w$ requests energy addition and negative $w$ energy removal, defining a total-energy budget whose attainable distribution depends on physical phase. Within $|u|\le U$, work matching supplies additional trial torques that compete with the sampled torques under potential-energy and arm-excursion penalties.
+Here $\kappa>0$ is the gain factor and $\operatorname{clip}$ restricts its first argument to the stated interval. The work scale $\bar w_t$ follows from the torque limit $U$ and the approximate one-step arm displacement $\Delta|\omega_t|$. The $u$ value is the one that satisfies $w_t=u\Delta\omega_t$ based on Eq.~\eqref{eq:powers}.
 
-% The augmented teacher provides references for stationary policy and value learning.
-The student needs reference trajectories containing both swing-up and continued upright control. The demonstration teacher therefore combines the nominal energy action with local linear balancing feedback near upright and predictive braking of outward arm motion. Trajectories satisfying the prescribed upright-holding and arm-bound conditions provide state--action examples and approximate return labels for initialization and remain available through demonstration replay. The student uses these references and its own transitions to learn a stationary torque policy and continuation-value estimates.
-
-% Local energy authority explains the state dependence of a work request.
-The same torque can affect total energy and pendulum swing energy differently. Define the relative swing energy $E_h=\tfrac12J\nu^2+V$, which excludes motion carried by the arm, and the instantaneous power sensitivities $s_E=\partial\dot E/\partial u$ and $s_h=\partial\dot E_h/\partial u$ at fixed state. The inertia relation gives
+% Compatible energy demands determine whether and in which direction to actuate.
+However, a input $u$ that reduces error on $E$ does not necessarily also reduce error the energy state $z$, as $\dot V$ and $K_p$ are not directly dependent on $u$ in Eq.~\eqref{eq:powers}. To further make sure the input drives the energy state to the goal we define $E_h=\tfrac12J\nu^2+V$ be the relative swing energy, which excludes motion carried by the arm. At a given state, the sensitivities of $E$ and $E_h$ to $u$ are
 \begin{equation}
-\begin{aligned}
- s_E&=\omega, & s_h&=-\frac{JC\nu}{AJ-C^2},\\
- c_E&=(E-\Estar)s_E, & c_h&=(E_h-\Estar)s_h.
-\end{aligned}
+ s_E=\frac{\partial\dot E}{\partial u}=\omega,\qquad
+ s_h=\frac{\partial\dot E_h}{\partial u}=-\frac{JC\nu}{AJ-C^2},
 \label{eq:energy-authority}
 \end{equation}
-Here $A,C,J$ are the inertia entries in Eq.~\eqref{eq:dynamics}; $c_E$ and $c_h$ are the torque coefficients in the derivatives of the respective half-squared energy errors, so equal nonzero signs admit a common reducing torque sign, while opposite signs imply competing input contributions. Figure~\ref{fig:energy-control} connects this local diagnostic to the teacher's energy request; natural energy exchange remains in the complete swing-energy rate, so these signs alone neither establish task progress nor select event times.
+where $A,C,J$ are defined in Eq.~\eqref{eq:dynamics}. This is informative that a suitable input must reduce both errors based on their signs of sensitivities and states, whereas an input that contribute to one but worsen the other is not worth doing -- the oscillatory dynamics will carry the state to a better state with aligned sensitivities. Thus the torque $u$ is only applied when $\delta_E\delta_hs_Es_h>0$, 
+where $\delta_E=\Estar-E(x_t)$ and $\delta_h=\Estar-E_h(x_t)$, whose negative values indicate surpluses. Figure~\ref{fig:energy-control} relates demonstrate the controled trajectory of the rotary pendulum in energy space and the state sensitivities.
 
-\input{figures/energy-control/figure-3.tex}
 
-\subsection{Stationary policy and continuation-value learning}
+% Predicted arm travel gives braking priority over energy regulation.
+Braking replaces $u$ when its one-step prediction yields constraint violation $|\hat\theta_{t+\Delta}|\ge\theta_{\max}$. The arm dynamics is approximated to an affine form $\ddot\theta=d(x)+b(x)u$, where $d(x)$ is the arm acceleration at zero torque in Eq.~\eqref{eq:dynamics} and $b(x)=J/(AJ-C^2)>0$. The braking acceleration $-\omega_t/\Delta$ to stop the arm motion over one update gives the braking torque
+\begin{equation}
+ u_b=\operatorname{clip}\!\left(
+ \frac{-\omega_t/\Delta-d(x_t)}{b(x_t)},-U,U\right).
+\label{eq:reference-brake}
+\end{equation}
+
+Starting from Monte Carlo $x_0$, repeated swing-up and braking updates generate state-action trajectories, and those reaching the upright tolerance within constraint are supplied to RL in Section~\ref{sec:learning} as teacher-student learning references.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/FIgure 3 - Energy and Sensititities.png}
+\caption{Energy path and torque direction along a recorded trajectory.
+(A) The plane $K_a+K_p+V=\Estar$ marks the energy required at upright rest.
+Along that plane, increasing $V$ leaves less energy in motion.
+(B) The power sensitivities show how torque can change total energy and relative
+swing energy. Color identifies whether reducing both energy components errors requires the same torque sign or opposing signs.}
+\label{fig:energy-control}
+\end{figure}
+
+
+\subsection{Reinforcement learning and state value estimations}
 \label{sec:learning}
-% A physical-state observation preserves the phase information needed for torque selection.
-The student learns a torque rule that retains the physical phase needed for swing-up and upright holding. Its observation is $o=\operatorname{normalize}(\theta,\sin\alpha,\cos\alpha,\omega,\nu)$, where $\operatorname{normalize}$ applies fixed componentwise scaling and the sine--cosine pair represents pendulum orientation continuously across angular wrapping. An actor $\pi$ maps this observation to normalized torque $a=\pi(o)\in[-1,1]$, giving physical torque $u=Ua$. This policy is stationary because its action depends on the current physical observation. Fitting the teacher's actions initializes the actor, while value learning evaluates the motion that follows its choices.
+% Demonstrations initialize task learning for later transfer to act--coast scheduling.
+Reinforcement learning estimates the future return associated with a state and action, providing a basis for later transfer learning on act--coast scheduling. Learning swing-up and upright regulation first supplies task knowledge before shut-off and planning horizons become decision variables. Teacher--student initialization directs exploration toward successful swing-up motion, since unguided exploration may spend many transitions away from upright or near the arm-travel limits. The reference controller is the teacher, while the learned torque policy is the student. Demonstrations initialize the student, and its subsequent transitions extend learning to sustained upright regulation.
 
-% A continuing return assigns value to both swing-up and sustained upright motion.
-Useful torque must contribute both to reaching upright and to remaining there with low speeds. Let $r_k$ be the negative accumulated cost over command interval $k$, using fixed positive weights to favor upright low-speed motion and penalize squared normalized torque and quadratic arm-centering and near-boundary terms. The additional penalty $|E_h/\Estar-1|$ supplies a swing-energy target away from upright; the teacher's mechanical energy $E$ also includes arm motion and coupling. For initial observation $o_0=o$, initial action $a_0=a$, and chosen per-command discount $0<\gamma<1$, the ideal policy action value is
+% A stationary actor uses the physical observation to select continuous torque.
+An actor is a parameterized policy that selects an action from the current observation. Here the actor $\pi$ takes $o=\operatorname{normalize}(\theta,\sin\alpha,\cos\alpha,\omega,\nu)$ and returns $a=\pi(o)\in[-1,1]$, giving torque $u=Ua$. Fixed componentwise scaling defines $\operatorname{normalize}$, while the sine--cosine pair represents pendulum orientation continuously across angular wrapping. This observation retains the physical state needed for Markov prediction, meaning that the next-state distribution is determined by the current observation and action. The policy is stationary because the same map $\pi$ is used at every update, independent of elapsed time. Together, these properties allow value estimates to depend on physical state without an episode clock, so a predicted endpoint can be evaluated at different planning horizons.
+
+% The reward connects energy-assisted swing-up to low-speed upright regulation.
+The reward favors progress toward upright and sustained regulation with limited effort and arm excursion. For command interval $k$, define
+\begin{equation}
+\begin{aligned}
+ r_k=-\Delta\Bigl\langle&
+ c_g(1-\rho(x))
+ +c_h\left|E_h(x)/\Estar-1\right|\\
+ &+c_u a_k^2+c_\theta P(\theta)\Bigr\rangle_k,\\
+ \rho(x)&=\exp\!\left(-\tfrac12
+ \left\|D^{-1}(\beta,\nu,\omega)^{\mathsf T}\right\|^2\right),\\
+ P(\theta)&=(\theta/\theta_{\max})^2+
+ \left(\frac{\max\{|\theta|-\theta_b,0\}}
+ {\theta_{\max}-\theta_b}\right)^2.
+\end{aligned}
+\label{eq:learning-reward}
+\end{equation}
+Here $\langle\cdot\rangle_k$ denotes the average over the command interval, $a_k$ is its normalized torque, and $c_g,c_h,c_u,c_\theta>0$ are chosen reward weights. The positive diagonal matrix $D$ sets the scales of upright angular error and joint speeds, so $\rho$ approaches one near upright rest. The fixed interior threshold $0<\theta_b<\theta_{\max}$ makes $P$ penalize both arm displacement and approach to the travel limit. The relative swing-energy term guides swing-up away from upright, while the upright term distinguishes low-speed regulation from merely passing through the target angle. This reward uses $E_h$ rather than the teacher's total mechanical energy $E$, so arm kinetic energy alone cannot satisfy its energy target.
+
+% Critics estimate the return that the actor's action initiates.
+A critic is a parameterized estimate of the return obtained by taking an action and then following the policy. For initial observation $o_0=o$, initial action $a_0=a$, and chosen discount $0<\gamma<1$, the ideal action value is
 \begin{equation}
  Q^\pi(o,a)=\mathbb E_\pi\!\left[
  \sum_{k=0}^{\infty}\gamma^k r_k
@@ -198,10 +284,10 @@ Useful torque must contribute both to reaching upright and to remaining there wi
  \right].
 \label{eq:policy-value}
 \end{equation}
-Here $k$ indexes command intervals and $\mathbb E_\pi$ averages subsequent trajectories under $\pi$, so discounting gives greater weight to near-term rewards while the continuing sum values sustained holding.
+Here $k$ indexes command intervals, and $\mathbb E_\pi$ averages subsequent trajectories under $\pi$. Discounting gives greater weight to near-term rewards, while the continuing sum values sustained holding after swing-up. The actor--critic structure supports continuous torque selection and evaluates the consequences of that selection. Its state value is $V^\pi(o)=Q^\pi(o,\pi(o))$, which supplies the continuation estimate needed at a predictive horizon's endpoint.
 
-% Twin critics extend teacher-return estimates through bootstrapped student transitions.
-Approximate discounted teacher returns initialize two critics $Q_1,Q_2$ that estimate $Q^\pi$, and mixed replay combines retained demonstrations with the student's new transitions. We use Twin Delayed Deep Deterministic Policy Gradient (TD3)~\cite{fujimoto2018}, with slowly updated target copies $\bar\pi,\bar Q_1,\bar Q_2$ to limit changes in the continuation estimate used for training. For a sampled transition $(o,a,r,o')$, with reward $r$, next observation $o'$, and bounded smoothing noise $\eta$, the perturbed target action $\widetilde a$ and value target $y$ are
+% Twin critics limit overestimation when learning from replayed transitions.
+Twin Delayed Deep Deterministic Policy Gradient (TD3)~\cite{fujimoto2018} is used because it learns continuous actions from replayed transitions while limiting value overestimation that can mislead the actor. Two critics $Q_1,Q_2$ estimate $Q^\pi$, initialized with approximate discounted demonstration returns. Slowly updated target copies $\bar\pi,\bar Q_1,\bar Q_2$ provide the training target for a transition $(o,a,r,o')$, where $r$ is the command reward and $o'$ the next observation.
 \begin{equation}
 \begin{aligned}
  \widetilde a&=\operatorname{clip}\bigl(\bar\pi(o')+\eta,-1,1\bigr),\\
@@ -209,19 +295,19 @@ Approximate discounted teacher returns initialize two critics $Q_1,Q_2$ that est
 \end{aligned}
 \label{eq:td-target}
 \end{equation}
-Clipping enforces the normalized torque range, both critics fit $y$ by squared-error regression, and the lower next-value estimate tempers optimistic bootstrapping. Learning continues after reaching upright, and sampling cutoffs retain the physical next observation and its continuation target.
+The bounded noise $\eta$ smooths the target over nearby actions, and clipping preserves the torque range. Both critics fit $y$ by squared-error regression, while the lower target estimate limits optimistic bootstrapping. Learning continues after upright entry, and finite sampling cutoffs retain the next observation and its continuation value.
 
-% Retained imitation guides actor improvement while new experience refines the value estimates.
-The actor improves its choices while retaining the teacher as a reference. Averaging over mixed replay distribution $\mathcal B$ and demonstration distribution $\mathcal D$, it minimizes the actor loss
+% Mixed replay improves the actor while retaining demonstrated task behavior.
+Let $\mathcal D$ be the empirical distribution of retained demonstration state--action pairs, and let $\mathcal B$ be the replay distribution mixing teacher transitions with transitions collected by the student. The actor minimizes
 \begin{equation}
 \begin{aligned}
- L_\pi={}&-\mathbb E_{\mathcal B}Q_1(o,\pi(o))\\
- &+\lambda\mathbb E_{\mathcal D}
+ L_\pi={}&-\mathbb E_{o\sim\mathcal B}Q_1(o,\pi(o))\\
+ &+\lambda\mathbb E_{(o,a_{\rm teach})\sim\mathcal D}
  \left[\bigl(\pi(o)-a_{\rm teach}\bigr)^2\right].
 \end{aligned}
 \label{eq:actor-loss}
 \end{equation}
-Here $a_{\rm teach}$ is the normalized teacher action and $\lambda>0$ is the chosen imitation weight, so the negative critic term favors larger estimated return while the squared error penalizes departure from demonstrated actions. Actor updates occur less frequently than critic updates, allowing value estimates to adjust between policy changes. The trained actor and critics are then frozen for predictive control, supplying candidate continuations and estimates of their future return.
+Here $a_{\rm teach}$ is the normalized teacher action and $\lambda>0$ is the imitation weight. The first expectation uses the observation marginal of $\mathcal B$ and favors actions with larger estimated return, while the second retains demonstrated swing-up behavior. Actor updates occur less frequently than critic updates so that value estimates can adjust between policy changes. The trained actor and critics are then held fixed to supply continuation values for nonlinear predictive control with prescribed actuation and coast horizons.
 
 \subsection{Nonlinear predictive control with learned continuation}
 \label{sec:mpc-rl}
@@ -252,9 +338,9 @@ We use the cross-entropy method (CEM) to search the nonlinear objective through 
 \subsection{Bi-level optimization of shut-off and replanning times}
 \label{sec:bilevel}
 % Outer MPC selects both event times; the conditional inner problem selects inputs.
-Outer MPC selects both shut-off and replanning times. At the observed state $x=x(t_j)$, integers $1\le b<r$ give enabled duration $\tau=b\Delta$ and event duration $h=r\Delta$. The outer problem chooses $(b,r)$, while the conditional inner problem optimizes the bounded input sequence. Each timing pair is therefore evaluated with its compatible input plan.
+Outer MPC selects both shut-off and replanning times. At the observed state $x=x(t_j)$, integers $1\le b<r$ give actuation duration $\sigma=b\Delta$ and event duration $h=r\Delta$. The outer problem chooses $(b,r)$, while the conditional inner problem optimizes the bounded input sequence. Each timing pair is therefore evaluated with its compatible input plan.
 
-% Conditional prediction includes the enabled prefix, coast, and one continuation score.
+% Conditional prediction includes the actuation prefix, coast, and one continuation score.
 Each conditional solve predicts both forced motion and coast. Starting from $x_0=x$, use $x_{i+1}=\Phi_\Delta(x_i,a_i)$ with $|a_i|\le1$ and the predicted arm constraints throughout both segments. For a prescribed accumulated per-command task/input cost $\ell_{\mathrm{base}}$ and the inherited per-command discount $\gamma$, define
 \begin{equation}
 \begin{aligned}
@@ -267,7 +353,7 @@ Each conditional solve predicts both forced motion and coast. Starting from $x_0
 \end{aligned}
 \label{eq:timing-inner}
 \end{equation}
-Here $c_{\mathrm{on}}$ is the enabled-time rate from Section~II, $c_{\mathrm{wake}}\ge0$ is a chosen restart charge, and $\ind_{\{i<b\}}$ equals one before shut-off and zero afterward. Coast still accumulates task cost, and $F(x_r)$ evaluates actor continuation once at replanning.
+Here $c_{\mathrm{on}}$ is the actuation-time rate from Section~II, $c_{\mathrm{wake}}\ge0$ is a chosen restart charge, and $\ind_{\{i<b\}}$ equals one before shut-off and zero afterward. Coast still accumulates task cost, and $F(x_r)$ evaluates actor continuation once at replanning.
 
 % Joint timing comparison uses a feasible conditional input plan for each pair.
 Outer MPC compares the conditional scores in Eq.~\eqref{eq:timing-inner}. Let $\mathcal P(x)$ be the finite set of integer pairs satisfying the Section~II duration bounds and admitting a feasible inner plan. When $\mathcal P(x)\ne\varnothing$, the ideal timing choice is
@@ -279,30 +365,30 @@ Outer MPC compares the conditional scores in Eq.~\eqref{eq:timing-inner}. Let $\
 The arg min denotes the set of minimizing pairs, and the stars identify the selected pair and its associated inner input plan. Changing either time changes the predicted state and feasible inputs, so each pair requires its own conditional solve.
 
 % Event execution and cost interpretation delimit the proposed timing formulation.
-The event selected by Eq.~\eqref{eq:timing-outer} executes $b^\star$ commands, coasts with zero input, and replans at $t_j+r^\star\Delta$. Initial activation is already incurred, and a reference without shut-off has no restart charge. This discounted score is a surrogate for Eq.~\eqref{eq:act-coast-cost}, with a restart charge distinct from the decision charge and an actor tail that omits future enabled-time and restart charges. The outer timing layer remains a proposed construction. Finite CEM search and sampled feasibility checks establish neither global optimality nor a continuous-time or recursive-feasibility certificate.
+The event selected by Eq.~\eqref{eq:timing-outer} executes $b^\star$ commands, coasts with zero input, and replans at $t_j+r^\star\Delta$. Initial activation is already incurred, and a reference without shut-off has no restart charge. This discounted score is a surrogate for Eq.~\eqref{eq:act-coast-cost}, with a restart charge distinct from the decision charge and an actor tail that omits future actuation-time and restart charges. The outer timing layer remains a proposed construction. Finite CEM search and sampled feasibility checks establish neither global optimality nor a continuous-time or recursive-feasibility certificate.
 
 \section{Experiments and Results}
 \subsection{Predictive control without act--coast}
 \label{sec:results-baseline}
-% The continuously enabled controller provides the reference for timing adaptation.
-The continuously enabled MPC+RL controller provides the reference for timing adaptation. We evaluated 32 nominal 40~s simulations, using a 1~s prediction horizon and replanning every 0.1~s. The starts comprised four perturbed groups, with eight sessions each, representing motion near downward, moving swing-up, near upright, and outward arm motion. The actor and critics remained active throughout, with no local-controller handoff and no early termination on reaching upright.
+% The continuously active controller provides the reference for timing adaptation.
+The continuously active MPC+RL controller provides the reference for timing adaptation. We evaluated 32 nominal 40~s simulations, using a 1~s prediction horizon and replanning every 0.1~s. The starts comprised four perturbed groups, with eight sessions each, representing motion near downward, moving swing-up, near upright, and outward arm motion. The actor and critics remained active throughout, with no local-controller handoff and no early termination on reaching upright.
 
 % Recorded motion explains sustained regulation and residual arm movement.
-The recorded trajectories in Fig.~\ref{fig:session-record} show the transition from large excursions to sustained upright regulation. A representative start near downward undergoes repeated swing excursions before entering the prescribed band $|\beta|\le5^\circ$. The arm continues moving after entry while the pendulum error stays small. Arm displacement therefore measures residual motion that the orientation-based target alone does not describe.
+Figure~\ref{fig:session-record} follows one recorded MPC+RL simulation through physical configurations, state motion, energy diagnostics, and applied torque. Its holding detail resolves the small upright deviations after the initial excursions. A representative start near downward undergoes repeated swing excursions before entering the prescribed band $|\beta|\le5^\circ$. The arm continues moving after entry while the pendulum error stays small. Arm displacement therefore measures residual motion that the orientation-based target alone does not describe.
 
 % Population metrics quantify holding while retaining the limits of nominal evidence.
 All 32 sessions stayed inside this band throughout the final 10~s, and the mean longest uninterrupted residence over each full session was 37.76~s. Pooling the final-ten-second samples across all sessions gave an upright-error root mean square of $0.485^\circ$ and an arm-angle root mean square of $12.75^\circ$. The recorded integration states respected the arm bound, although some trajectories approached it closely. The evidence concerns finite-duration nominal holding and does not isolate the terminal value's contribution or establish act--coast savings, robustness, or stability.
 
-\input{figures/session-record/figure-4.tex}
+% \input{figures/session-record/figure-4.tex}
 
 \subsection{Act--coast task--resource tradeoff}
 \label{sec:results-tradeoff}
 % Planned comparison links common task requirements to resource use.
-Matched starts and costs $\rightarrow$ task satisfaction and violations $\rightarrow$ enabled fraction, decision rate, effort, and error.
+Matched starts and costs $\rightarrow$ task satisfaction and violations $\rightarrow$ active fraction, decision rate, effort, and error.
 
 Figure~\ref{fig:atlas} reserves the matched scenario comparison of task performance and resource use.
 
-\input{figures/performance-atlas/figure-5.tex}
+% \input{figures/performance-atlas/figure-5.tex}
 
 \subsection{Contribution of joint timing optimization}
 \label{sec:results-timing}
@@ -314,22 +400,8 @@ Joint timing versus fixed shut-off or fixed replanning $\rightarrow$ matched inn
 % Planned boundary studies relate admissibility conditions to trajectory checks.
 Declared domain and admissibility condition $\rightarrow$ limiting coast durations and fine replay $\rightarrow$ feasible timing pairs and violations.
 
-\begin{thebibliography}{9}
-\bibitem{heemels2012}
-W. P. M. H. Heemels, K. H. Johansson, and P. Tabuada,
-``An introduction to event-triggered and self-triggered control,''
-in \emph{Proceedings of the 51st IEEE Conference on Decision and Control},
-2012, pp. 3270--3285. \href{https://doi.org/10.1109/CDC.2012.6425820}{doi:10.1109/CDC.2012.6425820}.
-\bibitem{astrom2000}
-K. J. \AA str\"om and K. Furuta,
-``Swinging up a pendulum by energy control,''
-\emph{Automatica}, vol. 36, no. 2, 2000.
-\href{https://doi.org/10.1016/S0005-1098(99)00140-5}{doi:10.1016/S0005-1098(99)00140-5}.
-\bibitem{fujimoto2018}
-S. Fujimoto, H. van Hoof, and D. Meger,
-``Addressing function approximation error in actor-critic methods,''
-in \emph{Proceedings of the 35th International Conference on Machine Learning},
-vol. 80, 2018, pp. 1587--1596.
-\href{https://proceedings.mlr.press/v80/fujimoto18a.html}{PMLR}.
-\end{thebibliography}
+% Retain the survey entry alongside the directly cited sources.
+\nocite{heemels2012}
+\bibliographystyle{IEEEtran}
+\bibliography{references}
 \end{document}

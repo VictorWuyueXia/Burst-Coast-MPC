@@ -1,54 +1,117 @@
 # Paragraph plan: act–coast control as the research problem
 
-Replace the complete Introduction and Problem Formulation. The previous benchmark-led plan is superseded. The argument is **motivation for intermittent actuation → coupling of torque and feedback timing → controller construction and analysis → admissible act–coast policies → task requirements → performance criteria**. Introduce the rotary pendulum as the chosen benchmark in Methods, where its coordinates, governing equations, and task specialization belong.
+The Introduction plan is replaced in response to the author's application and literature comments. Its argument is **costly interventions → input duration and restart frequency → prediction and feedback timing → joint timing-conditioned input design**. The five-paragraph Problem Formulation plan below is retained unchanged. Benchmark mechanics remain in Methods.
 
-Apply the [standing guidance](../writing_guidance.md) and the control-academic-writing skill. Use three Introduction paragraphs and five Formulation paragraphs, each with one purpose and three to five connected sentences. Aim for 550–650 prose words and two principal display groups across these sections; keep simple model and target definitions inline. This is an editing budget supporting the whole-paper three-page target excluding figures, not a verified page count.
+Apply the [standing guidance](../writing_guidance.md) and the control-academic-writing skill. Use four Introduction paragraphs and five Formulation paragraphs, each with one purpose and three to five connected sentences. The Introduction has no displayed equations; Formulation retains its two principal display groups. The expanded literature requirement supersedes the old combined 550–650-word estimate; preserve the whole-paper three-page target excluding figures through a later compression and rendered-layout check, not by deleting definitions.
 
-The plan describes the intended paper problem. The current fixed-horizon MPC+RL supplies an inner-control ingredient; the outer scheduler and its certificates remain to be developed and checked. The final contribution statements must distinguish completed constructions and proofs from research objectives.
+The bi-level subsection formulates outer MPC selection of both shut-off and replanning times. The reported current performance concerns continuously enabled MPC+RL. Certificates and act–coast savings remain unsupported until separately established.
 
 ## Scope and companion plans
 
-This file replaces the old opening plan and governs the detailed Introduction and Formulation rewrite. The [paragraph map](../paragraph_plan.md), [subsection revision plan](revision_plan.md), and [figure outline](../figures/figure-plan/outline.md) follow the same paragraph purposes, equation allocation, and evidence boundaries. Existing Method component plans remain the references for their local constructions. Later prose drafting edits the existing `main.tex`; this task updates planning documents only.
+This file governs the opening rewrite. The [paragraph map](../paragraph_plan.md) and [subsection revision plan](revision_plan.md) point to the updated Introduction contract. The [figure outline](../figures/figure-plan/outline.md) retains the existing figure assignments. Detailed sources and comparison boundaries are separate in the [literature ledger](machine-scannables/intro_literature_ledger.md). This task changes plans only; it does not edit the open manuscript or its bibliography.
 
 ## Introduction
 
-### I1. Why design an act–coast controller?
+Use **four physical paragraphs in three argument blocks**: I1 applications; I2a–I2b related approaches and the remaining design question; I3 our construction and its intended benefit. Splitting the literature block prevents five method families from becoming a list inside one dense paragraph. Target approximately 340–400 English prose words, with three to five sentences per paragraph and no displayed equations. The whole-paper three-page target excluding figures remains a layout constraint to check during drafting.
 
-**Purpose:** Introduce the controller's objective before introducing a benchmark or learning method.
+### I1. Applications make intervention itself a resource
 
-**Sentence sequence:** Open with systems that alternate bounded actuation and unforced evolution. Explain that coast intervals can reduce enabled time and the frequency of new control decisions while the plant continues to evolve. Explain that these reductions are useful only while the task and operating constraints remain satisfied. End with the design question: how much to act and how long to coast before obtaining feedback and planning again?
+**Purpose:** Explain why controlling well can require fewer interventions, before discussing a benchmark or an algorithm.
 
-**Equations and intuition:** No mathematics. Define coasting immediately as zero commanded input. Distinguish enabled duration from physical energy consumption, which requires an actuator power model. The eventual prose should express the closing design question as a direct statement.
+**Opening idea:** Some controlled systems incur a cost each time actuation resumes, in addition to the cost of keeping it active.
 
-**Figure:** Figure 1, a generic act–coast timeline, introduces the two intervals and the next feedback decision.
+**Sentence sequence:**
 
-**Transition:** Delaying feedback changes the state from which control resumes, making input and timing coupled decisions.
+1. Introduce intermittent intervention through spacecraft propulsion: a maneuver changes the trajectory, followed by motion with the selected propulsion input off.
+2. Explain the distinct resource issue: some restartable propulsion systems have finite restart capability or require startup resources, so short total burn duration alone does not resolve the operating cost.
+3. Use solar sailing as a second, carefully qualified example: changing sail orientation changes the radiation-pressure force; sparse reconfiguration is a design motivation when reorientation is costly.
+4. Define our act–coast concept as planned bounded actuation followed by zero commanded input, with natural dynamics continuing throughout coast.
+5. Close with the common design need: choose the input, shut-off time, and next feedback decision together while preserving task performance and constraints.
 
-### I2. Why actuation and timing must be designed together
+**Examples and their jobs:**
 
-**Purpose:** Explain the difficulty specific to act–coast control.
+| Example | Necessary contribution to the argument | Boundary and writing decision |
+|---|---|---|
+| Propulsive spacecraft or upper-stage maneuvers | Separates burn duration from restart frequency and directly motivates a zero-input coast interval. | Say “finite restart capability” or “startup resources.” The verified sources do not establish a universal stock of consumable ignition charges. Distinguish the selected propulsion channel from other spacecraft subsystems that may remain active. |
+| Solar-sail reorientation | Shows why infrequent adjustment can matter even when the environment supplies the continuing force. | Radiation pressure remains active at fixed orientation. Treat this as sparse reconfiguration motivation, not a demonstrated zero-thrust coast or a claim that sail attitude needs no control. A direct application requires an attitude/reconfiguration model, which this paper does not supply. |
+| Ocean-voyaging sailboat, reserve alternative only | Gives an accessible analogy for holding a useful configuration between adjustments. | Do not add a third example to the paragraph. If replacing solar sailing, describe a held configuration under sufficiently steady conditions; do not assert that sailors adjust only when wind changes or that fixed sail trim means zero plant input. |
 
-**Sentence sequence:** Explain that the enabled input determines both task progress and the state at switch-off. Explain that coast duration then determines the next observed state and whether constraints hold along the intervening motion. Explain why a small input cost or favorable endpoint alone cannot establish an admissible coast interval. End with the need to assess timing and input choices through their complete predicted motion and subsequent control requirements.
+**Equations and intuition:** None. Explain the physical meaning of coast in words; leave its input law and resource accounting to Formulation. The examples motivate the problem and do not constitute application validation.
 
-**Equations and intuition:** No equations. Motivate continuation assessment through feedback scheduling, rather than introducing reinforcement learning as a separate topic. A feasible endpoint alone does not establish a feasible future.
+**Figure:** Figure 1's event timeline supports sentence 4 by separating enabled input, shut-off, coast, and renewed feedback. No spacecraft photograph, sailboat picture, or additional application panel is needed.
 
-**Figure:** Reuse Figure 1 to explain the dependence of the next decision state on both intervals. Any contrasting coast lengths are schematic, not measured outcomes.
+**Transition:** Existing optimal-control methods address input magnitude and sparsity, which makes them the first relevant comparison.
 
-**Literature role:** Locate the problem relative to self-triggered control, intermittent actuation, and predictive scheduling using primary sources verified before drafting. Compare information and actuation assumptions. This plan adds no unverified citations, novelty claims, or claims that existing methods fail.
+### I2a. Sparse actuation addresses duration, with a separate question about intervention frequency
 
-**Transition:** The coupled decision motivates conditional input optimization within a timing-selection algorithm.
+**Purpose:** Recognize the foundations for bounded and sparse input design, then distinguish the resource question our controller addresses.
 
-### I3. What algorithm and mathematical properties the paper develops
+**Opening idea:** Bounded-input optimal control provides direct ways to shape when actuation is applied.
 
-**Purpose:** Identify controller-level contributions and give the benchmark its proper role.
+**Sentence sequence:**
 
-**Sentence sequence:** Introduce a bi-level construction in which the outer MPC chooses both the shut-off and next feedback times, and the inner optimization chooses the bounded input trajectory conditional on that timing pair. Explain how model prediction accounts for forced and unforced motion and how a continuation estimate can assess motion beyond the next decision. State the completed paper's intended outputs: a controller-construction algorithm, analytical properties where proved, and quantified task/resource performance. End with one sentence naming the rotary pendulum as the chosen benchmark.
+1. Credit classical minimum-time bang–bang control for exploiting available input authority to reach a target rapidly under its stated assumptions.
+2. Explain its relevant boundary: a minimum-time objective does not itself reward long zero-input intervals or penalize restarting; this concerns the chosen objective, not a universal defect of switching control.
+3. Credit maximum hands-off control for minimizing the duration of nonzero input and, under its stated normality conditions, connecting that problem to an L1 formulation.
+4. Explain the specific remaining distinction: input-support duration alone does not price how zero-input intervals are distributed or how many restarts occur, so our design explicitly compares a contiguous enabled segment followed by coast.
 
-**Equations and intuition:** No optimization or training equations. Explain the decomposition: each timing pair is compared using its compatible input solution. Methods supplies the nested optimization, numerical solver, learning construction, and any certificate derivation.
+**Equations and intuition:** No formulas or optimality derivation. If “input support” is used, immediately explain it as the times when input is nonzero. Keep the normality qualification beside the L1 statement.
 
-**Figure:** Figure 1, the outer/inner decision structure, shows what each level chooses and what information returns to the outer comparison.
+**Literature and claim boundary:** Use method-led numerical citations, such as “Minimum-time bang–bang control … [reference]” and “Maximum hands-off control … [reference].” The cited hands-off paper already includes self-triggered feedback and a conditional practical-stability result; never claim that this literature ignores feedback timing, lacks analysis, or has no MPC extensions. The contrast is the selected objective and event structure.
 
-**Claim boundary:** This is the intended architecture, not the status of the current fixed-horizon baseline. The recent formulation uses outer MPC for both timing decisions; no learned timing policy is part of this subsection. Do not identify the current torque-policy critic with an event-level scheduling value or announce a certificate before it is established.
+**Figure:** No new figure. Figure 1 explains our contiguous act–coast event; it does not illustrate alleged failures of the cited methods.
+
+**Transition:** Reducing actuation is distinct from reducing prediction complexity and the frequency of feedback optimization.
+
+### I2b. Prediction grids, feedback triggering, and learned continuation address different timing questions
+
+**Purpose:** Connect computationally economical MPC and recent learning-based prediction to the need for joint physical shut-off and replanning decisions.
+
+**Opening idea:** Predictive and learning-based methods provide complementary ways to reduce the burden of feedback control.
+
+**Sentence sequence:**
+
+1. Credit nonuniform-horizon MPC in the verified Forbes coauthored paper for resolving fast and slow dynamics over a longer prediction span without increasing the number of optimization variables; explain within the same sentence that prediction-grid spacing alone does not select a zero-input coast.
+2. Credit event-triggered MPC for reducing reoptimization or communication while retaining the stated analysis; distinguish this from switching the actuator off, since the selected scheme executes planned inputs between feedback events.
+3. Introduce reinforcement learning through its relevant role, continuation assessment beyond a short prediction, and credit TD-MPC2 for combining a learned model and terminal value with trajectory optimization across diverse continuous-control tasks.
+4. State the scope of that comparison: TD-MPC2's published planning problem selects action sequences rather than an explicit shut-off/replanning pair, and a learned value by itself is not a certificate of constrained coast motion.
+5. Close with our precise design question: compare both timing decisions using the input trajectory and complete enabled/coast motion compatible with each pair.
+
+**Equations and intuition:** None. Define model predictive control (MPC) at its first occurrence in the final prose and reinforcement learning (RL) only if reused. Explain a terminal value as an estimate of performance after the modeled interval. Keep RL subordinate to the timing problem rather than introducing a second motivation about learning dynamics.
+
+**Literature and claim boundary:** Use the verified name “nonuniformly spaced prediction horizon” for the Forbes reference; “dynamic time resolution MPC” is a family description, not that paper's title or a verified claim of online grid adaptation. Confine each limitation to the cited formulation. Self-triggered control is relevant because our next decision is scheduled in advance; do not claim priority for advance scheduling or for combining learning and MPC.
+
+**Figure:** Figure 1's component pipeline supports the closing distinction by showing both timing outputs and their conditional inner solves. Do not add a literature-comparison plot without comparable data.
+
+**Transition:** The final paragraph explains how the nested construction makes this comparison explicit.
+
+### I3. Our contribution is a conditional input solve inside joint timing selection
+
+**Purpose:** State the concrete mechanism and its intended benefit without announcing unproved or unmeasured properties.
+
+**Opening idea:** We formulate act–coast control by assigning the two timing decisions to outer MPC and the bounded input trajectory to a conditional inner optimization.
+
+**Sentence sequence:**
+
+1. State that outer MPC selects both shut-off and replanning times, while the inner problem optimizes the enabled input for each candidate pair.
+2. Explain why this matters: every timing choice is assessed using its compatible forced and unforced motion, instead of fixing the input or one timing decision before comparing the other.
+3. Explain the learned continuation estimate's role in assessing the state at replanning, with task cost and declared enabled/restart charges in the finite event score; describe the intended tradeoff as control performance versus enabled duration and intervention frequency.
+4. State the delivered scope: the paper formulates this construction and evaluates the continuously enabled MPC+RL ingredients; admissibility certificates and act–coast resource comparisons remain research objectives until supported by proofs and matched results.
+5. Name the rotary pendulum once as the chosen nonlinear benchmark and lead directly into the generic synthesis problem in Formulation.
+
+**Equations and intuition:** None. The “bi-level” description means that each outer timing candidate receives a conditional inner input solution. Leave duration-grid relations, cost conventions, and numerical search to Methods.
+
+**Figure:** Figure 1 links the controller outputs to event execution and shows how inner scores support outer timing selection. Its purpose is to make the decomposition understandable, not to imply a measured saving or a globally optimal solver.
+
+**Claim boundary:** The current frozen critic estimates torque-policy continuation, not the value of repeated future timing decisions or restart charges. The event score is a declared surrogate for the generic resource objective. Describe joint timing as a formulated mechanism and potential benefit, not as established superiority, guaranteed stability, or a completed application controller.
+
+## Introduction citation and drafting contract
+
+The [source ledger](machine-scannables/intro_literature_ledger.md) records verified papers, passages, application sources, citation-selection evidence, and comparison limits. It is the detailed reference for later drafting; keep that detail out of the introduction.
+
+Use numerical citations attached to the control concept. Bibliographic entries retain author names, but prose does not use “someone et al.” Introduce each method's actual contribution before its limitation, and express the limitation as a precise mismatch of objective, decision variables, or information pattern. Do not claim that an entire field fails at a task outside the cited paper's scope.
+
+Retain one continuous argument: **costly interventions → input duration and restart frequency → prediction and feedback timing → joint timing-conditioned input design**. Remove software details, experiment values, benchmark mechanics, broad novelty claims, and a separate paper-organization paragraph.
 
 ## Problem Formulation
 
@@ -175,7 +238,9 @@ These are writing checks, not new numbered development stages.
 
 | Milestone | Validation procedure | Success flag |
 |---|---|---|
-| Argument | Read only the eight paragraph openings. | Each advances the act–coast problem; the benchmark appears as an evaluation choice. |
+| Argument | Read only the nine paragraph openings. | Each advances the act–coast problem; the benchmark appears as an evaluation choice. |
+| Applications | Check each example against its source and assigned purpose. | Propulsive coast and sparse sail reconfiguration remain distinct; no universal ignition-charge claim. |
+| Literature | Trace all five method families to the source ledger and read each contribution before its scope limit. | Correct Forbes terminology, qualified hands-off analysis, recent RL source, and no unsupported novelty claim. |
 | Formulation | Trace observation, full-event execution, target, constraints, and cost. | All symbols and parameter origins defined; enabled zero input and coast unambiguous. |
 | Analysis | Map each claimed property to a proof or numerical check and its domain. | No learned score or observed result described as a certificate. |
 | Contributions | Compare the outer/inner split with the code and saved architecture. | Proposed full controller distinguished from implemented inner ingredient. |
@@ -190,4 +255,4 @@ The [current manuscript](../latex-project/main.tex) establishes the existing inn
 
 ## Timing and Results continuation
 
-The [timing plan](bilevel_optimization_paragraph_plan.md) assigns both times to outer MPC and inputs only to the conditional inner solve. The [Results plan](experiments_results_paragraph_plan.md) contains one supported non-act-coast subsection and three short future-experiment stubs. Older architecture notes are not a source for these decisions. The Introduction now assigns both timing decisions to outer MPC, and the bi-level subsection is written; the Results plan remains future writing.
+The [timing plan](bilevel_optimization_paragraph_plan.md) assigns both times to outer MPC and inputs only to the conditional inner solve. The [Results plan](experiments_results_paragraph_plan.md) contains one supported non-act-coast subsection and three short future-experiment stubs. Older architecture notes are not a source for these decisions. The Introduction now assigns both timing decisions to outer MPC, and the bi-level subsection is written; Results now contains current performance and three placeholders; the Introduction rewrite follows this new plan.

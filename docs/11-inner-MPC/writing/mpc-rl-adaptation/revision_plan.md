@@ -2,7 +2,7 @@
 
 The narrative is **intermittent actuation and feedback timing -> coupled timing/input decisions -> controller synthesis and analysis -> benchmark evaluation**. The paper concerns the act-coast controller, its construction algorithm, and provable or quantifiable properties. The rotary pendulum is the chosen benchmark; it is not the motivation or principal contribution.
 
-This plan replaces the previous benchmark-led structure. The [opening paragraph plan](intro_formulation_paragraph_plan.md) governs three Introduction paragraphs and five Formulation paragraphs. Use the [standing writing guidance](../writing_guidance.md): simple grammar, one continuous argument, three to five sentences per paragraph, motivation before equations, and immediate definitions and intuition. Separate the proposed controller-level problem from the current fixed-horizon inner-controller implementation described in [current_progress.md](current_progress.md).
+This plan replaces the previous benchmark-led structure. The [opening paragraph plan](intro_formulation_paragraph_plan.md) governs four Introduction paragraphs and five Formulation paragraphs. Use the [standing writing guidance](../writing_guidance.md): simple grammar, one continuous argument, three to five sentences per paragraph, motivation before equations, and immediate definitions and intuition. Separate the proposed controller-level problem from the current fixed-horizon inner-controller implementation described in [current_progress.md](current_progress.md).
 
 ## Proposed structure and space budget
 
@@ -20,14 +20,13 @@ This plan replaces the previous benchmark-led structure. The [opening paragraph 
 | Captions and references | Explain figures and retain sources needed by the argument. | 0.30 |
 | **Total** | Planning budget excluding figure bodies. | **3.00** |
 
-The combined Introduction/Formulation target is approximately 550-650 prose words and two principal display groups. These allocations are not rendered page measurements. If space is insufficient, compress teacher/search/training details and repeated explanations, not symbol definitions or the core act-coast construction. An optional abstract must fit within this total. Do not shrink typography to conceal an oversized argument.
+The revised Introduction targets 340–400 prose words and no display equations; Formulation retains its two principal display groups. The old combined 550–650-word estimate is superseded. The table remains an aspirational whole-paper allocation to reassess during drafting. These allocations are not rendered page measurements. If space is insufficient, compress teacher/search/training details and repeated explanations, not symbol definitions or the core act-coast construction. An optional abstract must fit within this total. Do not shrink typography to conceal an oversized argument.
 
 ## I. Introduction
 
 **Purpose.** Establish the act-coast research question before the plant or learning method.
 
-**Paragraph sequence.** I1 motivates alternating bounded actuation with unforced evolution and explains why lower enabled time and fewer decisions matter only when task and constraints are preserved. I2 explains how input sets the switch-off state and coast duration sets the next decision state, so timing and actuation must be assessed together. I3 introduces outer MPC selecting both shut-off and replanning times with conditional inner input optimization, identifies algorithmic and analytical outputs, and names the pendulum only as the benchmark.
-
+**Paragraph sequence.** I1 motivates costly interventions using propulsive maneuvers and a qualified solar-sail example. I2a recognizes bang–bang and maximum hands-off control before distinguishing duration and intervention count. I2b connects the verified Forbes nonuniform prediction horizon, event-triggered MPC, and TD-MPC2 to the separate roles of prediction spacing, feedback scheduling, and learned continuation. I3 explains outer MPC choosing both times and the conditional inner input solve, then states the current evidence boundary and benchmark role. Use the [sentence-level plan](intro_formulation_paragraph_plan.md#introduction) and [source ledger](machine-scannables/intro_literature_ledger.md).
 **Mathematical content.** No equations. Define coasting as zero commanded input. Introduce continuation evaluation because feedback is delayed; do not make learned terminal costs a separate competing motivation. Reserve algorithm and proof details for Methods.
 
 **Figure and claims.** Figure 1 explains event execution; Figure 1 explains the decision structure. State only delivered contributions. Both timing decisions are selected by the formulated outer MPC; a learned timing policy is outside this plan. A benchmark-centered or energy-decoder-centered title must be reconsidered when the final algorithm and properties are established.

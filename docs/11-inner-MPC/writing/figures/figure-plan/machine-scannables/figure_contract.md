@@ -2,7 +2,7 @@
 
 ## Authority and layout
 
-The author's latest figure sequence supersedes earlier figure choices and numbering. Figures 1, 4 and 5: wide double-column page-top. Figure 2: single-column approximately half-page height. Figure 3: single-column. Figure 6: optional conventional-performance comparison.
+The author's latest figure sequence supersedes earlier figure choices and numbering. Figures 1 and 5: wide double-column page-top. Figure 4: single-column with compact pending act–coast strip. Figure 2: single-column approximately half-page height. Figure 3: single-column. Figure 6: optional conventional-performance comparison.
 
 Source manuscript: `docs/11-inner-MPC/writing/latex-project/main.tex`. Figures 1–4 production are authorized; Figures 5–6 remain plans. The Figure 1 production contract is `../../act-coast-overview/design_contract.md`. No controller experiment is authorized by this figure task.
 
@@ -26,7 +26,7 @@ Follow Figure 2's geometric illustration style and Figure 1's blue/orange palett
 
 ## Figure 3: energy space and sensitivities
 
-Main sources: mechanical model and energy identities in the draft; the existing energy-plane/torque-response assets are historical explanatory material. Additional diagnostic definitions are documented in `docs/9-RL/14-reinforcement-learning-prior/20-stationary-balancing/actuation-opportunities/interpretation_summary.md` and `scheduling_formulation.md`. These are diagnostic sources, not the outer timing-controller definition.
+Main sources: committed final-results/energy-torque-sensitivity records for the raw and preference planes, and mechanical model and energy identities in the draft; the existing energy-plane/torque-response assets are historical explanatory material. Additional diagnostic definitions are documented in `docs/9-RL/14-reinforcement-learning-prior/20-stationary-balancing/actuation-opportunities/interpretation_summary.md` and `scheduling_formulation.md`. These are diagnostic sources, not the outer timing-controller definition.
 
 Use physical energy coordinates `(K_a,K_p,V)`, total energy `E=K_a+K_p+V`, and upright-rest target `E_star`. The requested-work plane and mechanically compatible subset are not a complete bounded-input reachable set. A finite-duration torque endpoint curve is parameterized by torque at one declared state and command duration; it is not an instantaneous rate sensitivity.
 
@@ -93,3 +93,9 @@ Figure 5 prioritizes activation count, total control time and total computation 
 Use the existing IEEE document layout; exact dimensions and page-top placement are verified during a later rendering/integration task. Export editable vector figures, keep numerical data and provenance separate, and make all labels readable at actual size. Do not invoke the old teacher renderer or change existing image assets in this planning update.
 
 Validate: five required figures plus optional sixth; wide/top 1/4/5; half-page single-column 2; single-column 3; outer timing roles correct; energy definitions distinct; blank sparse block honest; four requested baselines present; metric conventions stated; both LaTeX sources unchanged. No plotting scripts, runtime classes/functions, wrappers, CLI/configuration parameters, training or experiments are introduced.
+
+Current Figure 3 display override: only two complete Python plot bases. A is recorded physical-energy allocation with a target plane and ideal reference; B is the raw sensitivity plane colored by the existing cE/ch task-conflict criterion. Keep the definitions above for computation, but do not draw a separate preference-plane panel C or manually project numerical geometry. Canva is limited to composition and explanatory highlights.
+
+## Figure 4 current production contract
+
+Figure 4 is a double-column page-top 504 × 460 point figure using figure* [t] at textwidth. Two complete Python bases retain the linked keyframe/main record and the independent late holding detail. The blank full-width act–coast comparison has an editable heading/status. Top poses use the exact same piecewise time map as the main traces, with thin neutral guides. Blue is every row's first/sole data curve; orange dashed is a second, using thinner overlapping strokes. Omega is the coupled downward natural angular frequency sqrt(J0*G/(J0*J-B^2)), not a display-tuning parameter. All 40,001 states and 400 holds remain. Earlier single-column Figure 4, separate native curve reconstruction and component-fixed colors are superseded.

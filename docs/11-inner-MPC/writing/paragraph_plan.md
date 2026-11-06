@@ -2,51 +2,15 @@
 
 This replaces the old 21-paragraph energy-controller outline. Use the [detailed opening plan](mpc-rl-adaptation/intro_formulation_paragraph_plan.md) for the governing paragraph contract and the [revision plan](mpc-rl-adaptation/revision_plan.md) for the complete subsection map. The existing [dynamics/teacher plan](mpc-rl-adaptation/dynamics_teacher_paragraph_plan.md) and [RL/MPC plan](mpc-rl-adaptation/rl_mpc_paragraph_plan.md) retain their local Method roles; relocate benchmark definitions before using them.
 
-Replace the complete Introduction and Problem Formulation. The previous benchmark-led plan is superseded. The argument is **motivation for intermittent actuation → coupling of torque and feedback timing → controller construction and analysis → admissible act–coast policies → task requirements → performance criteria**. Introduce the rotary pendulum as the chosen benchmark in Methods, where its coordinates, governing equations, and task specialization belong.
+Replace the complete Introduction and Problem Formulation. The previous benchmark-led plan is superseded. The Introduction argument is **costly interventions → actuation sparsity → prediction and feedback timing → joint timing-conditioned input design**; the generic Formulation plan is retained. Introduce the rotary pendulum as the chosen benchmark in Methods, where its coordinates, governing equations, and task specialization belong.
 
-Apply the [standing guidance](writing_guidance.md) and the control-academic-writing skill. Use three Introduction paragraphs and five Formulation paragraphs, each with one purpose and three to five connected sentences. Aim for 550–650 prose words and two principal display groups across these sections; keep simple model and target definitions inline. This is an editing budget supporting the whole-paper three-page target excluding figures, not a verified page count.
+Apply the [standing guidance](writing_guidance.md) and the control-academic-writing skill. Use four Introduction paragraphs and five Formulation paragraphs, each with one purpose and three to five connected sentences. The Introduction targets 340–400 prose words with no displayed equations; Formulation retains two principal display groups. This supersedes the old combined 550–650-word estimate. This is an editing budget supporting the whole-paper three-page target excluding figures, not a verified page count.
 
 The plan describes the intended paper problem. The current fixed-horizon MPC+RL supplies an inner-control ingredient; the outer scheduler and its certificates remain to be developed and checked. The final contribution statements must distinguish completed constructions and proofs from research objectives.
 
 ## Introduction
 
-### I1. Why design an act–coast controller?
-
-**Purpose:** Introduce the controller's objective before introducing a benchmark or learning method.
-
-**Sentence sequence:** Open with systems that alternate bounded actuation and unforced evolution. Explain that coast intervals can reduce enabled time and the frequency of new control decisions while the plant continues to evolve. Explain that these reductions are useful only while the task and operating constraints remain satisfied. End with the design question: how much to act and how long to coast before obtaining feedback and planning again?
-
-**Equations and intuition:** No mathematics. Define coasting immediately as zero commanded input. Distinguish enabled duration from physical energy consumption, which requires an actuator power model. The eventual prose should express the closing design question as a direct statement.
-
-**Figure:** Figure 1, a generic act–coast timeline, introduces the two intervals and the next feedback decision.
-
-**Transition:** Delaying feedback changes the state from which control resumes, making input and timing coupled decisions.
-
-### I2. Why actuation and timing must be designed together
-
-**Purpose:** Explain the difficulty specific to act–coast control.
-
-**Sentence sequence:** Explain that the enabled input determines both task progress and the state at switch-off. Explain that coast duration then determines the next observed state and whether constraints hold along the intervening motion. Explain why a small input cost or favorable endpoint alone cannot establish an admissible coast interval. End with the need to assess timing and input choices through their complete predicted motion and subsequent control requirements.
-
-**Equations and intuition:** No equations. Motivate continuation assessment through feedback scheduling, rather than introducing reinforcement learning as a separate topic. A feasible endpoint alone does not establish a feasible future.
-
-**Figure:** Reuse Figure 1 to explain the dependence of the next decision state on both intervals. Any contrasting coast lengths are schematic, not measured outcomes.
-
-**Literature role:** Locate the problem relative to self-triggered control, intermittent actuation, and predictive scheduling using primary sources verified before drafting. Compare information and actuation assumptions. This plan adds no unverified citations, novelty claims, or claims that existing methods fail.
-
-**Transition:** The coupled decision motivates conditional input optimization within a timing-selection algorithm.
-
-### I3. What algorithm and mathematical properties the paper develops
-
-**Purpose:** Identify controller-level contributions and give the benchmark its proper role.
-
-**Sentence sequence:** Introduce a bi-level construction in which the outer MPC chooses both the shut-off and next feedback times, and the inner optimization chooses the bounded input trajectory conditional on that timing pair. Explain how model prediction accounts for forced and unforced motion and how a continuation estimate can assess motion beyond the next decision. State the completed paper's intended outputs: a controller-construction algorithm, analytical properties where proved, and quantified task/resource performance. End with one sentence naming the rotary pendulum as the chosen benchmark.
-
-**Equations and intuition:** No optimization or training equations. Explain the decomposition: each timing pair is compared using its compatible input solution. Methods supplies the nested optimization, numerical solver, learning construction, and any certificate derivation.
-
-**Figure:** Figure 1, the outer/inner decision structure, shows what each level chooses and what information returns to the outer comparison.
-
-**Claim boundary:** This is the intended architecture, not the status of the current fixed-horizon baseline. The recent formulation uses outer MPC for both timing decisions; no learned timing policy is part of this subsection. Do not identify the current torque-policy critic with an event-level scheduling value or announce a certificate before it is established.
+The [replacement sentence-level plan](mpc-rl-adaptation/intro_formulation_paragraph_plan.md#introduction) supersedes the previous three-paragraph Introduction map. Use I1 for propulsive-spacecraft and qualified solar-sail motivation, I2a for bang–bang and maximum hands-off control, I2b for the verified Forbes nonuniform-horizon reference, event-triggered MPC, and TD-MPC2, and I3 for our joint outer timing selection and conditional inner input optimization. These are four paragraphs in three argument blocks. Each example and comparison has an explicit role and evidence boundary; Figure 1 explains the event and construction. The [literature ledger](mpc-rl-adaptation/machine-scannables/intro_literature_ledger.md) supplies technical sources and dated citation-selection evidence. Do not use the old I2 coupling-only paragraph as a competing plan.
 
 ## Problem Formulation
 
@@ -173,7 +137,7 @@ These are writing checks, not new numbered development stages.
 
 | Milestone | Validation procedure | Success flag |
 |---|---|---|
-| Argument | Read only the eight paragraph openings. | Each advances the act–coast problem; the benchmark appears as an evaluation choice. |
+| Argument | Read only the nine paragraph openings. | Each advances the act–coast problem; the benchmark appears as an evaluation choice. |
 | Formulation | Trace observation, full-event execution, target, constraints, and cost. | All symbols and parameter origins defined; enabled zero input and coast unambiguous. |
 | Analysis | Map each claimed property to a proof or numerical check and its domain. | No learned score or observed result described as a certificate. |
 | Contributions | Compare the outer/inner split with the code and saved architecture. | Proposed full controller distinguished from implemented inner ingredient. |

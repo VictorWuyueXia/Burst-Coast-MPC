@@ -1,41 +1,30 @@
-# Figure 1: concept first, construction second
+# Figure 1: repeated act–coast operation and controller construction
 
-The figure should first explain what act–coast control does, then show how the controller constructs one event. Panel a carries the concept. Panel b uses a left-to-right sequence of timing samples, parallel conditional MPC solves, outer selection and execution, with neural information entering from above. All timing bars and input traces are schematic; they make no experimental claim.
+The visual claim is that a finite set of timing-conditioned input optimizations produces one act–coast episode, and the construction repeats at later decisions. This is a schematic-led composite, not a measured controller record. Apply [the example-derived style rules](../figure_style_rules.md).
 
-## Retained text and its purpose
+## Panels and text purposes
 
-| Text retained in the figure | Necessary purpose |
-|---|---|
-| `a Act–coast control` | Establish the concept before introducing algorithms. |
-| `Act`, `Coast` | Name the two colored phases. |
-| `Input u(t)`, `Mode m(t)` | Distinguish commanded input from actuator enablement. |
-| `u = 0` inside the act interval | Show that a zero command can occur while enabled. |
-| `m = 1`, `m = 0` | Identify enabled and disabled operation. |
-| `0`, `τ`, `h` | Locate the decision, shut-off and next decision on one elapsed-time axis. |
-| `Plan`, `Shut off`, `Replan` | Explain the function of each timing marker. |
-| `b Timing search and parallel MPC` | Introduce the construction after the concept. |
-| `State x` | Identify the common observed state used for all conditional problems. |
-| `Sample timings` | Explain the different act/coast duration pairs illustrated by the miniature bars. |
-| `Parallel inner MPC` | Identify one independently optimized input sequence per timing sample. |
-| `Actor: candidates` | State the actor's only displayed role without adding a training branch. |
-| `Critic: terminal cost F` | Identify the common learned continuation information supplied to both optimization levels. |
-| `Outer selection` and `min S` | Explain comparison of the optimized conditional event scores. |
-| `τ*, h*, u*` | Identify the selected shut-off time, replanning time and corresponding optimized input sequence. |
-| `Execute` | Connect the selected event to the act–coast sequence explained above. |
+| Element | Scientific purpose | Necessary labels |
+|---|---|---|
+| Three episodes | Show densely sampled held commands during actuation and zero input during coast. Remove the separate Mode element entirely. | Act, Coast, input u(t), time t |
+| Start markers and brackets | Distinguish activation count from accumulated enabled duration; show repeated decisions and each actuation interval. | t₁, t₂, t₃; τ₁, τ₂, τ₃; 3 activations; total actuation time |
+| Timing samples | Show different act/coast duration pairs as small repeated timing diagrams. | Sample timings |
+| Finite selection placeholder | Reserve an explicit place for a rule choosing a finite number of timing-conditioned inner problems. No sampling or ranking rule is invented. | Select subset; K pairs; Rule pending |
+| Card stack | Show independent inner MPC+RL problems evaluated in one parallel batch, each associated with its own timing pair and optimized input sequence. | Solve in parallel; Inner MPC+RL; (τᵢ,hᵢ); min J+F |
+| Actor and critic | Actor supplies input candidates. Critic F enters the terminal objective and therefore also the optimized scores compared by outer MPC. | Actor; Critic F |
+| Outer decision and execution | Outer MPC chooses shut-off, replanning time and their compatible input sequence; execution proceeds to the next episode. | Outer MPC; min S; τ*, h*, u*; Execute |
 
-The caption defines the physical state, times, input, mode, critic estimate, conditional score and star notation. Teacher demonstrations and actor–critic training remain in Methods. Remove full-sentence box descriptions, the offline training pipeline, the separate plant box, return-loop narration, repeated continuation annotations and duration-grid algebra from the artwork. Place the formulation status in the caption. The figure now has 24 text boxes and 52 whitespace-separated text tokens, compared with 35 and 142 before this revision; the count includes symbols and panel letters.
+The caption defines all symbols. K is a finite positive candidate count, with its selection rule unspecified. Three visible episodes and three stacked cards are illustrative, not an experimentally established count or batch-speed result. Blue denotes enabled actuation, orange coast; a zero command inside blue remains an enabled command without a separate mode trace.
 
-## Composition and meaning
+## Rendering and structure budget
 
-Use Morandi blue for enabled operation and muted orange for coast. Their pale fills retain the same meaning; black and neutral gray are reserved for text, arrows and outlines. No accent hue is required. Use Arial only, with 9-point headings and 8-point supporting labels, and black text throughout.
+Keep Arial 8/9 points, black text, two Morandi hues and neutral strokes. Use 504 × 342 points at double-column width. Main arrows share one style and move rightward or downward. Stack offsets expose multiplicity; the front card contains a small optimization and input illustration. Group the dense actuation lines as one editable Canva element while preserving constituent pieces.
 
-All workflow arrows use the same black stroke and arrowhead, directed rightward or downward. Three illustrated timing samples feed three matching MPC problems in parallel, each with the same initial state and its own optimized enabled input prefix. A network icon identifies each learned component. The miniature event and input illustrations replace prose rather than decorate it.
+Retain build_scene, render_vector and main in the existing Python source, and the existing native exporter. Add only scene group metadata and native grouping to that exporter; no new classes, wrappers, experiment parameters, CLI switches or fallback behavior. Keep source geometry and audit data in artifacts and human guidance in docs.
 
-The shared critic estimate F is evaluated at each conditional prediction's replanning state. It is the inner terminal cost and is already included in the optimized score S used for timing comparison. Its two arrows indicate these two roles, not two additive penalties or a separate timing-policy network. The shown parallel evaluation is part of the proposed full controller, not a claim that the act–coast executor has been evaluated.
+## Milestones and success criteria
 
-## Milestones, structure and success checks
-
-1. **Scientific and text contract:** every label has the purpose listed above; concept comes first; both timing variables are sampled; each timing pair has a separate conditional input solve; critic dependence is shared without double counting.
-2. **Editable rendering:** preserve the existing two scripts and three Python functions (`build_scene`, `render_vector`, `main`), adding only an ellipse primitive to the shared geometry/export vocabulary. No classes, wrappers, controller changes, runtime switches, tunable parameters or fallback behavior are added. Geometry, color, font and output paths remain fixed production values.
-3. **Visual validation:** inspect both panels, arrow directions, text clearance, miniature timing/input correspondence, exactly two font sizes and black text; confirm only two semantic hues and neutral strokes. Audit vector fonts and separate native objects.
-4. **Delivery:** update the editable Canva diagram and local vector exports, revise the bilingual caption, and compile the existing LaTeX source. Keep the human guide separate from geometry and validation records.
+1. Contract: save example-derived rules and this label/purpose map before rendering. Success: every element carries a physical or algorithmic relation.
+2. Artwork: remove Mode, draw dense commands for three episodes, bracket durations and count activations, add the finite selector and card stack. Success: labels and connections are readable at final size with no false algorithmic claims.
+3. Editing: export native text/shape geometry and three native burst groups, then inspect Canva grouping and editability. Success: the action group moves/ungroups as one Canva object and current figure remains in act-coast with its predecessor archived.
+4. Manuscript: update local vectors and bilingual caption; compile the existing main.tex. Success: compilation passes without claiming that the proposed timing controller has been evaluated.

@@ -1,22 +1,17 @@
-# Historical teacher-figure implementation plan
+# Final figure reproduction workflow
 
-This file records the earlier teacher-figure workflow. The [current act-coast outline](outline.md) replaces its manuscript figure sequence; the new overview has not been implemented. The earlier figure outline was implemented in `src/rotary_pendulum/visualization/controller_figures/`. This is a four-file, eight-function workflow, with no new classes, data classes, wrappers, CLI options, or controller parameters. Files remain below 300 lines; functions target 20–100 lines. Use concise comments, explicit assertions, batched independent torque predictions, and no fallback or exception-recovery logic.
+## Structure and editing scope
 
-## Structure budget
+Each generated figure has `artifacts/<figure>/src/`, `human-readables/` and `machine-scannables/`. Keep one final Python renderer and one optional editable-PPTX exporter per figure. Figure 4 also keeps the independent archived-record decoder. No new classes, wrappers, CLI options or controller parameters are needed. Retain compact task-oriented files, concise comments and explicit verification; do not add fallback behavior.
 
-- `data.py`: `predict(state, torques)` batches the existing NumPy model over one held action; `select_examples(records, output)` verifies the eight available replay archives and compares their full-duration decision states and selects a shared record for the plane and torque figures; `physical_energy_plane(example)` constructs the shared exact energy geometry; `prepare_example(example, output)` constructs the chosen curve, root candidates, feasible-region boundary, and numerical audit.
-- `mechanism.py`: `draw_configuration(colors)` draws the physical mechanism from the existing geometry routine, using two arm angles and two pendulum angles in separate orthographic views. Fixed panel-specific cameras expose the horizontal and vertical rotation planes; variables, torque, and gravity are labelled, and the body legend identifies the arm, pendulum, and moving swing plane. A projected right-angle mark verifies the arm-normal plane relation.
-- `energy_figures.py`: `draw_energy_plane(data, colors)` draws one equal-scale view of the requested plane, its curved physical subset, and the upright target, with one compact legend; `draw_torque_response(data, colors)` draws the endpoint-energy sweep and its work-error companion.
-- `render.py`: `render()` applies one visual style, runs data preparation, exports all three figures, and writes their export audit. The module is the reproduction entry point.
-- Shared physical objects: existing physical configuration and derived model. Data objects: replay manifest, arrays of recorded decisions, candidate-comparison table, and one selected-example dictionary. No new runtime object types.
-- Independent scientific variables: torque for the response curve; potential and arm kinetic energy for the plane region. The observed state is fixed per example. All prediction settings reproduce the existing five 20 ms steps, 33 grid torques, and ten bisection iterations.
-- Fixed presentation values: 9 pt DejaVu Sans, including matching mathematical text; charcoal, muted blue, sage, and an orange solution accent. The mechanism and torque figures use a 7-inch two-panel layout; the energy-plane figure uses a 3.4-inch single view. The energy figures have pale coordinate walls, sparse solid grids, and independently selected perspective cameras. Solid lines are the default, with marker shapes used only to distinguish work matches, target, and selected action.
+## Reproduction milestone
 
-## Milestones and checks
+Run all four Python renderers from their package README commands. Success means all final PDF/SVG/PNG outputs are regenerated, source-record assertions pass, and the current figure appearance is preserved. Figures 3–4 must retain complete recorded plots and the empty act-coast comparison.
 
-1. **Data selection:** verify replay hashes, physical inputs, and full action durations. Compare all preserved episodes, record exclusions and geometric selection scores. Success: an explicitly selected example with reproducible state and source provenance. The complete raw batch is absent locally; the preserved subset comes from the latest documented validation batch.
-2. **Numerical construction:** use the existing NumPy dynamics as the figure predictor. Reproduce grid/bisection candidates and common scoring, and compare the selected endpoint and action with the recorded decoder output. Check feasible-region reconstruction and shaft-work versus endpoint-energy residuals separately. Success: assertions pass and source tables/audit are saved.
-3. **Rendering:** compare candidate appearances and oblique camera views, render the three figures, and inspect each panel. Success: no label collisions, unnecessary decoration, ambiguous direction arrows, or dishonest changes to the recorded request. All base text has the same font and size.
-4. **Export:** save editable PDF/SVG and PNG previews, with numerical records in a separate folder. Run source, lint, and PDF-font checks. Success: readable artifacts and a bilingual interpretation summary. Manuscript prose and LaTeX placement are outside this coding request.
+## Editable-export milestone
 
-Outputs belong in `docs/10-heuristic-controller/15-controller-paper/figures/human-readables` and `artifacts/rotary_pendulum/reference-data/10-heuristic-controller/15-controller-paper/figures/machine-scannables`. The physics parameters and logged values remain unmodified. The figure predictor is a diagnostic calculation from recorded states, not a new performance experiment.
+Run each optional Node exporter. Success means one canonical PPTX per figure, native editable elements for Figures 1–2, intact final plot tiles for Figures 3–4, and no versioned drafts or inspection sidecars. Verify the Figure 1 action-sequence groups and that embedded scientific images match the final PNG tiles.
+
+## Integration milestone
+
+Compile the existing manuscript with its updated figure copies. Success means the built-in compiler reports success. Compilation alone does not establish final page placement or Canva appearance. Current package inventories and reproduction checks are retained in each package's `machine-scannables/validation.json`.
