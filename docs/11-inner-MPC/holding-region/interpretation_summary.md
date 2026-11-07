@@ -1,5 +1,7 @@
 # Holding-region theorem: interpretation
 
+**Perfect-solver analysis, 2026-10-25:** under the requested global-solver idealization, the [new local proof](human-readables/perfect_solver_holding.md) gives a holding-region existence theorem conditional on unique global optimality of the identified regular branch. A level-0.36 candidate has pendulum extent 3.83712 degrees; 48 nonlinear boundary probes move inward. A uniform remainder bound of 0.02 would prove invariance, but global branch coverage and the regional bound remain unverified. The controller is unchanged. This idealized result does not certify finite CEM.
+
 **Plan-memory switching audit, 2026-10-25:** the [weighted queue study](human-readables/plan_memory_switching.md) proves the retained-shift construction conditionally and tests the missing replacement implication. Among 669 saved replacements, 345 lower the MPC objective while increasing the queue certificate relative to warm; 57 reachable transitions leave its proposed five-degree sublevel. No complete-controller holding region has been proved. Controller logic remains unchanged.
 
 **Actual-network result, 2026-10-25:** the [new study](human-readables/actual_mpc_rl_holding.md) replaces the assumptions. A local optimizer branch is numerically stable, but its proposed five-degree holding ellipsoid is disproved by 73 saved CEM exits. A 14-state retained-plan branch is also analyzed. The complete switching-controller proof remains open; neither earlier illustrative ellipsoid is an established MPC+RL holding region.
