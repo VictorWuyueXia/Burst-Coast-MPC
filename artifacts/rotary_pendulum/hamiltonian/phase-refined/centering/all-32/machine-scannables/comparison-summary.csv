@@ -1,0 +1,3 @@
+controller,runs,upright_holds,median_hold_s,completed,meets_hold_limits_at_end,arm_crossing_runs,max_abs_arm_deg,mean_upright_s,total_switch_ons,total_actuation_s,total_zero_torque_inside_s,total_upright_feedback_s,total_switch_ons_first_10s,total_actuation_s_first_10s,total_zero_torque_inside_s_first_10s,total_upright_feedback_s_first_10s
+before,32,26,10.5755,32,26,0,134.30230198699167,28.211359375,451,880.32,0.0,848.5600000000001,419,144.62,0.0,115.26
+centered,32,32,9.79075,32,32,0,134.09262889835736,34.63975,424,1133.6200000000001,0.0,1103.66,411,181.88,0.0,152.64000000000001

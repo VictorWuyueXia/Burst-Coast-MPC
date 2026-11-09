@@ -1,0 +1,45 @@
+{
+  "variant": "refined",
+  "tuning": {
+    "k_energy": 0.55,
+    "phase_half_width": 0.5235987755982988,
+    "brake_gain": 8.0,
+    "momentum_weight": 0.5,
+    "centering_rate_s_inv": 1.0
+  },
+  "cap_nm": 0.00459,
+  "arm_limit_rad": 2.356194490192345,
+  "lqr_gain": [
+    -0.0757143676478359,
+    15.360350506323707,
+    -0.12182628415055093,
+    1.2211567169113522
+  ],
+  "lqr_poles": [
+    0.1895239936521829,
+    0.28013371465621506,
+    0.6535420465548452,
+    0.9172247354672317
+  ],
+  "prediction_step_s": 0.001,
+  "execution_step_s": 0.0005,
+  "session_s": 40.0,
+  "physical": {
+    "gravity_m_s2": 9.81,
+    "arm_mass_kg": 0.095,
+    "arm_length_m": 0.085,
+    "pendulum_mass_kg": 0.024,
+    "pendulum_length_m": 0.129,
+    "rotary_damping_nms": 0.0,
+    "pendulum_damping_nms": 0.0,
+    "torque_limit_nm": 0.0204
+  },
+  "source_sha256": {
+    "scripts\\experiments\\hamiltonian\\run.py": "d7641a57a140056e9cf71d859a37e922259e440112a374eb99c6a3684ed06edb",
+    "src\\rotary_pendulum\\heuristic\\orbital_controller.py": "31604010bd4cbfd7d369ec04d3d093980b559ad4e1fae90712453400302b1b49",
+    "src\\rotary_pendulum\\heuristic\\orbital_phase.py": "433f3aa3e8ca68a10f388f57af358ab85cbebaf6c998dd0a20fe1bcf8b64f5f6",
+    "src\\rotary_pendulum\\heuristic\\orbital_prediction.py": "1e12c6816dbc4ecc22c7084722ee29cc1501460b2676f5fe271bb67ad6c7e6ac",
+    "src\\rotary_pendulum\\environment\\jax_dynamics.py": "31868ac2b3832d2b80b6f5863284e18eed7c62382248eb0536465624c0c3a7ef",
+    "src\\rotary_pendulum\\heuristic\\phase_pulse_controller.py": "17d041a6bea83ca348cb77425afd91458d2af54b126c9e2d7449de26474f5852"
+  }
+}
